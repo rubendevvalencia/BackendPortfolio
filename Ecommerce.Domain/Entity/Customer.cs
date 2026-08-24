@@ -1,4 +1,6 @@
-﻿namespace Ecommerce.Domain
+﻿using Ecommerce.Domain.Interface;
+
+namespace Ecommerce.Domain.Entity
 {
     public class Customer
     {
