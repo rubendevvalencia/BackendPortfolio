@@ -1,0 +1,12 @@
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\bin\Debug\net10.0\Core.Domain.deps.json
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\bin\Debug\net10.0\Core.Domain.dll
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\bin\Debug\net10.0\Core.Domain.pdb
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.AssemblyInfoInputs.cache
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.AssemblyInfo.cs
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.csproj.CoreCompileInputs.cache
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.sourcelink.json
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.dll
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\refint\Core.Domain.dll
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\Core.Domain.pdb
+C:\Users\ruben\Repos\Backend\BackendPort\Core\Core.Domain\obj\Debug\net10.0\ref\Core.Domain.dll
