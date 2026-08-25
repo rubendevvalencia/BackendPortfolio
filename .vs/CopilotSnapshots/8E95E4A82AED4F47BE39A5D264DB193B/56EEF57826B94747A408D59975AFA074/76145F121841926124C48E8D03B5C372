@@ -1,4 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Ecommerce.Domain.Entity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -7,12 +9,14 @@ using System.Text;
 
 namespace Ecommerce.Infrastructure
 {
-    public class DbContextDapper
+    public class DbContextEF
     {
         private readonly IConfiguration _conf;
         private readonly string _connectionString;
 
-        public DbContextDapper(IConfiguration configuration)
+        public DbSet<Customer> Customers { get; }
+
+        public DbContextEF(IConfiguration configuration)
         {
             _conf = configuration;
             _connectionString = _conf.GetConnectionString("EcommerceDb");
