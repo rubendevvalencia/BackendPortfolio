@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.Infrastructure
+﻿namespace Ecommerce.Common
 {
     public class Class1
     {

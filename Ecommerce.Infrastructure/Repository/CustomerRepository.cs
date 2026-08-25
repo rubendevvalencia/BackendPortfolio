@@ -18,11 +18,11 @@ namespace Ecommerce.Infrastructure.Repository
             _dbContext = dbContext;
         }
 
-        public async Task<int> AddAsync(Customer entity)
+        public async Task<bool> AddAsync(Customer entity)
         {
             var result = await _dbContext.Customers.AddAsync(entity);
             await _dbContext.SaveChangesAsync();
-            return (int)result.Entity.Id;
+            return true;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -48,6 +48,7 @@ namespace Ecommerce.Infrastructure.Repository
             var affected = await _dbContext.SaveChangesAsync();
             return affected > 0;
         }
+
 
         /*   public async Task<IEnumerable<Customer>> GetAllAsync()
         {
