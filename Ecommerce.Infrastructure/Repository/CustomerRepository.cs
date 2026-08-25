@@ -26,7 +26,7 @@ namespace Ecommerce.Infrastructure.Repository
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var result = await _dbContext.Customers.Where(c => c.Id == id).ExecuteDeleteAsync();
+            var result = await _dbContext.Customers.Where(o => o.Id == id).ExecuteDeleteAsync();
             if(result != 0) return true;
             return false;
         }
