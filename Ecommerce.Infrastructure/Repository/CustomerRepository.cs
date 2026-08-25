@@ -15,7 +15,6 @@ namespace Ecommerce.Infrastructure.Repository
         public CustomerRepository(DbContextEF dbContext)
         {
             _dbContext = dbContext;
-            _dbContext.CreateConnection();
         }
 
         public async Task<int> AddAsync(Customer entity)
@@ -33,6 +32,23 @@ namespace Ecommerce.Infrastructure.Repository
         }
 
         public async Task<IEnumerable<Customer>> GetAllAsync()
+        {
+            return await _dbContext.Customers.ToListAsync();
+        }
+
+        public async Task<Customer?> GetByIdAsync(int id)
+        {
+            return await _dbContext.Customers.FindAsync(id);
+        }
+
+        public async Task<bool> UpdateAsync(Customer customer)
+        {
+            _dbContext.Customers.Update(customer);
+            var affected = await _dbContext.SaveChangesAsync();
+            return affected > 0;
+        }
+
+        /*   public async Task<IEnumerable<Customer>> GetAllAsync()
         {
             var result = await _dbContext.Customers.ToListAsync();
             if (result != null) return result;
@@ -52,6 +68,6 @@ namespace Ecommerce.Infrastructure.Repository
             await _dbContext.SaveChangesAsync();
             if(result != null) return true;
             return false;
-        }
+        }*/
     }
 }
