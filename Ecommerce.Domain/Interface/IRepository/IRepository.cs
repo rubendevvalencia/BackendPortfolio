@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Infrastructure.Interface
+namespace Ecommerce.Domain.Interface.IRepository
 {
-    public interface IRepository<T> where T : class 
+    public interface IRepository<T> where T : class
     {
         Task<T?> GetByIdAsync(int id);
         Task<int> AddAsync(T repository);
