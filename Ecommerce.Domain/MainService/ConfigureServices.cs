@@ -1,3 +1,4 @@
+using Ecommerce.Domain.Interface.IRepository;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecommerce.Domain.Main

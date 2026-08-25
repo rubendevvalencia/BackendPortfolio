@@ -6,6 +6,7 @@ C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Ecomme
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Ecommerce.Api.runtimeconfig.json
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Ecommerce.Api.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Ecommerce.Api.pdb
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Ecommerce.Api.xml
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\AutoMapper.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Microsoft.Bcl.Cryptography.dll
@@ -24,6 +25,10 @@ C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Micros
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Microsoft.OpenApi.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Microsoft.SqlServer.Server.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Swashbuckle.AspNetCore.Annotations.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\System.Configuration.ConfigurationManager.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\bin\Debug\net10.0\System.Security.Cryptography.ProtectedData.dll
@@ -75,6 +80,7 @@ C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\static
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\Ecommerc.5A66FF47.Up2Date
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\Ecommerce.Api.dll
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\refint\Ecommerce.Api.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\Ecommerce.Api.xml
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\Ecommerce.Api.pdb
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\Ecommerce.Api.genruntimeconfig.cache
 C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce\obj\Debug\net10.0\ref\Ecommerce.Api.dll
