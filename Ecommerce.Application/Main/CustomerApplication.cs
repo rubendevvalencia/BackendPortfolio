@@ -35,6 +35,11 @@ namespace Ecommerce.Application.Service
             {
                 response.Data = await _customerUoW.DeleteAsync(id);
                 if (response.Data) response.IsSuccess = true;
+                else
+                {
+                    response.IsSuccess = false;
+                    response.Message = $"Don't delete with ID {id}.";
+                }
             }
             catch (Exception ex) { response.Message = ex.Message; }
             return response;
@@ -61,6 +66,11 @@ namespace Ecommerce.Application.Service
                 var customer = await _customerUoW.GetByIdAsync(id);
                 response.Data = _mapper.Map<CustomerDto?>(customer);
                 if (response.Data != null) response.IsSuccess = true;
+                else
+                {
+                    response.IsSuccess = false;
+                    response.Message = $"Don't find with ID {id}.";
+                }
             }
             catch (Exception ex) { response.Message = ex.Message; }
             return response;
@@ -74,6 +84,11 @@ namespace Ecommerce.Application.Service
                 var customer = _mapper.Map<Ecommerce.Domain.Entity.Customer>(customerDto);
                 response.Data = await _customerUoW.UpdateAsync(customer);
                 if (response.Data) response.IsSuccess = true;
+                else
+                {
+                    response.IsSuccess = false;
+                    response.Message = $"Don't update with ID {customerDto.Id}.";
+                }
             }
             catch (Exception ex) { response.Message = ex.Message; }
             return response;

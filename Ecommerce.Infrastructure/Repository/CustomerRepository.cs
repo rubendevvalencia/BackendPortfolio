@@ -32,21 +32,16 @@ namespace Ecommerce.Infrastructure.Repository
             return false;
         }
 
-        public async Task<IEnumerable<Customer>> GetAllAsync()
-        {
-            return await _dbContext.Customers.ToListAsync();
-        }
-
-        public async Task<Customer?> GetByIdAsync(int id)
-        {
-            return await _dbContext.Customers.FindAsync(id);
-        }
+        public async Task<IEnumerable<Customer>> GetAllAsync() => await _dbContext.Customers.ToListAsync();
+        
+        public async Task<Customer?> GetByIdAsync(int id) => await _dbContext.Customers.FirstOrDefaultAsync(o => o.Id == id);
 
         public async Task<bool> UpdateAsync(Customer customer)
         {
             _dbContext.Customers.Update(customer);
             var affected = await _dbContext.SaveChangesAsync();
-            return affected > 0;
+            if(affected > 0) return true;
+            return false;
         }
 
 
