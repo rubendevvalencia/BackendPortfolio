@@ -1,14 +1,16 @@
-﻿using Ecommerce.Domain.Entity;
+using Ecommerce.Application.Interface.IUoW;
+using Ecommerce.Domain.Entity;
 using Ecommerce.Domain.Interface.IService;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ecommerce.Domain.Service
+namespace Ecommerce.Application.Service
 {
     public class CustomerService : ICustomerService
     {
+        private readonly ICustomerUoW _customerUoW;
         public Task<bool> DeleteAsync(Customer customer)
         {
             throw new NotImplementedException();

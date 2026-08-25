@@ -1,9 +1,9 @@
-﻿using Ecommerce.Domain.Entity;
+using Ecommerce.Domain.Entity;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Infrastructure.Interface
+namespace Ecommerce.Domain.Interface.IRepository
 {
     public interface ICustomerRepository : IRepository<Customer>
     {

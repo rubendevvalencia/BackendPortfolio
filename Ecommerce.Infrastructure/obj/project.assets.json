@@ -618,6 +618,19 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
+      "Ecommerce.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Ecommerce.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Ecommerce.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Ecommerce.Application.dll": {}
+        }
+      },
       "Ecommerce.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
@@ -1541,6 +1554,11 @@
         "useSharedDesignerContext.txt"
       ]
     },
+    "Ecommerce.Application/1.0.0": {
+      "type": "project",
+      "path": "../Ecommerce.Application/Ecommerce.Application.csproj",
+      "msbuildProject": "../Ecommerce.Application/Ecommerce.Application.csproj"
+    },
     "Ecommerce.Domain/1.0.0": {
       "type": "project",
       "path": "../Ecommerce.Domain/Ecommerce.Domain.csproj",
@@ -1549,6 +1567,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "Ecommerce.Application >= 1.0.0",
       "Ecommerce.Domain >= 1.0.0",
       "Microsoft.Data.SqlClient >= 7.0.2",
       "Microsoft.EntityFrameworkCore >= 10.0.11",
@@ -1589,6 +1608,9 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
+            "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj": {
+              "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj"
+            },
             "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj": {
               "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj"
             }
