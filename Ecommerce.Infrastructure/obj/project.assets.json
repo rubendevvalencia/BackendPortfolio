@@ -1572,7 +1572,8 @@
       "Microsoft.Data.SqlClient >= 7.0.2",
       "Microsoft.EntityFrameworkCore >= 10.0.11",
       "Microsoft.EntityFrameworkCore.SqlServer >= 10.0.11",
-      "Microsoft.Extensions.Configuration >= 10.0.11"
+      "Microsoft.Extensions.Configuration >= 10.0.11",
+      "Microsoft.Extensions.DependencyInjection >= 10.0.11"
     ]
   },
   "packageFolders": {
@@ -1611,8 +1612,8 @@
             "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj": {
               "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj"
             },
-            "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj": {
-              "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj"
+            "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj": {
+              "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj"
             }
           }
         }
@@ -1647,6 +1648,10 @@
             "version": "[10.0.11, )"
           },
           "Microsoft.Extensions.Configuration": {
+            "target": "Package",
+            "version": "[10.0.11, )"
+          },
+          "Microsoft.Extensions.DependencyInjection": {
             "target": "Package",
             "version": "[10.0.11, )"
           }

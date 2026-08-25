@@ -1,5 +1,5 @@
-using Ecommerce.Application.Interface.IUoW;
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Infrastructure.Interface.IUoW;
 using System;
 using System.Collections.Generic;
 using System.Text;
