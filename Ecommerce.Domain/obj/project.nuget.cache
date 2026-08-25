@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "daYZUlLObaI=",
+  "dgSpecHash": "VU5YqAUyh0c=",
   "success": true,
-  "projectFilePath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj",
+  "projectFilePath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\10.0.11\\microsoft.extensions.dependencyinjection.10.0.11.nupkg.sha512",
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.11\\microsoft.extensions.dependencyinjection.abstractions.10.0.11.nupkg.sha512"

@@ -1,4 +1,4 @@
-using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Application.Interface.IRepository;
 using System;
 using System.Collections.Generic;
 using System.Text;
