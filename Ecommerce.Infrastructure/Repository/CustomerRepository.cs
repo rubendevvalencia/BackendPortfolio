@@ -27,7 +27,9 @@ namespace Ecommerce.Infrastructure.Repository
 
         public async Task<bool> DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var result = await _dbContext.Customers.Where(c => c.Id == id).ExecuteDeleteAsync();
+            if(result != 0) return true;
+            return false;
         }
 
         public async Task<IEnumerable<Customer>> GetAllAsync()
