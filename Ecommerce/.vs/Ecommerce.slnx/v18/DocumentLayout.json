@@ -3,10 +3,31 @@
   "WorkspaceRootPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{13293242-2DF6-2F01-CF45-099892809546}|..\\Ecommerce.Application\\Ecommerce.Application.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.application\\main\\configureservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{13293242-2DF6-2F01-CF45-099892809546}|..\\Ecommerce.Application\\Ecommerce.Application.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.application\\main\\customerapplication.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{19AD041D-DBA0-6CC5-B4EA-6E74AA87CDA4}|..\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.infrastructure\\configureservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9E6CF250-8A87-AC5F-4526-766D30CB5533}|..\\Ecommerce.Domain\\Ecommerce.Domain.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.domain\\mainservice\\configureservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{19AD041D-DBA0-6CC5-B4EA-6E74AA87CDA4}|..\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.infrastructure\\repository\\customerrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{13293242-2DF6-2F01-CF45-099892809546}|..\\Ecommerce.Application\\Ecommerce.Application.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.application\\mainservice\\customerapplication.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce\\controllers\\customercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|solutionrelative:controllers\\customercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{13293242-2DF6-2F01-CF45-099892809546}|..\\Ecommerce.Application\\Ecommerce.Application.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.application\\dto\\customerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -16,7 +37,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -24,28 +45,106 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-08-25T15:06:23.706Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "ConfigureServices.cs",
-              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Main\\ConfigureServices.cs",
-              "RelativeDocumentMoniker": "..\\Ecommerce.Application\\Main\\ConfigureServices.cs",
-              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Main\\ConfigureServices.cs",
-              "RelativeToolTip": "..\\Ecommerce.Application\\Main\\ConfigureServices.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\MainService\\ConfigureServices.cs",
+              "RelativeDocumentMoniker": "..\\Ecommerce.Domain\\MainService\\ConfigureServices.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\MainService\\ConfigureServices.cs",
+              "RelativeToolTip": "..\\Ecommerce.Domain\\MainService\\ConfigureServices.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T11:36:17.654Z",
+              "WhenOpened": "2026-08-25T15:03:06.774Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "CustomerApplication.cs",
-              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Main\\CustomerApplication.cs",
-              "RelativeDocumentMoniker": "..\\Ecommerce.Application\\Main\\CustomerApplication.cs",
-              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Main\\CustomerApplication.cs",
-              "RelativeToolTip": "..\\Ecommerce.Application\\Main\\CustomerApplication.cs",
-              "ViewState": "AgIAAAkAAAAAAAAAAAAqwA0AAAARAAAAAAAAAA==",
+              "Title": "ConfigureServices.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\ConfigureServices.cs",
+              "RelativeDocumentMoniker": "..\\Ecommerce.Infrastructure\\ConfigureServices.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\ConfigureServices.cs",
+              "RelativeToolTip": "..\\Ecommerce.Infrastructure\\ConfigureServices.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwBUAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T11:35:51.089Z",
+              "WhenOpened": "2026-08-25T14:57:57.133Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-25T14:55:31.685Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "CustomerRepository.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Repository\\CustomerRepository.cs",
+              "RelativeDocumentMoniker": "..\\Ecommerce.Infrastructure\\Repository\\CustomerRepository.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Repository\\CustomerRepository.cs",
+              "RelativeToolTip": "..\\Ecommerce.Infrastructure\\Repository\\CustomerRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACsAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-25T14:39:58.484Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "CustomerApplication.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
+              "RelativeDocumentMoniker": "..\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
+              "RelativeToolTip": "..\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEEAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-25T14:29:58.395Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "CustomerDto.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Dto\\CustomerDto.cs",
+              "RelativeDocumentMoniker": "..\\Ecommerce.Application\\Dto\\CustomerDto.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Dto\\CustomerDto.cs",
+              "RelativeToolTip": "..\\Ecommerce.Application\\Dto\\CustomerDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAkAAACXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-25T14:36:40.426Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "CustomerController.cs",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Controllers\\CustomerController.cs",
+              "RelativeDocumentMoniker": "Controllers\\CustomerController.cs",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Controllers\\CustomerController.cs",
+              "RelativeToolTip": "Controllers\\CustomerController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-25T14:10:50.435Z",
               "EditorCaption": ""
             }
           ]
