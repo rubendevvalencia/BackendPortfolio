@@ -20,6 +20,19 @@
           "Ecommerce.Infrastructure.dll": {}
         }
       },
+      "AutoMapper/16.2.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.11",
+          "Microsoft.Extensions.Options": "10.0.11",
+          "Microsoft.IdentityModel.JsonWebTokens": "8.16.0"
+        },
+        "runtime": {
+          "lib/net10.0/AutoMapper.dll": {
+            "assemblyVersion": "16.0.0.0",
+            "fileVersion": "16.2.0.0"
+          }
+        }
+      },
       "Microsoft.Bcl.Cryptography/9.0.13": {
         "runtime": {
           "lib/net9.0/Microsoft.Bcl.Cryptography.dll": {
@@ -448,7 +461,9 @@
       },
       "Ecommerce.Application/1.0.0": {
         "dependencies": {
-          "Ecommerce.Domain": "1.0.0"
+          "AutoMapper": "16.2.0",
+          "Ecommerce.Domain": "1.0.0",
+          "Ecommerce.Transversal": "1.0.0"
         },
         "runtime": {
           "Ecommerce.Application.dll": {
@@ -467,6 +482,14 @@
             "fileVersion": "1.0.0.0"
           }
         }
+      },
+      "Ecommerce.Transversal/1.0.0": {
+        "runtime": {
+          "Ecommerce.Transversal.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -475,6 +498,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AutoMapper/16.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-PE8HgPc5BZJnAFwjvDTE72gWL6YrYib+V7+vxtLXDYz0CH/fFgbVcwLUC9UHk5ALwspZ6Vbmoo6PHvseIk/0ZA==",
+      "path": "automapper/16.2.0",
+      "hashPath": "automapper.16.2.0.nupkg.sha512"
     },
     "Microsoft.Bcl.Cryptography/9.0.13": {
       "type": "package",
@@ -699,6 +729,11 @@
       "sha512": ""
     },
     "Ecommerce.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Ecommerce.Transversal/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
