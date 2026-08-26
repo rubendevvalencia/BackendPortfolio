@@ -1,6 +1,7 @@
 using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
+using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Microsoft.IdentityModel.Tokens.Experimental;
@@ -25,11 +26,12 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                var customer = _mapper.Map<Ecommerce.Domain.Entity.Customer>(customerDto);
+                var customer = _mapper.Map<Customer>(customerDto);
+                customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
                 response.Data = await _customerUoW.AddAsync(customer);
                 if (response.Data && customer.Id != 0) response.IsSuccess = true;
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -46,7 +48,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't delete with ID {id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -59,7 +61,7 @@ namespace Ecommerce.Application.Service
                 response.Data = _mapper.Map<IEnumerable<CustomerDto>>(customers);
                 if (response.Data != null) response.IsSuccess = true;
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -77,7 +79,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't find with ID {id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -86,7 +88,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                var customer = _mapper.Map<Ecommerce.Domain.Entity.Customer>(customerDto);
+                var customer = _mapper.Map<Customer>(customerDto);
                 response.Data = await _customerUoW.UpdateAsync(customer);
                 if (response.Data) response.IsSuccess = true;
                 else
@@ -95,7 +97,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't update with ID {customerDto.Id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
     }

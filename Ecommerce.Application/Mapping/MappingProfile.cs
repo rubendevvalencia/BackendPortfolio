@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Dto;
-using Ecommerce.Domain.Entity;
+using Ecommerce.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;

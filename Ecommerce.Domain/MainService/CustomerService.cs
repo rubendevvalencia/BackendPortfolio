@@ -1,4 +1,4 @@
-﻿using Ecommerce.Domain.Entity;
+﻿using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IService;
 using System;
