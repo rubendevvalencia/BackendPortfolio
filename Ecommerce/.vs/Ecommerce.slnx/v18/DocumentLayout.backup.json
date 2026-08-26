@@ -8,6 +8,10 @@
     },
     {
       "AbsoluteMoniker": "D:0:0:{13293242-2DF6-2F01-CF45-099892809546}|..\\Ecommerce.Application\\Ecommerce.Application.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce.application\\configureservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|c:\\users\\ruben\\repos\\backend\\backendportfolio\\ecommerce\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{6A20E287-D01D-9ED3-F125-A5A55DEE7706}|Ecommerce.Api.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -17,11 +21,24 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-08-26T08:49:23.177Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -31,7 +48,7 @@
               "RelativeDocumentMoniker": "..\\Ecommerce.Application\\ConfigureServices.cs",
               "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\ConfigureServices.cs",
               "RelativeToolTip": "..\\Ecommerce.Application\\ConfigureServices.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAA/AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-26T08:37:24.587Z",
               "EditorCaption": ""
@@ -44,7 +61,7 @@
               "RelativeDocumentMoniker": "Program.cs",
               "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Program.cs",
               "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-26T08:36:10.966Z",
               "EditorCaption": ""

@@ -1,7 +1,7 @@
-using Ecommerce.Application.Main;
 using Ecommerce.Infrastructure;
 using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Domain;
+using Ecommerce.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
