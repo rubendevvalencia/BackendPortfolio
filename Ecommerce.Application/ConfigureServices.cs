@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace Ecommerce.Application.Main
+namespace Ecommerce.Application
 {
     public static class ConfigureServices
     {
