@@ -1,6 +1,7 @@
 using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
+using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Microsoft.IdentityModel.Tokens.Experimental;
@@ -25,7 +26,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                var customer = _mapper.Map<Ecommerce.Domain.Entity.Customer>(customerDto);
+                var customer = _mapper.Map<Customer>(customerDto);
                 response.Data = await _customerUoW.AddAsync(customer);
                 if (response.Data && customer.Id != 0) response.IsSuccess = true;
             }
@@ -86,7 +87,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                var customer = _mapper.Map<Ecommerce.Domain.Entity.Customer>(customerDto);
+                var customer = _mapper.Map<Customer>(customerDto);
                 response.Data = await _customerUoW.UpdateAsync(customer);
                 if (response.Data) response.IsSuccess = true;
                 else

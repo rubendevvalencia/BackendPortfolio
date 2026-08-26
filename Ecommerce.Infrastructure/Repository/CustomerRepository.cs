@@ -1,4 +1,3 @@
-using Ecommerce.Domain.Entity;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Infrastructure.Data;
+using Ecommerce.Domain.Entities;
 
 namespace Ecommerce.Infrastructure.Repository
 {

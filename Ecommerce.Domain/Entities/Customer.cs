@@ -1,9 +1,11 @@
-﻿using Ecommerce.Domain.Interface;
+﻿using Ecommerce.Domain.Entities.Audit;
+using Ecommerce.Domain.Interface;
 
-namespace Ecommerce.Domain.Entity
+namespace Ecommerce.Domain.Entities
 {
-    public class Customer
+    public class Customer : BaseAuditEntity
     {
+
         public int? Id { get; set; }
         public string? CompanyName { get; set; }
         public string? ContactName { get; set; }
