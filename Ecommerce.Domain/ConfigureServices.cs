@@ -1,7 +1,8 @@
 using Ecommerce.Domain.Interface.IService;
+using Ecommerce.Domain.MainService;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ecommerce.Domain.MainService
+namespace Ecommerce.Domain
 {
     public static class ConfigureServices
     {
