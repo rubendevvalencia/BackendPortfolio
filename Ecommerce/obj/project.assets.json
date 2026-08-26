@@ -1585,11 +1585,11 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj": {
-              "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj"
+            "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj": {
+              "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj"
             },
-            "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj"
+            "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj": {
+              "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj"
             }
           }
         }

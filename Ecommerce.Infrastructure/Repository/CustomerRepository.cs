@@ -18,16 +18,14 @@ namespace Ecommerce.Infrastructure.Repository
             _dbContext = dbContext;
         }
 
-        public async Task<bool> AddAsync(Customer entity)
+        public async Task AddAsync(Customer entity)
         {
             await _dbContext.Customers.AddAsync(entity);
-            return true;
         }
 
-        public async Task<bool> UpdateAsync(Customer customer)
+        public void Update(Customer customer)
         {
             _dbContext.Customers.Update(customer);
-            return true;
         }
 
         public async Task<bool> DeleteAsync(int id)

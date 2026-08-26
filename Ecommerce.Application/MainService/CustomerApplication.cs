@@ -29,7 +29,8 @@ namespace Ecommerce.Application.Service
             {
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-                response.Data = await _unitOfWork.Customers.AddAsync(customer);
+                await _unitOfWork.Customers.AddAsync(customer);
+                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
                 if (response.Data) response.IsSuccess = true;
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
@@ -92,7 +93,8 @@ namespace Ecommerce.Application.Service
             try
             {
                 var customer = _mapper.Map<Customer>(customerDto);
-                response.Data = await _unitOfWork.Customers.UpdateAsync(customer);
+                _unitOfWork.Customers.Update(customer);
+                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
                 if (response.Data) response.IsSuccess = true;
                 else response.Message = $"Don't update with ID {customerDto.Id}.";
             }
