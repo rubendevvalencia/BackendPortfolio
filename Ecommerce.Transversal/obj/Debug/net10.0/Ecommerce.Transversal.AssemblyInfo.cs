@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Ecommerce.Transversal")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+862763df19c34cfef6352d0b86095e17194b07c7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e13dc0de9c7626582cdf61dd0f476432f04929e1")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ecommerce.Transversal")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Ecommerce.Transversal")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

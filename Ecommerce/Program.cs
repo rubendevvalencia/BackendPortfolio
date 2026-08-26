@@ -2,6 +2,7 @@ using Ecommerce.Infrastructure;
 using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Domain;
 using Ecommerce.Application;
+using Ecommerce.Api.Models.Cors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddDomainServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddCors();
 builder.Services.AddSwagger();
+
 
 var app = builder.Build();
 
@@ -32,6 +35,8 @@ if (app.Environment.IsDevelopment())
         c.ShowExtensions();
     });
     //app.MapOpenApi(); No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
+    app.UseCors(CorsExtension.myPolicy);
+
 }
 
 app.UseHttpsRedirection();
