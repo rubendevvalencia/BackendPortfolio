@@ -15,6 +15,11 @@ namespace Ecommerce.Application.Service
     {
         private readonly ICustomerRepository _customerUoW;
         private readonly IMapper _mapper;
+        public CustomerApplication(ICustomerRepository customerUoW, IMapper mapper)
+        {
+            _customerUoW = customerUoW;
+            _mapper = mapper;
+        }
         public async Task<Response<bool>> AddAsync(CustomerDto customerDto)
         {
             var response = new Response<bool>();
