@@ -21,54 +21,35 @@ namespace Ecommerce.Infrastructure.Repository
         public async Task<bool> AddAsync(Customer entity)
         {
             await _dbContext.Customers.AddAsync(entity);
-            var affected = await _dbContext.SaveChangesAsync();
-            return affected > 0;
+            return true;
+        }
+
+        public async Task<bool> UpdateAsync(Customer customer)
+        {
+            _dbContext.Customers.Update(customer);
+            return true;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var result = await _dbContext.Customers.Where(o => o.Id == id).ExecuteDeleteAsync();
-            if(result != 0) return true;
-            return false;
+            //Se carga la entidad y se marca para borrado en lugar de usar ExecuteDeleteAsync():
+            //ExecuteDelete ejecuta el DELETE de inmediato, fuera del change tracker, y quedaría
+            //fuera de la transacción que confirma el UnitOfWork.
+            var customer = await _dbContext.Customers.FindAsync(id);
+            if (customer is null) return false;
+
+            _dbContext.Customers.Remove(customer);
+            return true;
         }
 
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            return await _dbContext.Customers.ToListAsync();
+            return await _dbContext.Customers.AsNoTracking().ToListAsync();
         }
 
         public async Task<Customer?> GetByIdAsync(int id)
         {
             return await _dbContext.Customers.FindAsync(id);
         }
-
-        public async Task<bool> UpdateAsync(Customer customer)
-        {
-            _dbContext.Customers.Update(customer);
-            var affected = await _dbContext.SaveChangesAsync();
-            return affected > 0;
-        }
-
-        /*   public async Task<IEnumerable<Customer>> GetAllAsync()
-        {
-            var result = await _dbContext.Customers.ToListAsync();
-            if (result != null) return result;
-            else throw new Exception("No customers found");
-        }
-
-        public async Task<Customer> GetByIdAsync(int id)
-        {
-            var result = await _dbContext.Customers.FindAsync(id);
-            if(result!= null) return result;
-            else throw new Exception($"Customer {id} not found");
-        }
-
-        public async Task<bool> UpdateAsync(Customer repository)
-        {
-            var result = _dbContext.Customers.Update(repository);
-            await _dbContext.SaveChangesAsync();
-            if(result != null) return true;
-            return false;
-        }*/
     }
 }

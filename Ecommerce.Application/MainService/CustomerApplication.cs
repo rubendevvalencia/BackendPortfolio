@@ -4,7 +4,6 @@ using Ecommerce.Application.Interface;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
-using Microsoft.IdentityModel.Tokens.Experimental;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,11 +13,13 @@ namespace Ecommerce.Application.Service
 {
     public class CustomerApplication : ICustomerApplication
     {
-        private readonly ICustomerRepository _customerUoW;
+        //La capa Application orquesta el caso de uso y decide el límite transaccional:
+        //registra los cambios en los repositorios y confirma una sola vez con SaveChangesAsync.
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public CustomerApplication(ICustomerRepository customerUoW, IMapper mapper)
+        public CustomerApplication(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _customerUoW = customerUoW;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
         public async Task<Response<bool>> AddAsync(CustomerDto customerDto)
@@ -28,8 +29,8 @@ namespace Ecommerce.Application.Service
             {
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-                response.Data = await _customerUoW.AddAsync(customer);
-                if (response.Data && customer.Id != 0) response.IsSuccess = true;
+                response.Data = await _unitOfWork.Customers.AddAsync(customer);
+                if (response.Data) response.IsSuccess = true;
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
@@ -40,13 +41,15 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                response.Data = await _customerUoW.DeleteAsync(id);
-                if (response.Data) response.IsSuccess = true;
-                else
+                if (!await _unitOfWork.Customers.DeleteAsync(id))
                 {
-                    response.IsSuccess = false;
-                    response.Message = $"Don't delete with ID {id}.";
+                    response.Message = $"Don't find with ID {id}.";
+                    return response;
                 }
+
+                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
+                if (response.Data) response.IsSuccess = true;
+                else response.Message = $"Don't delete with ID {id}.";
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
@@ -57,7 +60,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<IEnumerable<CustomerDto>>();
             try
             {
-                var customers = await _customerUoW.GetAllAsync();
+                var customers = await _unitOfWork.Customers.GetAllAsync();
                 response.Data = _mapper.Map<IEnumerable<CustomerDto>>(customers);
                 if (response.Data != null) response.IsSuccess = true;
             }
@@ -70,7 +73,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<CustomerDto?>();
             try
             {
-                var customer = await _customerUoW.GetByIdAsync(id);
+                var customer = await _unitOfWork.Customers.GetByIdAsync(id);
                 response.Data = _mapper.Map<CustomerDto?>(customer);
                 if (response.Data != null) response.IsSuccess = true;
                 else
@@ -89,13 +92,9 @@ namespace Ecommerce.Application.Service
             try
             {
                 var customer = _mapper.Map<Customer>(customerDto);
-                response.Data = await _customerUoW.UpdateAsync(customer);
+                response.Data = await _unitOfWork.Customers.UpdateAsync(customer);
                 if (response.Data) response.IsSuccess = true;
-                else
-                {
-                    response.IsSuccess = false;
-                    response.Message = $"Don't update with ID {customerDto.Id}.";
-                }
+                else response.Message = $"Don't update with ID {customerDto.Id}.";
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;

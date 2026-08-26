@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj": {}
+    "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj": {}
   },
   "projects": {
-    "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj": {
+    "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj",
+        "projectUniqueName": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj",
         "projectName": "Ecommerce.Transversal",
-        "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj",
+        "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\Ecommerce.Transversal.csproj",
         "packagesPath": "C:\\Users\\ruben\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\obj\\",
+        "outputPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Transversal\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

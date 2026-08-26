@@ -2,24 +2,6 @@
   "version": 4,
   "targets": {
     "net10.0": {
-      "AutoMapper/16.2.0": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
-          "Microsoft.Extensions.Options": "10.0.0",
-          "Microsoft.IdentityModel.JsonWebTokens": "8.14.0"
-        },
-        "compile": {
-          "lib/net10.0/AutoMapper.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/AutoMapper.dll": {
-            "related": ".xml"
-          }
-        }
-      },
       "Microsoft.Bcl.Cryptography/9.0.13": {
         "type": "package",
         "compile": {
@@ -636,71 +618,19 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
-      "Ecommerce.Application/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "AutoMapper": "16.2.0",
-          "Ecommerce.Domain": "1.0.0",
-          "Ecommerce.Transversal": "1.0.0"
-        },
-        "compile": {
-          "bin/placeholder/Ecommerce.Application.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Ecommerce.Application.dll": {}
-        }
-      },
       "Ecommerce.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "10.0.11"
-        },
         "compile": {
           "bin/placeholder/Ecommerce.Domain.dll": {}
         },
         "runtime": {
           "bin/placeholder/Ecommerce.Domain.dll": {}
-        }
-      },
-      "Ecommerce.Transversal/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "compile": {
-          "bin/placeholder/Ecommerce.Transversal.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Ecommerce.Transversal.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "AutoMapper/16.2.0": {
-      "sha512": "PE8HgPc5BZJnAFwjvDTE72gWL6YrYib+V7+vxtLXDYz0CH/fFgbVcwLUC9UHk5ALwspZ6Vbmoo6PHvseIk/0ZA==",
-      "type": "package",
-      "path": "automapper/16.2.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE.md",
-        "README.md",
-        "automapper.16.2.0.nupkg.sha512",
-        "automapper.nuspec",
-        "icon.png",
-        "lib/net10.0/AutoMapper.dll",
-        "lib/net10.0/AutoMapper.xml",
-        "lib/net471/AutoMapper.dll",
-        "lib/net471/AutoMapper.xml",
-        "lib/net8.0/AutoMapper.dll",
-        "lib/net8.0/AutoMapper.xml",
-        "lib/net9.0/AutoMapper.dll",
-        "lib/net9.0/AutoMapper.xml",
-        "lib/netstandard2.0/AutoMapper.dll",
-        "lib/netstandard2.0/AutoMapper.xml"
-      ]
-    },
     "Microsoft.Bcl.Cryptography/9.0.13": {
       "sha512": "5T+bH3Lb1nEe8Hf/ixMxLmhlrx5wRi53wv7OhVwG2F1ZviW1ejFRS1NHur3uqPpJRGtkQwUchtY6zhVK2R+v+w==",
       "type": "package",
@@ -1608,25 +1538,14 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "Ecommerce.Application/1.0.0": {
-      "type": "project",
-      "path": "../Ecommerce.Application/Ecommerce.Application.csproj",
-      "msbuildProject": "../Ecommerce.Application/Ecommerce.Application.csproj"
-    },
     "Ecommerce.Domain/1.0.0": {
       "type": "project",
       "path": "../Ecommerce.Domain/Ecommerce.Domain.csproj",
       "msbuildProject": "../Ecommerce.Domain/Ecommerce.Domain.csproj"
-    },
-    "Ecommerce.Transversal/1.0.0": {
-      "type": "project",
-      "path": "../Ecommerce.Transversal/Ecommerce.Transversal.csproj",
-      "msbuildProject": "../Ecommerce.Transversal/Ecommerce.Transversal.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "Ecommerce.Application >= 1.0.0",
       "Ecommerce.Domain >= 1.0.0",
       "Microsoft.Data.SqlClient >= 7.0.2",
       "Microsoft.EntityFrameworkCore >= 10.0.11",
@@ -1642,11 +1561,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
       "projectName": "Ecommerce.Infrastructure",
-      "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
       "packagesPath": "C:\\Users\\ruben\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\obj\\",
+      "outputPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1668,9 +1587,6 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj": {
-              "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj"
-            },
             "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj": {
               "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Domain\\Ecommerce.Domain.csproj"
             }

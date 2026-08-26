@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj": {}
+    "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj": {
+    "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj",
+        "projectUniqueName": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj",
         "projectName": "Ecommerce.Test",
-        "projectPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj",
+        "projectPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\Ecommerce.Test.csproj",
         "packagesPath": "C:\\Users\\ruben\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\obj\\",
+        "outputPath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
