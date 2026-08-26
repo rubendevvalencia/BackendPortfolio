@@ -16,6 +16,12 @@
     <Folder Include="ValueObject\" />
   </ItemGroup>
 
-  <!-- (Se eliminaron inclusiones explícitas para evitar duplicados con las inclusiones implícitas del SDK) -->
+  <!-- Incluir explícitamente archivos añadidos desde editores externos para que Visual Studio los detecte -->
+  <ItemGroup>
+    <Compile Include="Interface\**\*.cs" />
+    <Compile Include="Enum\**\*.cs" />
+    <Compile Include="Exception\**\*.cs" />
+    <Compile Include="ValueObject\**\*.cs" />
+  </ItemGroup>
 
 </Project>

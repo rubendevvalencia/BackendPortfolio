@@ -16,6 +16,4 @@
     <Folder Include="ValueObject\" />
   </ItemGroup>
 
-  <!-- (Se eliminaron inclusiones explícitas para evitar duplicados con las inclusiones implícitas del SDK) -->
-
 </Project>
