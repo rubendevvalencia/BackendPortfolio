@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Ecommerce.Domain.Interface.IRepository
 {
-    public interface ICustomerRepository : IRepository<Customer>
+    public interface ICustomerRepository : IBaseRepository<Customer>
     {
     }
 }

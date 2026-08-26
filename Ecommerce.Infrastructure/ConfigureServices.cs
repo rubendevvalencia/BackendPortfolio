@@ -1,6 +1,5 @@
 ﻿using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Infrastructure.Data;
-using Ecommerce.Infrastructure.Interface.IUoW;
 using Ecommerce.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +16,7 @@ namespace Ecommerce.Infrastructure
             services.AddDbContext<DbContextEF>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("EcommerceDb")));
             services.AddScoped<ICustomerRepository, CustomerRepository>();
-            services.AddScoped<ICustomerUoW, CustomerUoW>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             return services;
         }
     }

@@ -1,10 +1,10 @@
 using Ecommerce.Domain.Entity;
-using Ecommerce.Domain.Interface.IRepository;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Infrastructure.Data;
 
 namespace Ecommerce.Infrastructure.Repository
@@ -20,9 +20,9 @@ namespace Ecommerce.Infrastructure.Repository
 
         public async Task<bool> AddAsync(Customer entity)
         {
-            var result = await _dbContext.Customers.AddAsync(entity);
-            await _dbContext.SaveChangesAsync();
-            return true;
+            await _dbContext.Customers.AddAsync(entity);
+            var affected = await _dbContext.SaveChangesAsync();
+            return affected > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -32,18 +32,22 @@ namespace Ecommerce.Infrastructure.Repository
             return false;
         }
 
-        public async Task<IEnumerable<Customer>> GetAllAsync() => await _dbContext.Customers.ToListAsync();
-        
-        public async Task<Customer?> GetByIdAsync(int id) => await _dbContext.Customers.FirstOrDefaultAsync(o => o.Id == id);
+        public async Task<IEnumerable<Customer>> GetAllAsync()
+        {
+            return await _dbContext.Customers.ToListAsync();
+        }
+
+        public async Task<Customer?> GetByIdAsync(int id)
+        {
+            return await _dbContext.Customers.FindAsync(id);
+        }
 
         public async Task<bool> UpdateAsync(Customer customer)
         {
             _dbContext.Customers.Update(customer);
             var affected = await _dbContext.SaveChangesAsync();
-            if(affected > 0) return true;
-            return false;
+            return affected > 0;
         }
-
 
         /*   public async Task<IEnumerable<Customer>> GetAllAsync()
         {

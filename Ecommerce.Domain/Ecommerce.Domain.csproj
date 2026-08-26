@@ -13,7 +13,6 @@
   <ItemGroup>
     <Folder Include="Enum\" />
     <Folder Include="Exception\" />
-    <Folder Include="Interface\IService\" />
     <Folder Include="ValueObject\" />
   </ItemGroup>
 
