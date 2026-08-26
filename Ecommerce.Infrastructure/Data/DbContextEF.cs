@@ -37,7 +37,7 @@ namespace Ecommerce.Infrastructure.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(_connectionString);
+            optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
             optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
             optionsBuilder.EnableSensitiveDataLogging(); //Esto permite ver en consola las consultas SQL generadas por EF Core, útil para depuración.
         }

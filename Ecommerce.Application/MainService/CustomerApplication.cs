@@ -27,10 +27,11 @@ namespace Ecommerce.Application.Service
             try
             {
                 var customer = _mapper.Map<Customer>(customerDto);
+                customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
                 response.Data = await _customerUoW.AddAsync(customer);
                 if (response.Data && customer.Id != 0) response.IsSuccess = true;
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -47,7 +48,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't delete with ID {id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -60,7 +61,7 @@ namespace Ecommerce.Application.Service
                 response.Data = _mapper.Map<IEnumerable<CustomerDto>>(customers);
                 if (response.Data != null) response.IsSuccess = true;
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -78,7 +79,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't find with ID {id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
 
@@ -96,7 +97,7 @@ namespace Ecommerce.Application.Service
                     response.Message = $"Don't update with ID {customerDto.Id}.";
                 }
             }
-            catch (Exception ex) { response.Message = ex.Message; }
+            catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
     }

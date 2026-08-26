@@ -16,7 +16,9 @@ namespace Ecommerce.Infrastructure
             // Example: services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddDbContext<DbContextEF>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("EcommerceDb"),          //Cadena de conexión a la base de datos
-                builder => builder.MigrationsAssembly(typeof(DbContextEF).Assembly.FullName))); //Configura la migración de la base de datos
+                builder => builder
+                    .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
+                    .EnableRetryOnFailure()));                                                   //Reintenta automáticamente ante fallos transitorios
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<AuditableEntitySaveChangesInterceptor>();
