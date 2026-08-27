@@ -8,22 +8,20 @@ namespace Ecommerce.Application.Mapping
 {
     public static class ManualMappingCustomer
     {
-        public static Customer CustomerManualMap(CustomerDto customerDto)
+        public static void MapInto(Customer destination, CustomerDto source)
         {
-
-            return new Customer
-            {
-                CompanyName = customerDto.CompanyName ?? "string",
-                ContactName = customerDto.ContactName ?? "string",
-                ContactTitle = customerDto.ContactTitle ?? "string",
-                Address = customerDto.Address ?? "string",
-                City = customerDto.City ?? "string",
-                Region = customerDto.Region ?? "string",
-                PostalCode = customerDto.PostalCode ?? "string",
-                Country = customerDto.Country ?? "string",
-                Phone = customerDto.Phone ?? "string",
-                Fax = customerDto.Fax ?? "string",
-            };
+            //Se copian los valores sobre la entidad ya trackeada para que el ChangeTracker
+            //la marque como Modified. Crear una instancia nueva la dejaria Detached.
+            destination.CompanyName = source.CompanyName ?? destination.CompanyName;
+            destination.ContactName = source.ContactName ?? destination.ContactName;
+            destination.ContactTitle = source.ContactTitle ?? destination.ContactTitle;
+            destination.Address = source.Address ?? destination.Address;
+            destination.City = source.City ?? destination.City;
+            destination.Region = source.Region ?? destination.Region;
+            destination.PostalCode = source.PostalCode ?? destination.PostalCode;
+            destination.Country = source.Country ?? destination.Country;
+            destination.Phone = source.Phone ?? destination.Phone;
+            destination.Fax = source.Fax ?? destination.Fax;
         }
     }
 }

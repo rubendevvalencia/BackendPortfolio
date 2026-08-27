@@ -87,13 +87,14 @@ namespace Ecommerce.Application.Service
             try
             {
                 var existingCustomer = await _unitOfWork.Customers.GetByIdAsync(id);
+              
                 if(existingCustomer == null)
                 {
                     response.IsSuccess = false;
                     response.Message = $"Customer with ID {id} not found.";
                     return response;
                 }
-                existingCustomer = ManualMappingCustomer.CustomerManualMap(customerDto);
+                ManualMappingCustomer.MapInto(existingCustomer, customerDto);
                 response.Data = await _unitOfWork.Customers.UpdateAsync(existingCustomer);
                 if (response.Data) response.IsSuccess = true;
                 else response.Message = $"Don't update with ID {existingCustomer.Id}.";
