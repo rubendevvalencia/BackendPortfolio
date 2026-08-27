@@ -29,8 +29,6 @@ namespace Ecommerce.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
-            modelBuilder.Entity<Customer>().ToTable("Customers");
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
             base.OnModelCreating(modelBuilder);
         }
