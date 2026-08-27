@@ -40,8 +40,9 @@ namespace Ecommerce.Infrastructure.Repository
             //Si la entidad ya viene trackeada (patron connected) basta con guardar: EF detecta
             //los cambios solo. Update() se reserva para entidades detached.
             if (_dbContext.Entry(customer).State == EntityState.Detached) _dbContext.Customers.Update(customer);
-
-            return await _dbContext.SaveChangesAsync() > 0;
+            var result = await _dbContext.SaveChangesAsync();
+            if(result > 0) return true;
+            return false;
         }
 
         public async Task<bool> DeleteAsync(int id)
