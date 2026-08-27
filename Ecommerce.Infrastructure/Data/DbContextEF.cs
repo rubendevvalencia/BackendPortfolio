@@ -20,7 +20,8 @@ namespace Ecommerce.Infrastructure.Data
 
         public DbSet<Customer> Customers { get; set; }
 
-        public DbContextEF(IConfiguration configuration, AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor)
+        public DbContextEF(DbContextOptions<DbContextEF> options, IConfiguration configuration, AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor)
+            : base(options)
         {
             _conf = configuration;
             _connectionString = _conf.GetConnectionString("EcommerceDb");
@@ -35,7 +36,11 @@ namespace Ecommerce.Infrastructure.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
+            //Si AddDbContext ya configuró el proveedor (DI o herramientas de EF), no lo volvemos a configurar.
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
+            }
             optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
             optionsBuilder.EnableSensitiveDataLogging(); //Esto permite ver en consola las consultas SQL generadas por EF Core, útil para depuración.
         }
