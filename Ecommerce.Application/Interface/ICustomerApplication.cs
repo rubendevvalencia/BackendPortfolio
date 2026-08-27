@@ -9,7 +9,7 @@ namespace Ecommerce.Application.Interface
         //Esto es útil para manejar errores y proporcionar retroalimentación al usuario.
         Task<Response<CustomerDto?>> GetByIdAsync(int id);
         Task<Response<bool>> AddAsync(CustomerDto customer);
-        Task<Response<bool>> UpdateAsync(CustomerDto customer);
+        Task<Response<bool>> UpdateAsync(int id, CustomerDto customer);
         Task<Response<bool>> DeleteAsync(int id);
         Task<Response<IEnumerable<CustomerDto>>> GetAllAsync();
         

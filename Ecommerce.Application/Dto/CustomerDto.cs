@@ -7,8 +7,7 @@ namespace Ecommerce.Application.Dto
 {
     public sealed class CustomerDto
     {
-        //Sealed evita que a classe seja herdada, garantizando que la estructura del Dto permanezca consistente y no pueda ser modificada por herencia.
-        public int? Id { get; set; }
+        //Sealed evita que a clase sea heredada, garantizando que la estructura del Dto permanezca consistente y no pueda ser modificada por herencia.
         public string? CompanyName { get; set; }
         public string? ContactName { get; set; }
         public string? ContactTitle { get; set; }
