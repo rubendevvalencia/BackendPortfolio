@@ -1,6 +1,7 @@
 using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
+using Ecommerce.Application.Mapping;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
@@ -29,8 +30,7 @@ namespace Ecommerce.Application.Service
             {
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-                await _unitOfWork.Customers.AddAsync(customer);
-                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
+                response.Data = await _unitOfWork.Customers.AddAsync(customer);
                 if (response.Data) response.IsSuccess = true;
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
@@ -42,13 +42,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                if (!await _unitOfWork.Customers.DeleteAsync(id))
-                {
-                    response.Message = $"Don't find with ID {id}.";
-                    return response;
-                }
-
-                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
+                response.Data = await _unitOfWork.Customers.DeleteAsync(id);
                 if (response.Data) response.IsSuccess = true;
                 else response.Message = $"Don't delete with ID {id}.";
             }
@@ -87,19 +81,27 @@ namespace Ecommerce.Application.Service
             return response;
         }
 
-        public async Task<Response<bool>> UpdateAsync(CustomerDto customerDto)
+        public async Task<Response<bool>> UpdateAsync(int id, CustomerDto customerDto)
         {
             var response = new Response<bool>();
             try
             {
-                var customer = _mapper.Map<Customer>(customerDto);
-                _unitOfWork.Customers.Update(customer);
-                response.Data = await _unitOfWork.SaveChangesAsync() > 0;
+                var existingCustomer = await _unitOfWork.Customers.GetByIdAsync(id);
+                if(existingCustomer == null)
+                {
+                    response.IsSuccess = false;
+                    response.Message = $"Customer with ID {id} not found.";
+                    return response;
+                }
+                existingCustomer = ManualMappingCustomer.CustomerManualMap(customerDto);
+                response.Data = await _unitOfWork.Customers.UpdateAsync(existingCustomer);
                 if (response.Data) response.IsSuccess = true;
-                else response.Message = $"Don't update with ID {customerDto.Id}.";
+                else response.Message = $"Don't update with ID {existingCustomer.Id}.";
             }
             catch (Exception ex) { response.Message = ex.InnerException?.Message ?? ex.Message; }
             return response;
         }
+
+        
     }
 }

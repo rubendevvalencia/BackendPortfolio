@@ -17,15 +17,30 @@ namespace Ecommerce.Infrastructure.Repository
         {
             _dbContext = dbContext;
         }
-
-        public async Task AddAsync(Customer entity)
+        public async Task<Customer?> GetByIdAsync(int id)
         {
-            await _dbContext.Customers.AddAsync(entity);
+            return await _dbContext.Customers.FindAsync(id);
         }
 
-        public void Update(Customer customer)
+        public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            _dbContext.Customers.Update(customer);
+            return await _dbContext.Customers.ToListAsync();
+        }
+
+        public async Task<bool> AddAsync(Customer entity)
+        {
+            var result = await _dbContext.Customers.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
+            if (result != null) return true;
+            return false;
+        }
+
+        public async Task<bool> UpdateAsync(Customer customer)
+        {
+            var result = _dbContext.Customers.Update(customer);
+            await _dbContext.SaveChangesAsync();
+            if (result != null) return true;
+            return false;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -37,17 +52,11 @@ namespace Ecommerce.Infrastructure.Repository
             if (customer is null) return false;
 
             _dbContext.Customers.Remove(customer);
+            await _dbContext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<IEnumerable<Customer>> GetAllAsync()
-        {
-            return await _dbContext.Customers.AsNoTracking().ToListAsync();
-        }
+      
 
-        public async Task<Customer?> GetByIdAsync(int id)
-        {
-            return await _dbContext.Customers.FindAsync(id);
-        }
     }
 }

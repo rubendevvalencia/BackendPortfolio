@@ -30,16 +30,14 @@ namespace Ecommerce.Api.Controllers
             return StatusCode((int)HttpStatusCode.InternalServerError, response);
         }
 
-        [HttpPut("UpdateAsync/{id}")]
+        [HttpPut("UpdateAsync{id}")]
         [SwaggerOperation(Summary = "Updates an existing customer.", Description = "Updates the details of an existing customer in the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CustomerDto customerDto)
         {
             if (customerDto == null) return BadRequest();
 
-            if(!id.Equals(customerDto.Id)) return BadRequest(); //Podemos comprobar de manera efectiva que el id de la ruta y el id del objeto sean iguales, si no lo son, devolvemos un BadRequest con un mensaje de error.
-
-            var response = await _customerApplication.UpdateAsync(customerDto);
+            var response = await _customerApplication.UpdateAsync(id, customerDto);
             if (response.IsSuccess) return Ok(response);
             return StatusCode((int)HttpStatusCode.InternalServerError, response);
         }
@@ -51,9 +49,7 @@ namespace Ecommerce.Api.Controllers
         {
             if (customerDto == null) return BadRequest();
 
-            if (!id.Equals(customerDto.Id)) return BadRequest(); //Podemos comprobar de manera efectiva que el id de la ruta y el id del objeto sean iguales, si no lo son, devolvemos un BadRequest con un mensaje de error.
-
-            var response = await _customerApplication.UpdateAsync(customerDto);
+            var response = await _customerApplication.UpdateAsync(id, customerDto);
             if (response.IsSuccess) return Ok(response);
             return StatusCode((int)HttpStatusCode.InternalServerError, response);
         }
