@@ -61,7 +61,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 result = await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Assert: se lee con un contexto nuevo, sin change tracker heredado
+            //Assert: contexto nuevo, con el change tracker vacio. El cliente se materializa desde el
+            //almacen, asi que NotSame demuestra que hubo persistencia real y no una instancia reutilizada
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -83,7 +84,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(NewCustomer());
             }
 
-            //Assert: lo escribe AuditableEntitySaveChangesInterceptor al interceptar el guardado
+            //Assert: contexto nuevo, asi que los campos de auditoria se leen del almacen y no de la
+            //entidad en memoria que el interceptor acaba de rellenar
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -103,19 +105,21 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act
+            //Act: contexto nuevo, asi que el FindAsync interno no puede resolverse contra el change
+            //tracker y esta obligado a consultar el almacen
             await using var readContext = CreateContext(dbName);
             var found = await new CustomerRepository(readContext).GetByIdAsync(customer.Id!.Value);
 
             //Assert
             Assert.NotNull(found);
+            Assert.NotSame(customer, found);
             Assert.Equal("Northwind", found!.CompanyName);
         }
 
         [Fact]
         public async Task GetByIdAsync_DevuelveNullSiElClienteNoExiste()
         {
-            //Arrange
+            //Arrange: un solo contexto, no hay nada escrito que leer de vuelta
             await using var context = CreateContext(NewDbName());
             var repository = new CustomerRepository(context);
 
@@ -138,7 +142,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await repository.AddAsync(NewCustomer("Dos"));
             }
 
-            //Act
+            //Act: contexto nuevo, asi que la consulta devuelve lo que hay en el almacen y no las
+            //instancias que quedaron trackeadas al escribir
             await using var readContext = CreateContext(dbName);
             var result = await new CustomerRepository(readContext).GetAllAsync();
 
@@ -151,7 +156,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
         [Fact]
         public async Task GetAllAsync_DevuelveColeccionVaciaSiNoHayClientes()
         {
-            //Arrange
+            //Arrange: un solo contexto, no hay nada escrito que leer de vuelta
             await using var context = CreateContext(NewDbName());
 
             //Act
@@ -172,7 +177,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: se recarga en un contexto nuevo, se modifica y se actualiza (patron connected)
+            //Act: contexto nuevo, se recarga desde el almacen y se modifica ya trackeado (patron connected)
             bool result;
             await using (var updateContext = CreateContext(dbName))
             {
@@ -182,7 +187,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 result = await repository.UpdateAsync(tracked);
             }
 
-            //Assert
+            //Assert: contexto nuevo para garantizar que el cambio se guardo de verdad y no se esta
+            //leyendo la instancia que se modifico en memoria durante el Act
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -202,19 +208,24 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: entidad construida fuera del contexto, por lo que entra como Detached
+            //Act: la entidad se construye fuera y el contexto es nuevo, por lo que entra como Detached
+            //y obliga a UpdateAsync a tomar la rama del Update() explicito
             var detached = NewCustomer("Detached");
             detached.Id = customer.Id;
 
+            bool result;
             await using (var updateContext = CreateContext(dbName))
             {
-                var result = await new CustomerRepository(updateContext).UpdateAsync(detached);
-                Assert.True(result);
+                result = await new CustomerRepository(updateContext).UpdateAsync(detached);
             }
 
-            //Assert
+            //Assert: contexto nuevo para garantizar que el cambio se guardo de verdad y no se esta
+            //leyendo la instancia detached que se paso al repositorio
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
+
+            Assert.True(result);
+            Assert.NotSame(detached, saved);
             Assert.Equal("Detached", saved.CompanyName);
         }
 
@@ -229,7 +240,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: se recarga sin tocar ninguna propiedad, asi que SaveChangesAsync afecta a 0 filas
+            //Act: contexto nuevo, se recarga sin tocar ninguna propiedad, asi que SaveChangesAsync
+            //afecta a 0 filas. No se relee despues porque lo que se comprueba es el bool, no el almacen
             await using var updateContext = CreateContext(dbName);
             var repository = new CustomerRepository(updateContext);
             var tracked = await repository.GetByIdAsync(customer.Id!.Value);
@@ -245,29 +257,37 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer();
+
+            bool resultAdd;
             await using (var writeContext = CreateContext(dbName))
             {
-                await new CustomerRepository(writeContext).AddAsync(customer);
+                resultAdd = await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act
-            bool result;
+            //Act: contexto nuevo, asi que DeleteAsync tiene que localizar el cliente en el almacen
+            bool resultDelete;
+            Customer? resultFind;
             await using (var deleteContext = CreateContext(dbName))
             {
-                result = await new CustomerRepository(deleteContext).DeleteAsync(customer.Id!.Value);
+                var repository = new CustomerRepository(deleteContext);
+                resultDelete = await repository.DeleteAsync(customer.Id!.Value);
+                resultFind = await repository.GetByIdAsync(customer.Id!.Value);
             }
 
-            //Assert
+            //Assert: contexto nuevo para garantizar que de verdad se ejecuto todo el proceso y que el
+            //resultado no sale de una instancia trackeada anteriormente
             await using var readContext = CreateContext(dbName);
 
-            Assert.True(result);
+            Assert.True(resultAdd);
+            Assert.True(resultDelete);
+            Assert.Null(resultFind);
             Assert.Empty(readContext.Customers);
         }
 
         [Fact]
         public async Task DeleteAsync_DevuelveFalseSiElClienteNoExiste()
         {
-            //Arrange
+            //Arrange: un solo contexto, no hay nada escrito que borrar
             await using var context = CreateContext(NewDbName());
 
             //Act
