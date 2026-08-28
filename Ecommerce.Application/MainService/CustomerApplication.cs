@@ -2,6 +2,7 @@ using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
 using Ecommerce.Application.Mapping;
+using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
@@ -18,16 +19,27 @@ namespace Ecommerce.Application.Service
         //registra los cambios en los repositorios y confirma una sola vez con SaveChangesAsync.
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public CustomerApplication(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly CustomerDtoValidator _validator;
+        public CustomerApplication(IUnitOfWork unitOfWork, IMapper mapper, CustomerDtoValidator validator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _validator = validator;
         }
-        public async Task<Response<bool>> AddAsync(CustomerDto customerDto)
+        public async Task<Response<bool>> AddAsync(CustomerDto customerDto, CancellationToken cancellationToken)
         {
             var response = new Response<bool>();
             try
             {
+                var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
+                if(!validationResult.IsValid)
+                {
+                    response.IsSuccess = false;
+                    response.Message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Validation failed.";
+                    return response;
+                }
+
+
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
                 response.Data = await _unitOfWork.Customers.AddAsync(customer);

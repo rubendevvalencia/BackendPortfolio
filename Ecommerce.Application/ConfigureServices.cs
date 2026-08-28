@@ -2,6 +2,7 @@
 using Ecommerce.Application.Interface;
 using Ecommerce.Application.Mapping;
 using Ecommerce.Application.Service;
+using Ecommerce.Application.Validator;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,9 @@ namespace Ecommerce.Application
         {
             services.AddScoped<ICustomerApplication, CustomerApplication>();
             services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>()); //Documentacion Automapper: https://docs.automapper.io/en/latest/Dependency-injection.html
+
+            services.AddTransient<CustomerDtoValidator>();
+            
             return services;
         }
     }

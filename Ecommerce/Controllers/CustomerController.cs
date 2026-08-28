@@ -24,8 +24,8 @@ namespace Ecommerce.Api.Controllers
         public async Task<IActionResult> AddAsync([FromBody] CustomerDto customerDto)
         {
             if (customerDto == null) return BadRequest();
-
-            var response = await _customerApplication.AddAsync(customerDto);
+            CancellationToken cancellation = CancellationToken.None;
+            var response = await _customerApplication.AddAsync(customerDto, cancellation);
             if(response.IsSuccess) return Ok(response);
             return StatusCode((int)HttpStatusCode.InternalServerError, response);
         }
