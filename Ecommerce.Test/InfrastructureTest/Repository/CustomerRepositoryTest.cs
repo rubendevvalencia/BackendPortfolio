@@ -245,22 +245,21 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer();
-            await using (var writeContext = CreateContext(dbName))
-            {
-                await new CustomerRepository(writeContext).AddAsync(customer);
-            }
+            var contextEF = CreateContext(dbName);
+            var repo = new CustomerRepository(contextEF);
+
 
             //Act
-            bool result;
-            await using (var deleteContext = CreateContext(dbName))
-            {
-                result = await new CustomerRepository(deleteContext).DeleteAsync(customer.Id!.Value);
-            }
+            bool resultAdd = await repo.AddAsync(customer);
+            bool resultDelete = await repo.DeleteAsync((int)customer.Id);
+            var resultFind = await repo.GetByIdAsync((int)customer.Id);
 
             //Assert
             await using var readContext = CreateContext(dbName);
 
-            Assert.True(result);
+            Assert.True(resultAdd);
+            Assert.True(resultDelete);
+            Assert.Null(resultFind);
             Assert.Empty(readContext.Customers);
         }
 
