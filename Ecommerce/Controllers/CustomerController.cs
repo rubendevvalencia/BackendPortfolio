@@ -1,6 +1,7 @@
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
 using Ecommerce.Transversal.Common;
+using Ecommerce.Transversal.Common.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
