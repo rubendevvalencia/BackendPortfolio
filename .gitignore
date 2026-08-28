@@ -57,3 +57,7 @@ Ecommerce.Test/obj/project.nuget.cache
 Ecommerce.Transversal/bin/Debug/net10.0/Ecommerce.Transversal.dll
 Ecommerce.Transversal/bin/Debug/net10.0/Ecommerce.Transversal.pdb
 Ecommerce.Transversal/obj/Debug/net10.0/Ecommerce.Transversal.csproj.FileListAbsolute.txt
+Ecommerce.Transversal/obj/Debug/net10.0/Ecommerce.Transversal.assets.cache
+Ecommerce.Transversal/obj/Debug/net10.0/Ecommerce.Transversal.csproj.FileListAbsolute.txt
+Ecommerce/obj/Debug/net10.0/Ecommerce.Api.assets.cache
+Ecommerce/obj/Debug/net10.0/Ecommerce.Api.csproj.FileListAbsolute.txt
