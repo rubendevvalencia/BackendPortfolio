@@ -39,7 +39,7 @@
               "RelativeDocumentMoniker": "..\\Ecommerce.Test\\InfrastructureTest\\Repository\\CustomerRepositoryTest.cs",
               "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Test\\InfrastructureTest\\Repository\\CustomerRepositoryTest.cs",
               "RelativeToolTip": "..\\Ecommerce.Test\\InfrastructureTest\\Repository\\CustomerRepositoryTest.cs",
-              "ViewState": "AgIAAJgAAAAAAAAAAAAwwAYBAAAaAAAAAAAAAA==",
+              "ViewState": "AgIAAEsAAAAAAAAAAAAAAAYBAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-28T11:44:34.808Z",
               "EditorCaption": ""
@@ -54,8 +54,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
               "ViewState": "AgIAACEAAAAAAAAAAAAywGoAAAAcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-28T11:41:23.313Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-28T11:41:23.313Z"
             },
             {
               "$type": "Document",
@@ -67,8 +66,7 @@
               "RelativeToolTip": "..\\Ecommerce.Infrastructure\\Repository\\CustomerRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAqwA8AAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-28T10:24:18.358Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-28T10:24:18.358Z"
             }
           ]
         }
