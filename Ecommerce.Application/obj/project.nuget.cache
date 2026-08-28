@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "pzbswlA928I=",
+  "dgSpecHash": "nhOOMHg28c0=",
   "success": true,
   "projectFilePath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Application\\Ecommerce.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ruben\\.nuget\\packages\\automapper\\16.2.0\\automapper.16.2.0.nupkg.sha512",
+    "C:\\Users\\ruben\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.0\\microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.0\\microsoft.extensions.logging.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.extensions.options\\10.0.0\\microsoft.extensions.options.10.0.0.nupkg.sha512",
