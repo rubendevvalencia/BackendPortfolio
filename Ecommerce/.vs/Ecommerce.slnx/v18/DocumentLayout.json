@@ -81,8 +81,7 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-26T09:03:45.794Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Bookmark",
@@ -111,8 +110,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\Interface\\ICustomerApplication.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-27T07:50:26.401Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-27T07:50:26.401Z"
             },
             {
               "$type": "Document",
@@ -122,7 +120,7 @@
               "RelativeDocumentMoniker": "Controllers\\CustomerController.cs",
               "ToolTip": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce\\Controllers\\CustomerController.cs",
               "RelativeToolTip": "Controllers\\CustomerController.cs",
-              "ViewState": "AgIAAAgAAAAAAAAAAAAewB4AAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAQwCUAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-26T08:41:42.566Z",
               "EditorCaption": ""
@@ -150,8 +148,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\ConfigureServices.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAqwBQAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T08:37:24.587Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-26T08:37:24.587Z"
             },
             {
               "$type": "Document",

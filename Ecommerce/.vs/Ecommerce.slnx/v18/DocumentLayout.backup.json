@@ -81,8 +81,7 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-26T09:03:45.794Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Bookmark",
@@ -98,8 +97,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\MainService\\CustomerApplication.cs",
               "ViewState": "AgIAABQAAAAAAAAAAAAUwDEAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T10:22:02.369Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-26T10:22:02.369Z"
             },
             {
               "$type": "Document",
@@ -111,8 +109,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\Interface\\ICustomerApplication.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-27T07:50:26.401Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-27T07:50:26.401Z"
             },
             {
               "$type": "Document",
@@ -137,8 +134,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\Validator\\CustomerDtoValidator.cs",
               "ViewState": "AgIAABAAAAAAAAAAAAAgwCoAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-28T07:17:09.111Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-28T07:17:09.111Z"
             },
             {
               "$type": "Document",
@@ -150,8 +146,7 @@
               "RelativeToolTip": "..\\Ecommerce.Application\\ConfigureServices.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAqwBQAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T08:37:24.587Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-26T08:37:24.587Z"
             },
             {
               "$type": "Document",
