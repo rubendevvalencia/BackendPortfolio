@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "FKzn5IPzigw=",
+  "dgSpecHash": "tAT4G+UyHoc=",
   "success": true,
-  "projectFilePath": "c:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\ruben\\Repos\\Backend\\BackendPortfolio\\Ecommerce.Infrastructure\\Ecommerce.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ruben\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\ruben\\.nuget\\packages\\microsoft.bcl.cryptography\\9.0.13\\microsoft.bcl.cryptography.9.0.13.nupkg.sha512",
