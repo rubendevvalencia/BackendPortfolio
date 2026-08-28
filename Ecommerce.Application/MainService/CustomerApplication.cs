@@ -43,9 +43,11 @@ namespace Ecommerce.Application.Service
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
                 response.Data = await _unitOfWork.Customers.AddAsync(customer);
                 if (response.Data) response.IsSuccess = true;
-                return Response<bool>.Fail("Customer could not be added.");
+                else return Response<bool>.Fail("Customer could not be added.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
+
+            return response;
         }
 
         public async Task<Response<bool>> DeleteAsync(int id)
@@ -55,9 +57,11 @@ namespace Ecommerce.Application.Service
             {
                 response.Data = await _unitOfWork.Customers.DeleteAsync(id);
                 if (response.Data) response.IsSuccess = true;
-                return Response<bool>.NotFound($"Customer with ID {id} not found.");
+                else return Response<bool>.NotFound($"Customer with ID {id} not found.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
+
+            return response;
         }
 
         public async Task<Response<IEnumerable<CustomerDto>>> GetAllAsync()
@@ -97,10 +101,10 @@ namespace Ecommerce.Application.Service
                 ManualMappingCustomer.MapInto(existingCustomer, customerDto);
                 response.Data = await _unitOfWork.Customers.UpdateAsync(existingCustomer);
                 if (response.Data) response.IsSuccess = true;
-                return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
+                else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
-
+            return response;
         }
     }
 }

@@ -1,0 +1,12 @@
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\bin\Debug\net10.0\Ecommerce.Transversal.deps.json
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\bin\Debug\net10.0\Ecommerce.Transversal.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\bin\Debug\net10.0\Ecommerce.Transversal.pdb
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.AssemblyInfoInputs.cache
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.AssemblyInfo.cs
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.csproj.CoreCompileInputs.cache
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.sourcelink.json
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\refint\Ecommerce.Transversal.dll
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\Ecommerce.Transversal.pdb
+C:\Users\ruben\Repos\Backend\BackendPortfolio\Ecommerce.Transversal\obj\Debug\net10.0\ref\Ecommerce.Transversal.dll
