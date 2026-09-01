@@ -18,7 +18,7 @@ namespace Ecommerce.Transversal.Common
         public static Response<T> Success(T data) => new()
         {
             Data = data,
-            IsSuccess = true
+            IsSuccess = true,
         };
 
         public static Response<T> Fail(string message, ErrorType errorType = ErrorType.Unexpected) => new()
