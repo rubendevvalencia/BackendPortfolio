@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <!-- Identifica el almacen de User Secrets de esta solucion. Los valores NO se guardan aqui:
+         viven fuera del repositorio, en %APPDATA%\Microsoft\UserSecrets\<id>\secrets.json.
+         WebApplication.CreateBuilder los carga automaticamente cuando el entorno es Development. -->
+    <UserSecretsId>aa82df1b-7552-4769-8c3f-2dccef385491</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
