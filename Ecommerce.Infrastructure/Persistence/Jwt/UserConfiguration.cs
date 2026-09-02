@@ -27,12 +27,17 @@ namespace Ecommerce.Infrastructure.Persistence.Jwt
                 .IsRequired() // Indica que la propiedad Email es obligatoria (no puede ser nula).
                 .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad Email.
 
+            builder.HasIndex(u => u.Email).IsUnique(); // Crea un índice único en la propiedad Email para garantizar que no haya duplicados.        
+
             builder.Property(u => u.UserName)
                 .IsRequired() // Indica que la propiedad UserName es obligatoria (no puede ser nula).
                 .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad UserName.
 
+            builder.HasIndex(u => u.UserName).IsUnique(); // Crea un índice único en la propiedad UserName para garantizar que no haya duplicados.
+
             builder.Property(u => u.PasswordHash)
-                .HasMaxLength(50); // Establece una longitud máxima de 50 caracteres para la propiedad PasswordHash.
+                .IsRequired() // Indica que la propiedad PasswordHash es obligatoria (no puede ser nula).
+                .HasMaxLength(255); // 255 caracteres: un hash BCrypt ocupa 60 y un SHA-256 en hexadecimal 64.
         }
 
     }

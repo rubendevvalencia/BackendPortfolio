@@ -45,7 +45,7 @@ namespace Ecommerce.Application.MainService
 
                 var user = _mapper.Map<User>(entity);
                 response.Data = await _unitOfWork._user.CreateUserAsync(user);
-                if(response.Data == null)
+                if(!response.Data)
                 {
                     response.IsSuccess = false;
                     response.Message = "Failed to create user";

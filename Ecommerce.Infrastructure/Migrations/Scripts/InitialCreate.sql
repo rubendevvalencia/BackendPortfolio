@@ -34,22 +34,6 @@ BEGIN
     );
 END;
 
-BEGIN
-    CREATE TABLE [Users] (
-        [Id] int NOT NULL IDENTITY,
-        [FirstName] nvarchar(100) NOT NULL,
-        [LastName] nvarchar(100) NOT NULL,
-        [Email] nvarchar(100) NOT NULL,
-        [UserName] nvarchar(100) NOT NULL,
-        [PasswordHash] nvarchar(50) NOT NULL,
-        [CreatedAt] datetime2 NOT NULL,
-        [CreatedBy] nvarchar(max) NULL,
-        [LastUpdatedAt] datetime2 NOT NULL,
-        [LastUpdatedBy] nvarchar(max) NULL,
-        CONSTRAINT [PK_Users] PRIMARY KEY ([Id])
-    );
-END;
-
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
