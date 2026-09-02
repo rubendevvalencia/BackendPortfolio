@@ -20,6 +20,14 @@ namespace Ecommerce.Application.MainService
         private readonly IValidator<SignUpDto> _validatorSignUp;
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
+        public AuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _validatorSignUp = validatorSignUp;
+            _validatorSignIn = validatorSignIn;
+            _genJwt = genJwt;
+        }
 
         public async Task<Response<bool>> SignUpAsync(SignUpDto entity)
         {

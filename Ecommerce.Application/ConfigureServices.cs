@@ -6,6 +6,7 @@ using Ecommerce.Application.MainService.Jwt;
 using Ecommerce.Application.Mapping;
 using Ecommerce.Application.Service;
 using Ecommerce.Application.Validator;
+using Ecommerce.Domain.Interface.IRepository;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System;
