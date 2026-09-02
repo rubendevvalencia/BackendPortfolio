@@ -1,7 +1,9 @@
-﻿using Ecommerce.Domain.Interface.IRepository;
+﻿using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Infrastructure.Data;
 using Ecommerce.Infrastructure.Interceptors;
 using Ecommerce.Infrastructure.Repository;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,8 +22,10 @@ namespace Ecommerce.Infrastructure
                     .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
                     .EnableRetryOnFailure()));                                                   //Reintenta automáticamente ante fallos transitorios
             services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<AuditableEntitySaveChangesInterceptor>();
+            services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
             return services;
         }
     }

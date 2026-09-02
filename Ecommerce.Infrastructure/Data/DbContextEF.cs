@@ -19,6 +19,7 @@ namespace Ecommerce.Infrastructure.Data
         public readonly AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor;
 
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<User> Users { get; set; }
 
         public DbContextEF(DbContextOptions<DbContextEF> options, IConfiguration configuration, AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor)
             : base(options)
@@ -44,8 +45,6 @@ namespace Ecommerce.Infrastructure.Data
             optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
             optionsBuilder.EnableSensitiveDataLogging(); //Esto permite ver en consola las consultas SQL generadas por EF Core, útil para depuración.
         }
-
-        public IDbConnection CreateConnection() => new SqlConnection(_connectionString);
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
