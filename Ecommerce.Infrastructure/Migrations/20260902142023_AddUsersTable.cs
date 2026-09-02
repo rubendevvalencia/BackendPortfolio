@@ -31,6 +31,7 @@ namespace Ecommerce.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
                 });
+
         }
 
         /// <inheritdoc />
