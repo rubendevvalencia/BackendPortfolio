@@ -1,4 +1,5 @@
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
 using System;
 using System.Collections.Generic;

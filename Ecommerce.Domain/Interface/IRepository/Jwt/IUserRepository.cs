@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Domain.Interface.IRepository
+namespace Ecommerce.Domain.Interface.IRepository.Jwt
 {
     public interface IUserRepository
     {

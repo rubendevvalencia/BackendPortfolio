@@ -1,5 +1,5 @@
 ﻿using Ecommerce.Domain.Entities.Jwt;
-using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Infrastructure.Repository
+namespace Ecommerce.Infrastructure.Repository.Jwt
 {
     public class UserRepository : IUserRepository
     {
