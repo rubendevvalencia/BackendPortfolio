@@ -1,8 +1,12 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Interface;
+using Ecommerce.Application.Interface.Jwt;
+using Ecommerce.Application.MainService;
+using Ecommerce.Application.MainService.Jwt;
 using Ecommerce.Application.Mapping;
 using Ecommerce.Application.Service;
 using Ecommerce.Application.Validator;
+using Ecommerce.Domain.Interface.IRepository;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -17,6 +21,8 @@ namespace Ecommerce.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<ICustomerApplication, CustomerApplication>();
+            services.AddScoped<IAuthApplication, AuthApplication>();
+            services.AddScoped<IJwtApplication, JwtApplication>();
             services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>()); //Documentacion Automapper: https://docs.automapper.io/en/latest/Dependency-injection.html
 
             //Registra automaticamente todos los AbstractValidator<T> de este ensamblado como IValidator<T>.

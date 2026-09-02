@@ -41,7 +41,7 @@ namespace Ecommerce.Application.Service
 
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-                response.Data = await _unitOfWork.Customers.AddAsync(customer);
+                response.Data = await _unitOfWork._customers.AddAsync(customer);
                 if (response.Data) response.IsSuccess = true;
                 else return Response<bool>.Fail("Customer could not be added.");
             }
@@ -55,7 +55,7 @@ namespace Ecommerce.Application.Service
             var response = new Response<bool>();
             try
             {
-                response.Data = await _unitOfWork.Customers.DeleteAsync(id);
+                response.Data = await _unitOfWork._customers.DeleteAsync(id);
                 if (response.Data) response.IsSuccess = true;
                 else return Response<bool>.NotFound($"Customer with ID {id} not found.");
             }
@@ -68,7 +68,7 @@ namespace Ecommerce.Application.Service
         {
             try
             {
-                var customers = await _unitOfWork.Customers.GetAllAsync();
+                var customers = await _unitOfWork._customers.GetAllAsync();
                 return Response<IEnumerable<CustomerDto>>.Success(_mapper.Map<IEnumerable<CustomerDto>>(customers));
             }
             catch (Exception ex) { return Response<IEnumerable<CustomerDto>>.Fail(ex.InnerException?.Message ?? ex.Message); }
@@ -78,7 +78,7 @@ namespace Ecommerce.Application.Service
         {
             try
             {
-                var customer = await _unitOfWork.Customers.GetByIdAsync(id);
+                var customer = await _unitOfWork._customers.GetByIdAsync(id);
                 if (customer == null) return Response<CustomerDto?>.NotFound($"Customer with ID {id} not found.");
 
                 return Response<CustomerDto?>.Success(_mapper.Map<CustomerDto?>(customer));
@@ -95,11 +95,11 @@ namespace Ecommerce.Application.Service
                 var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
                 if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
 
-                var existingCustomer = await _unitOfWork.Customers.GetByIdAsync(id);
+                var existingCustomer = await _unitOfWork._customers.GetByIdAsync(id);
                 if (existingCustomer == null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
 
                 ManualMappingCustomer.MapInto(existingCustomer, customerDto);
-                response.Data = await _unitOfWork.Customers.UpdateAsync(existingCustomer);
+                response.Data = await _unitOfWork._customers.UpdateAsync(existingCustomer);
                 if (response.Data) response.IsSuccess = true;
                 else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
             }

@@ -30,8 +30,8 @@ namespace Ecommerce.Infrastructure.Repository
         public async Task<bool> AddAsync(Customer entity)
         {
             var result = await _dbContext.Customers.AddAsync(entity);
-            await _dbContext.SaveChangesAsync();
-            if (result != null) return true;
+            var rowsAffected = await _dbContext.SaveChangesAsync();
+            if (rowsAffected > 0) return true;
             return false;
         }
 
@@ -40,8 +40,8 @@ namespace Ecommerce.Infrastructure.Repository
             //Si la entidad ya viene trackeada (patron connected) basta con guardar: EF detecta
             //los cambios solo. Update() se reserva para entidades detached.
             if (_dbContext.Entry(customer).State == EntityState.Detached) _dbContext.Customers.Update(customer);
-            var result = await _dbContext.SaveChangesAsync();
-            if(result > 0) return true;
+            var rowsAffected = await _dbContext.SaveChangesAsync();
+            if(rowsAffected > 0) return true;
             return false;
         }
 
@@ -54,8 +54,9 @@ namespace Ecommerce.Infrastructure.Repository
             if (customer is null) return false;
 
             _dbContext.Customers.Remove(customer);
-            await _dbContext.SaveChangesAsync();
-            return true;
+            var rowsAffected = await _dbContext.SaveChangesAsync();
+            if (rowsAffected > 0) return true;
+            return false;
         }
 
       

@@ -1,4 +1,5 @@
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
@@ -10,12 +11,14 @@ namespace Ecommerce.Infrastructure.Repository
     {
         private readonly DbContextEF _dbContext;
 
-        public ICustomerRepository Customers { get; }
+        public ICustomerRepository _customers { get; }
+        public IUserRepository _user { get; }
 
-        public UnitOfWork(DbContextEF dbContext, ICustomerRepository customerRepository)
+        public UnitOfWork(DbContextEF dbContext, ICustomerRepository customerRepository, IUserRepository userRepository)
         {
             _dbContext = dbContext;
-            Customers = customerRepository;
+            _customers = customerRepository;
+            _user = userRepository;
         }
 
         //Un único SaveChanges por caso de uso: EF Core envuelve todos los cambios pendientes

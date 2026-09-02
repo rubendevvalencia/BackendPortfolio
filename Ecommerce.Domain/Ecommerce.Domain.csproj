@@ -12,6 +12,10 @@
     <Folder Include="ValueObject\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ecommerce.Transversal\Ecommerce.Transversal.csproj" />
+  </ItemGroup>
+
   <!-- (Se eliminaron inclusiones explícitas para evitar duplicados con las inclusiones implícitas del SDK) -->
 
 </Project>

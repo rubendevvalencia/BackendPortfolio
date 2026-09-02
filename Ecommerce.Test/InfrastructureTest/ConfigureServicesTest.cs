@@ -47,7 +47,7 @@ namespace Ecommerce.Test.InfrastructureTest
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
             Assert.NotNull(unitOfWork);
-            Assert.NotNull(unitOfWork.Customers);
+            Assert.NotNull(unitOfWork._customers);
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<ICustomerRepository>());
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<DbContextEF>());
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());

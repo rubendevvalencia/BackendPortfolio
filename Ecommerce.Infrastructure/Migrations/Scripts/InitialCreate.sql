@@ -34,6 +34,7 @@ BEGIN
     );
 END;
 
+
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
     WHERE [MigrationId] = N'20260827154330_InitialCreate'
