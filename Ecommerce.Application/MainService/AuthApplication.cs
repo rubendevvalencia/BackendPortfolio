@@ -19,6 +19,7 @@ namespace Ecommerce.Application.MainService
         private readonly IMapper _mapper;
         private readonly IValidator<SignUpDto> _validatorSignUp;
         private readonly IValidator<SignInDto> _validatorSignIn;
+        private readonly IJwtApplication _genJwt;
 
         public async Task<Response<bool>> SignUpAsync(SignUpDto entity)
         {
@@ -81,13 +82,15 @@ namespace Ecommerce.Application.MainService
                     return response;
                 }
 
-                var token = await _unitOfWork._genJwt.GenerateTokenAsync(user);
+                var token = _genJwt.GenerateToken(user);
                 response.Data = new TokenDto
                 {
-                    AccessToken = token.AccessToken,
-                    TokenType = token.TokenType,
-                    ExpiresIn = token.ExpiresIn
+                    AccessToken = token,
+                    ExpiresIn = 3600,
                 };
+
+                response.IsSuccess = true;
+                response.Message = "User signed in successfully";
             }
             catch (Exception ex)
             {
@@ -95,6 +98,8 @@ namespace Ecommerce.Application.MainService
                 response.Message = ex.Message;
                 response.ErrorType = ErrorType.Unexpected;
             }
+
+            return response;
         }
     }
 }

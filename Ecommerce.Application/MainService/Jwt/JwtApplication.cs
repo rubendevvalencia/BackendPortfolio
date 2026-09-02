@@ -11,14 +11,14 @@ using System.Text;
 
 namespace Ecommerce.Application.MainService.Jwt
 {
-    public class JwtService : IGenerateToken
+    public class JwtApplication : IJwtApplication
     {
         private readonly IConfiguration _confi;
-        public JwtService(IConfiguration confi)
+        public JwtApplication(IConfiguration confi)
         {
             _confi = confi;
         }
-        public string GenerateToken(SignUpDto entity)
+        public string GenerateToken(User entity)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_confi["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -39,6 +39,5 @@ namespace Ecommerce.Application.MainService.Jwt
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-       
     }
 }

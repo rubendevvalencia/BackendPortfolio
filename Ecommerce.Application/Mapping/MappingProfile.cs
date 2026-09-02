@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Dto;
+using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ namespace Ecommerce.Application.Mapping
             /*CreateMap<Customer, CustomerDto>().ReverseMap().
                 ForMember(dest => dest.Id, source => source.MapFrom(src => src.Id))
                 ForMember(dest => dest.CompanyName, source => source.MapFrom(src => src.CompanyName));*/
+            CreateMap<User, SignUpDto>().ReverseMap();
         }
     }
 }

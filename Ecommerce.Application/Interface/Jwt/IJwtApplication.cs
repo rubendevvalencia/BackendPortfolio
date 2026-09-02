@@ -6,9 +6,8 @@ using System.Text;
 
 namespace Ecommerce.Application.Interface.Jwt
 {
-    public interface IGenerateToken
+    public interface IJwtApplication
     {
-        string GenerateToken(SignUpDto entity);
-        Task GenerateTokenAsync(User user);
+        string GenerateToken(User entity);
     }
 }
