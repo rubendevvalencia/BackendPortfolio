@@ -1,4 +1,4 @@
-﻿using Ecommerce.Domain.Entities;
+﻿using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;

@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Infrastructure.Interceptors;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;

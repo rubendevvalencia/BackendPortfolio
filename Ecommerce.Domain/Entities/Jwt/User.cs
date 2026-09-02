@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Ecommerce.Domain.Entities.Audit;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Domain.Entities
+namespace Ecommerce.Domain.Entities.Jwt
 {
-    public class User
+    public class User : BaseAuditEntity
     {
         public int? Id { get; set; }
         public string? FirstName { get; set; }

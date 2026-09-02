@@ -2,7 +2,7 @@
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
-using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;

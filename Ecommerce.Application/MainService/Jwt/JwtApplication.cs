@@ -1,6 +1,6 @@
 ﻿using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
-using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Entities.Jwt;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;

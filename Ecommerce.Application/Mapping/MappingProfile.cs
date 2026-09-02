@@ -2,6 +2,7 @@
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Entities.Jwt;
 using System;
 using System.Collections.Generic;
 using System.Text;
