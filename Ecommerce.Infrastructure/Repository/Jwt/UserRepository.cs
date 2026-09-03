@@ -42,5 +42,6 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
         }
 
         public async Task<User?> GetByEmailAsync(string email) => await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        public async Task<User?> GetByUserNameAsync(string userName) => await _dbContext.Users.FirstOrDefaultAsync(u => u.UserName == userName);
     }
 }

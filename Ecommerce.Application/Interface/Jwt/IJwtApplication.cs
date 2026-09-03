@@ -8,6 +8,6 @@ namespace Ecommerce.Application.Interface.Jwt
 {
     public interface IJwtApplication
     {
-        string GenerateToken(User entity);
+        (string, int) GenerateToken(User entity);
     }
 }

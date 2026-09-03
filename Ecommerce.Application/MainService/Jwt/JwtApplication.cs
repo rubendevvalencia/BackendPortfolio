@@ -18,7 +18,7 @@ namespace Ecommerce.Application.MainService.Jwt
         {
             _confi = confi;
         }
-        public string GenerateToken(User entity)
+        public (string, int) GenerateToken(User entity)
         {
             //Fail-fast: appsettings.json declara "Jwt:Key" vacia a proposito, el valor real llega de
             //User Secrets en desarrollo o de la variable de entorno Jwt__Key en despliegue. Sin este
@@ -57,7 +57,10 @@ namespace Ecommerce.Application.MainService.Jwt
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            int expiresIn = (int)(token.ValidTo - DateTime.UtcNow).TotalSeconds;
+
+            return (tokenString, expiresIn);
         }
 
     }

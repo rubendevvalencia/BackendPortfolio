@@ -1,11 +1,13 @@
 ﻿using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Ecommerce.Api.Controllers
 {
+    [Authorize] //Todos los métodos de la clase necesitan un jwt válido para ser ejecutados, excepto los que tengan [AllowAnonymous].
     [Route("api/[controller]")]
     [ApiController]
     [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
@@ -17,7 +19,7 @@ namespace Ecommerce.Api.Controllers
         {
             _authApplication = authApplication;
         }
-
+        [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [HttpPost("SignUp")]
         [SwaggerOperation(Summary = "Registra un nuevo usuario en el sistema.")]
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto entity)
@@ -26,7 +28,7 @@ namespace Ecommerce.Api.Controllers
             if (!response.IsSuccess) return BadRequest(response);
             return Ok(response);
         }
-
+        [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [HttpPost("SignIn")]
         [SwaggerOperation(Summary = "Inicia sesión con un usuario existente.")]
         public async Task<IActionResult> SignInAsync([FromBody] SignInDto entity)
