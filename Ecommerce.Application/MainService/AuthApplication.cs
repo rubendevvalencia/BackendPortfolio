@@ -7,6 +7,7 @@ using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
+using Ecommerce.Transversal.Loggin.Interface;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
@@ -21,13 +22,15 @@ namespace Ecommerce.Application.MainService
         private readonly IValidator<SignUpDto> _validatorSignUp;
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
-        public AuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt)
+        private readonly IApiLogger<AuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
+        public AuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, IApiLogger<AuthApplication> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _validatorSignUp = validatorSignUp;
             _validatorSignIn = validatorSignIn;
             _genJwt = genJwt;
+            _logger = logger;
         }
 
         public async Task<Response<bool>> SignUpAsync(SignUpDto entity)
@@ -48,6 +51,7 @@ namespace Ecommerce.Application.MainService
                     response.IsSuccess = false;
                     response.Message = "User already exists";
                     response.ErrorType = ErrorType.Validation;
+                    _logger.LogWarning("User already exists: {Email}", entity.Email);
                     return response;
                 }
 
@@ -58,6 +62,7 @@ namespace Ecommerce.Application.MainService
                     response.IsSuccess = false;
                     response.Message = "Failed to create user";
                     response.ErrorType = ErrorType.Unexpected;
+                    _logger.LogWarning("Failed to create user: {Email}", entity.Email);
                 }
                 else
                 {
@@ -70,6 +75,7 @@ namespace Ecommerce.Application.MainService
                 response.IsSuccess = false;
                 response.Message = ex.Message;
                 response.ErrorType = ErrorType.Unexpected;
+                _logger.LogError(ex, "An error occurred while signing up user: {Email}", entity.Email);
             }
 
             return response;
