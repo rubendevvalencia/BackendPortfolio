@@ -4,7 +4,9 @@ using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Application;
 using Ecommerce.Api.Models.Cors;
 using Microsoft.AspNetCore.HttpOverrides;
-using Ecommerce.Api.Models.Auth; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using Ecommerce.Api.Models.Auth;
+using Ecommerce.Transversal;
+using Serilog; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,11 +17,12 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
 builder.Services.AddAuth(builder.Configuration); // Registra la autenticación JWT usando la configuración de Jwt.
 builder.Services.AddCorsPolicy(builder.Configuration); //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
                                                        //OJO: registrar la politica NO la aplica. Aplicarla es tarea de app.UseCors() mas abajo.
 builder.Services.AddSwagger();
-
+builder.Host.UseSerilog(); //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
 
 var app = builder.Build();
 
@@ -56,6 +59,7 @@ if (app.Environment.IsDevelopment())
     //app.MapOpenApi(): No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
 }
 
+app.UseSerilogRequestLogging(); //Registra en Serilog cada peticion HTTP, con su metodo, ruta, codigo de respuesta y tiempo de respuesta. Se ejecuta ANTES de la autenticacion y autorizacion para que registre tambien los intentos fallidos.
 app.UseHttpsRedirection();
 
 //UseCors() esta FUERA del if(IsDevelopment()) a proposito: si estuviera dentro, en produccion no se
@@ -80,4 +84,17 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+try
+{
+    Log.Information("Starting ecommerce API...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application start-up failed");
+
+}
+finally
+{
+    Log.CloseAndFlush();
+}
