@@ -32,7 +32,7 @@ namespace Ecommerce.Api.Controllers
         public async Task<IActionResult> SignInAsync([FromBody] SignInDto entity)
         {
             var response = await _authApplication.SingInAsync(entity);
-            if (!response.IsSuccess) return BadRequest(response);
+            if (!response.IsSuccess) return Unauthorized(response);
             return Ok(response);
         }
     }
