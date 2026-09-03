@@ -1,8 +1,10 @@
 using Ecommerce.Infrastructure;
+using Ecommerce.Api.Models.Auth;
 using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Application;
 using Ecommerce.Api.Models.Cors;
-using Microsoft.AspNetCore.HttpOverrides; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using Microsoft.AspNetCore.HttpOverrides;
+using Ecommerce.Api.Models.Auth; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddAuth(builder.Configuration); // Registra la autenticación JWT usando la configuración de Jwt.
 builder.Services.AddCorsPolicy(builder.Configuration); //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
                                                        //OJO: registrar la politica NO la aplica. Aplicarla es tarea de app.UseCors() mas abajo.
 builder.Services.AddSwagger();
@@ -71,6 +74,8 @@ app.UseHttpsRedirection();
 //(doble guion bajo = el ":" de las claves anidadas). Sin barra final en el origen.
 app.UseCors(CorsExtension.myPolicy);
 
+app.UseAuthentication(); // Valida el token JWT y procesa el usuario autenticado antes de que llegue a los controladores.
+                         // Siempre debe ir antes de UseAuthorization() para que la autorización tenga un usuario válido.
 app.UseAuthorization();
 
 app.MapControllers();

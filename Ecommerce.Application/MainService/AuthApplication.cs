@@ -2,6 +2,7 @@
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
+using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
@@ -34,8 +35,15 @@ namespace Ecommerce.Application.MainService
             var response = new Response<bool>();
             try
             {
+                var validationResult = await _validatorSignUp.ValidateAsync(entity);
+                //Devuelve el detalle por propiedad ("Email" -> ["Invalid email format."]) en vez de un
+                //mensaje generico, igual que hace CustomerApplication. La traduccion vive en un unico
+                //sitio: ValidationResultExtensions.ToFailedResponse<T>().
+                if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
+
                 var exitingUser = await _unitOfWork._user.GetByEmailAsync(entity.Email);
-                if(exitingUser != null)
+                var exitingUserName = await _unitOfWork._user.GetByUserNameAsync(entity.UserName);
+                if(exitingUser != null || exitingUserName != null)
                 {
                     response.IsSuccess = false;
                     response.Message = "User already exists";
@@ -72,6 +80,9 @@ namespace Ecommerce.Application.MainService
             var response = new Response<TokenDto>();
             try
             {
+                var validationResult = await _validatorSignIn.ValidateAsync(entity);
+                if (!validationResult.IsValid) return validationResult.ToFailedResponse<TokenDto>();
+
                 var user = await _unitOfWork._user.GetByEmailAsync(entity.Email);
                 if (user == null)
                 {
@@ -90,11 +101,12 @@ namespace Ecommerce.Application.MainService
                     return response;
                 }
 
-                var token = _genJwt.GenerateToken(user);
+                (var token, int expiresIn) = _genJwt.GenerateToken(user);
                 response.Data = new TokenDto
                 {
                     AccessToken = token,
-                    ExpiresIn = 3600,
+                    ExpiresIn = expiresIn,
+                    TokenType = "Bearer"
                 };
 
                 response.IsSuccess = true;
