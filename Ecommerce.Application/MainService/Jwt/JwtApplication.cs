@@ -20,7 +20,28 @@ namespace Ecommerce.Application.MainService.Jwt
         }
         public string GenerateToken(User entity)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_confi["Jwt:Key"]));
+            //Fail-fast: appsettings.json declara "Jwt:Key" vacia a proposito, el valor real llega de
+            //User Secrets en desarrollo o de la variable de entorno Jwt__Key en despliegue. Sin este
+            //control, una clave ausente revienta mas abajo con un error que no dice que configurar.
+            var configuredKey = _confi["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(configuredKey))
+            {
+                throw new InvalidOperationException(
+                    "No hay clave de firma 'Jwt:Key'. Configurala con: " +
+                    "dotnet user-secrets set \"Jwt:Key\" \"<clave>\" --project Ecommerce");
+            }
+
+            //HMAC-SHA256 exige una clave de 256 bits como minimo; con menos, la propia libreria
+            //rechaza la firma. El limite se mide en bytes, no en caracteres.
+            var keyBytes = Encoding.UTF8.GetBytes(configuredKey);
+            if (keyBytes.Length < 32)
+            {
+                throw new InvalidOperationException(
+                    $"La clave 'Jwt:Key' tiene {keyBytes.Length} bytes y HMAC-SHA256 exige 32 o mas. " +
+                    "Genera una aleatoria, no una frase escrita a mano.");
+            }
+
+            var key = new SymmetricSecurityKey(keyBytes);
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
