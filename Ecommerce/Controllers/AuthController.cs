@@ -33,6 +33,7 @@ namespace Ecommerce.Api.Controllers
         {
             var response = await _authApplication.SingInAsync(entity);
             if (!response.IsSuccess) return Unauthorized(response);
+            
             return Ok(response);
         }
     }
