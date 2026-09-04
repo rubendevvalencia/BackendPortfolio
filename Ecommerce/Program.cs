@@ -4,7 +4,6 @@ using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Application;
 using Ecommerce.Api.Models.Cors;
 using Microsoft.AspNetCore.HttpOverrides;
-using Ecommerce.Api.Models.Auth;
 using Ecommerce.Transversal;
 using Serilog; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 
@@ -92,8 +91,16 @@ try
 }
 catch (Exception ex)
 {
+    //Este catch envuelve TODO el arranque, incluido app.Run(). Sin las dos lineas de abajo, cualquier fallo
+    //de arranque (el puerto 5102 ocupado por una ejecucion anterior que quedo viva, la cadena de conexion
+    //vacia porque faltan los User Secrets...) terminaba en un proceso que salia con codigo 0: Visual Studio
+    //no mostraba error, la consola se cerraba y solo quedaba el rastro en Logs/log-*.txt.
+    //Ademas Log.Logger se configura dentro de AddTransversalServices(): si la excepcion salta ANTES de esa
+    //linea, Log.Fatal escribe en el logger silencioso por defecto y no aparece absolutamente nada, de ahi
+    //que se escriba tambien directamente en stderr.
+    Console.Error.WriteLine($"Application start-up failed: {ex}");
     Log.Fatal(ex, "Application start-up failed");
-
+    Environment.ExitCode = 1; //Para que el IDE y la CLI reporten el fallo en lugar de una salida limpia.
 }
 finally
 {
