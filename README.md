@@ -97,8 +97,11 @@ Swagger queda en `https://localhost:7051/swagger`.
 **Tests:**
 
 ```bash
-dotnet test Ecommerce/Ecommerce.slnx
+dotnet test
 ```
+
+La solución (`Ecommerce.slnx`) está en la raíz del repositorio, así que `dotnet build`,
+`dotnet test` y `dotnet sln list` funcionan sin indicarle la ruta.
 
 ---
 
