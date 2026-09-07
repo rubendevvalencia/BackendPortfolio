@@ -12,9 +12,10 @@ namespace Ecommerce.Api.Models.Version
                 options.AssumeDefaultVersionWhenUnspecified = true;     //Sino especifica la versión, se asume la predeterminada
                 options.ReportApiVersions = true;                       //Permite mostrar las versiones disponibles en la respuesta
                 options.ApiVersionReader = ApiVersionReader.Combine(    //Lee la versión de la API desde diferentes fuentes (query string, encabezado, tipo de medio)
-                    new QueryStringApiVersionReader("api-version"),
-                    new HeaderApiVersionReader("X-Version"),
-                    new MediaTypeApiVersionReader("ver"));
+                                                                        //new QueryStringApiVersionReader("api-version"),
+                                                                        //new HeaderApiVersionReader("X-Version"),
+                                                                        //new MediaTypeApiVersionReader("ver"));
+                    new UrlSegmentApiVersionReader());
             }).AddApiExplorer(options =>
             {
                 options.GroupNameFormat = "'v'VVV";                     //Versionando semántico
