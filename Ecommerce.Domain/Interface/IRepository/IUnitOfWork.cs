@@ -8,7 +8,9 @@ namespace Ecommerce.Domain.Interface.IRepository
     public interface IUnitOfWork
     {
         //Trabaja como un contenedor para todos los repositorios, permitiendo que se realicen operaciones de manera coordinada y asegurando la consistencia de los datos.
-        ICustomerRepository _customers { get; } // Add other repositories here as needed
+        ICustomerRepositoryUoW _customersUoW {get;}
         IUserRepository _user { get; }
+
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

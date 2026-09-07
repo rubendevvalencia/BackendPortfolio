@@ -24,6 +24,7 @@ namespace Ecommerce.Infrastructure
                     .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
                     .EnableRetryOnFailure()));                                                   //Reintenta automáticamente ante fallos transitorios
             services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICustomerRepositoryUoW, CustomerRepositoryUoW>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<AuditableEntitySaveChangesInterceptor>();
