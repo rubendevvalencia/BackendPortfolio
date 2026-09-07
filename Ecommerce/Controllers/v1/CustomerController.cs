@@ -54,11 +54,14 @@ namespace Ecommerce.Api.Controllers.v1
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] string id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
             if (customerDto == null) return BadRequest();
 
-            var response = await _customerApplication.UpdateAsync(id, customerDto, cancellationToken);
+            var number = 0;
+            Int32.TryParse(id, out number);
+
+            var response = await _customerApplication.UpdateAsync(number, customerDto, cancellationToken);
             return ToActionResult(response);
         }
 
