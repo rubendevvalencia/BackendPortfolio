@@ -10,14 +10,13 @@ namespace Ecommerce.Infrastructure.Repository
     public class UnitOfWork : IUnitOfWork
     {
         private readonly DbContextEF _dbContext;
-
-        public ICustomerRepository _customers { get; }
+        public ICustomerRepositoryUoW _customersUoW {get;}
         public IUserRepository _user { get; }
 
-        public UnitOfWork(DbContextEF dbContext, ICustomerRepository customerRepository, IUserRepository userRepository)
+        public UnitOfWork(DbContextEF dbContext, ICustomerRepositoryUoW customerRepositoryUoW, IUserRepository userRepository)
         {
             _dbContext = dbContext;
-            _customers = customerRepository;
+            _customersUoW = customerRepositoryUoW;
             _user = userRepository;
         }
 

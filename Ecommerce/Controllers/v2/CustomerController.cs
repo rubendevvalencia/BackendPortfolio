@@ -18,9 +18,9 @@ namespace Ecommerce.Api.Controllers.v2
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
     public class CustomerController : ControllerBase
     {
-        private readonly ICustomerApplication _customerApplication;
+        private readonly ICustomerApplicationUoW _customerApplication;
 
-        public CustomerController(ICustomerApplication customerApplication) =>  _customerApplication = customerApplication;
+        public CustomerController(ICustomerApplicationUoW customerApplication) =>  _customerApplication = customerApplication;
 
         //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
         //La Api es la unica que conoce HTTP; la Application solo dice QUE ha fallado, no con que codigo.
