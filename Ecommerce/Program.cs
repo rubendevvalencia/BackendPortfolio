@@ -55,7 +55,7 @@ try
                                                                                //Permite a los desarrolladores explorar y probar los endpoints de la API a través de una interfaz web interactiva.
                                                                                //La ruta /swagger/v0/swagger.json es donde se encuentra el archivo JSON generado por UseSwagger() que describe la API.
             
-            var provider = builder.Services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
+            var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>(); //Es mejor construir con los servicios que construir de nuevo así evitas errores de reconstrucción cuando no toca
             
             foreach (var description in provider.ApiVersionDescriptions)
             {
