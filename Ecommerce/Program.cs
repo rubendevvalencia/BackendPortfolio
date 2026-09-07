@@ -5,13 +5,12 @@ using Ecommerce.Application;
 using Ecommerce.Api.Models.Cors;
 using Microsoft.AspNetCore.HttpOverrides;
 using Ecommerce.Transversal;
-using Serilog;
-using Ecommerce.Api.Models.Version;
-using Asp.Versioning.ApiExplorer; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using Serilog; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    
     // Add services to the container.
     
     builder.Services.AddControllers();
@@ -23,7 +22,6 @@ try
     builder.Services.AddAuth(builder.Configuration); // Registra la autenticación JWT usando la configuración de Jwt.
     builder.Services.AddCorsPolicy(builder.Configuration); //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
                                                            //OJO: registrar la politica NO la aplica. Aplicarla es tarea de app.UseCors() mas abajo.
-    builder.Services.AddVersioning();
     builder.Services.AddSwagger();
     builder.Host.UseSerilog(); //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     
@@ -51,24 +49,13 @@ try
         app.UseSwagger(); //Esto habilita la generación de la documentación Swagger en el entorno de desarrollo. Genera el json de la API y lo sirve en la ruta /swagger/v1/swagger.json.
         app.UseSwaggerUI(c =>
         {
-            //c.SwaggerEndpoint("/swagger/v0/swagger.json", "Ecommerce Api v0"); //Esto habilita la interfaz de usuario de Swagger en el entorno de desarrollo.
-                                                                               //Permite a los desarrolladores explorar y probar los endpoints de la API a través de una interfaz web interactiva.
-                                                                               //La ruta /swagger/v0/swagger.json es donde se encuentra el archivo JSON generado por UseSwagger() que describe la API.
-            
-            var provider = builder.Services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
-            
-            foreach (var description in provider.ApiVersionDescriptions)
-            {
-                c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
-            }
-
-
+            c.SwaggerEndpoint("/swagger/v0/swagger.json", "Ecommerce Api v0"); //Esto habilita la interfaz de usuario de Swagger en el entorno de desarrollo.
+                                                                            //Permite a los desarrolladores explorar y probar los endpoints de la API a través de una interfaz web interactiva.
+                                                                            //La ruta /swagger/v0/swagger.json es donde se encuentra el archivo JSON generado por UseSwagger() que describe la API.
             c.RoutePrefix = "swagger"; //Esto establece la ruta base para acceder a la interfaz de usuario de Swagger. En este caso, la interfaz estará disponible en /swagger.
             c.DisplayRequestDuration(); //Esto habilita la visualización de la duración de las solicitudes en la interfaz de usuario de Swagger. Muestra cuánto tiempo tarda cada solicitud en completarse, lo que puede ser útil para el rendimiento y la depuración.
             c.EnableDeepLinking();
             c.ShowExtensions();
-
-            
         });
         //app.MapOpenApi(): No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
     }

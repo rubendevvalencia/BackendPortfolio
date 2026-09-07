@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Ecommerce.Api.Models.Swagger
 {
@@ -9,30 +7,25 @@ namespace Ecommerce.Api.Models.Swagger
     {
         public static IServiceCollection AddSwagger(this IServiceCollection services)
         {
-            services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-
             services.AddSwaggerGen(c =>
             {
-                //Al incluir todo el tema del versionado,
-                //la configuración del swagger se hace a través de "ConfigureSwaggerOptions.cs"
-                
-                //c.SwaggerDoc("v0", new OpenApiInfo
-                //{
-                //    Title = "Ecommerce Api",
-                //    Version = "v0",
-                //    Description = "API for Ecommerce Application",
-                //    Contact = new OpenApiContact
-                //    {
-                //        Name = "Your Name",
-                //        Email = "your.email@example.com",
-                //        Url = new Uri("https://yourwebsite.com")
-                //    },
-                //    License = new OpenApiLicense
-                //    {
-                //        Name = "Use under LICX",
-                //        Url = new Uri("https://example.com/license")
-                //    }
-                //});
+                c.SwaggerDoc("v0", new OpenApiInfo
+                {
+                    Title = "Ecommerce Api",
+                    Version = "v0",
+                    Description = "API for Ecommerce Application",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Your Name",
+                        Email = "your.email@example.com",
+                        Url = new Uri("https://yourwebsite.com")
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "Use under LICX",
+                        Url = new Uri("https://example.com/license")
+                    }
+                });
                 var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
