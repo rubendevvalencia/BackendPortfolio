@@ -1,21 +1,23 @@
-﻿using Ecommerce.Application.Dto.Jwt;
+﻿using Asp.Versioning;
+using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace Ecommerce.Api.Controllers
+namespace Ecommerce.Api.Controllers.v1
 {
     [Authorize] //Todos los métodos de la clase necesitan un jwt válido para ser ejecutados, excepto los que tengan [AllowAnonymous].
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
     [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
-    public class AuthController : ControllerBase
+    public class UserAuthController : ControllerBase
     {
-        private readonly IAuthApplication _authApplication;
+        private readonly IUserAuthApplication _authApplication;
 
-        public AuthController(IAuthApplication authApplication)
+        public UserAuthController(IUserAuthApplication authApplication)
         {
             _authApplication = authApplication;
         }

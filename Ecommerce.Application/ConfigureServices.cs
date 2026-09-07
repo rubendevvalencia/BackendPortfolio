@@ -21,7 +21,7 @@ namespace Ecommerce.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<ICustomerApplication, CustomerApplication>();
-            services.AddScoped<IAuthApplication, AuthApplication>();
+            services.AddScoped<IUserAuthApplication, UserAuthApplication>();
             services.AddScoped<IJwtApplication, JwtApplication>();
             services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>()); //Documentacion Automapper: https://docs.automapper.io/en/latest/Dependency-injection.html
 

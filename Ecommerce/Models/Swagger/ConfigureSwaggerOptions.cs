@@ -35,6 +35,7 @@ namespace Ecommerce.Api.Models.Swagger
                     Url = new Uri("https://example.com/license")
                 }
             };
+            if (description.IsDeprecated) info.Description += "Api version deprecated";
             return info;
         }
     }
