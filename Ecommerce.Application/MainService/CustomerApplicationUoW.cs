@@ -38,7 +38,8 @@ namespace Ecommerce.Application.MainService
                 var customer = _mapper.Map<Customer>(customerDto);
                 customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
                 response.Data = await _unitOfWork._customersUoW.Add(customer);
-                if (response.Data) response.IsSuccess = true;
+                var result = await _unitOfWork.SaveChangesAsync();
+                if (response.Data && result>0) response.IsSuccess = true;
                 else return Response<bool>.Fail("Customer could not be added.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
@@ -52,7 +53,8 @@ namespace Ecommerce.Application.MainService
             try
             {
                 response.Data = await _unitOfWork._customersUoW.Delete(id);
-                if (response.Data) response.IsSuccess = true;
+                var result = await _unitOfWork.SaveChangesAsync();
+                if (response.Data && result>0) response.IsSuccess = true;
                 else return Response<bool>.NotFound($"Customer with ID {id} not found.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
@@ -95,7 +97,8 @@ namespace Ecommerce.Application.MainService
                 if (existingCustomer == null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
                 ManualMappingCustomer.MapInto(existingCustomer, customerDto);
                 response.Data = await _unitOfWork._customersUoW.Update(existingCustomer);
-                if (response.Data) response.IsSuccess = true;
+                var result = await _unitOfWork.SaveChangesAsync();
+                if (response.Data && result>0) response.IsSuccess = true;
                 else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
             }
             catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
