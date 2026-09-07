@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Interface;
 using Ecommerce.Transversal.Common;
@@ -8,11 +9,12 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 
-namespace Ecommerce.Api.Controllers
+namespace Ecommerce.Api.Controllers.v1
 {
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
     [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
     public class CustomerController : ControllerBase
     {

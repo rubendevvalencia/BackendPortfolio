@@ -15,15 +15,15 @@ using System.Text;
 
 namespace Ecommerce.Application.MainService
 {
-    public class AuthApplication : IAuthApplication
+    public class UserAuthApplication : IUserAuthApplication
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IValidator<SignUpDto> _validatorSignUp;
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
-        private readonly IApiLogger<AuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
-        public AuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, IApiLogger<AuthApplication> logger)
+        private readonly IApiLogger<UserAuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
+        public UserAuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, IApiLogger<UserAuthApplication> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
