@@ -17,6 +17,11 @@ namespace Ecommerce.Transversal
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                //Microsoft.Hosting.Lifetime es la categoria que imprime "Now listening on: http://localhost:5102"
+                //y "Application started. Press Ctrl+C to shut down.". El Override de "Microsoft" a Warning la
+                //silenciaba tambien a ella, asi que la consola solo mostraba "Starting ecommerce API..." y parecia
+                //que el servidor arrancaba sin abrir ningun puerto. Se reabre solo esta categoria a Information.
+                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
                 .MinimumLevel.Override("System", LogEventLevel.Warning)
                 .Enrich.FromLogContext() //Propiedades del contexto
                 .Enrich.WithProperty("Application", "Ecommerce")
