@@ -63,10 +63,10 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
 
         //Deja un cliente confirmado en el almacen y devuelve el control con su Id ya generado.
         //Usa su propio contexto para que el Act arranque siempre con el change tracker vacio.
-        private static async Task SeedCustomerAsync(string dbName, Customer customer)
+        private static async Task AddCustomerAsync(string dbName, Customer customer)
         {
-            await using var seedContext = CreateContext(dbName);
-            var unitOfWork = CreateUnitOfWork(seedContext);
+            await using var context = CreateContext(dbName);
+            var unitOfWork = CreateUnitOfWork(context);
             await unitOfWork._customersUoW.AddAsync(customer);
             await unitOfWork.SaveChangesAsync();
         }
@@ -179,7 +179,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Northwind");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: contexto nuevo, asi que el FindAsync interno no puede resolverse contra el change
             //tracker y esta obligado a consultar el almacen
@@ -240,7 +240,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Original");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: GetAllAsync consulta con AsNoTracking, asi que lo que devuelve queda fuera del change
             //tracker. Modificarlo no genera cambios pendientes y el UnitOfWork no tiene nada que confirmar
@@ -285,7 +285,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Original");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: contexto nuevo, se recarga desde el almacen y se modifica ya trackeado (patron connected).
             //Update() no hace nada en esta rama: quien marca la entidad como Modified es el change tracker
@@ -318,7 +318,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Original");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: la entidad se construye fuera y el contexto es nuevo, por lo que entra como Detached
             //y obliga a Update() a tomar la rama del Update() explicito
@@ -352,7 +352,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Original");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: se modifica y se cierra el contexto SIN confirmar
             await using (var updateContext = CreateContext(dbName))
@@ -376,7 +376,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer();
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: contexto nuevo, asi que hay que localizar el cliente en el almacen antes de marcarlo.
             //Delete() recibe la entidad y no el id: la busqueda es responsabilidad del llamante
@@ -406,7 +406,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             //Arrange
             var dbName = NewDbName();
             var customer = NewCustomer("Contoso");
-            await SeedCustomerAsync(dbName, customer);
+            await AddCustomerAsync(dbName, customer);
 
             //Act: se marca para borrado y se cierra el contexto SIN confirmar
             await using (var deleteContext = CreateContext(dbName))

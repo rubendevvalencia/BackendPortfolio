@@ -56,7 +56,14 @@ namespace Ecommerce.Application.MainService
                 }
 
                 var user = _mapper.Map<User>(entity);
-                response.Data = await _unitOfWork._user.CreateUserAsync(user);
+
+                //Dos pasos: el repositorio registra el alta y el caso de uso confirma, una sola vez.
+                await _unitOfWork._user.CreateUserAsync(user);
+
+                var filasEscritas = await _unitOfWork.SaveChangesAsync();
+                var usuarioCreado = filasEscritas > 0;
+                response.Data = usuarioCreado;
+
                 if(!response.Data)
                 {
                     response.IsSuccess = false;
@@ -98,7 +105,7 @@ namespace Ecommerce.Application.MainService
                     return response;
                 }
                 
-                var validPass = await _unitOfWork._user.CheckPassAsync(user, entity.Password);
+                var validPass = _unitOfWork._user.CheckPass(user, entity.Password);
                 if(!validPass)
                 {
                     response.IsSuccess = false;
