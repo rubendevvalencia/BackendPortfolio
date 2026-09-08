@@ -30,79 +30,63 @@ namespace Ecommerce.Application.Service
             _mapper = mapper;
             _validator = validator;
         }
-
+        //Middleware usado para manejos de excepciones, quitamos todos los try/catch
         public async Task<Response<bool>> AddAsync(CustomerDto customerDto, CancellationToken cancellationToken)
         {
             var response = new Response<bool>();
-            try
-            {
-                var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
-                if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
+            
+            var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
+            if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
 
-                var customer = _mapper.Map<Customer>(customerDto);
-                customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-                response.Data = await _customerRepo.AddAsync(customer);
-                if (response.Data) response.IsSuccess = true;
-                else return Response<bool>.Fail("Customer could not be added.");
-            }
-            catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
-
+            var customer = _mapper.Map<Customer>(customerDto);
+            customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
+            response.Data = await _customerRepo.AddAsync(customer);
+            if (response.Data) response.IsSuccess = true;
+            else return Response<bool>.Fail("Customer could not be added.");
+          
             return response;
         }
 
         public async Task<Response<bool>> DeleteAsync(int id)
         {
             var response = new Response<bool>();
-            try
-            {
-                response.Data = await _customerRepo.DeleteAsync(id);
-                if (response.Data) response.IsSuccess = true;
-                else return Response<bool>.NotFound($"Customer with ID {id} not found.");
-            }
-            catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
-
+            
+            response.Data = await _customerRepo.DeleteAsync(id);
+            if (response.Data) response.IsSuccess = true;
+            else return Response<bool>.NotFound($"Customer with ID {id} not found.");
+          
             return response;
         }
 
         public async Task<Response<IEnumerable<CustomerDto>>> GetAllAsync()
         {
-            try
-            {
-                var customers = await _customerRepo.GetAllAsync();
+            var customers = await _customerRepo.GetAllAsync();
                 return Response<IEnumerable<CustomerDto>>.Success(_mapper.Map<IEnumerable<CustomerDto>>(customers));
-            }
-            catch (Exception ex) { return Response<IEnumerable<CustomerDto>>.Fail(ex.InnerException?.Message ?? ex.Message); }
+            
         }
 
         public async Task<Response<CustomerDto?>> GetByIdAsync(int id)
         {
-            try
-            {
-                var customer = await _customerRepo.GetByIdAsync(id);
-                if (customer == null) return Response<CustomerDto?>.NotFound($"Customer with ID {id} not found.");
-
-                return Response<CustomerDto?>.Success(_mapper.Map<CustomerDto?>(customer));
-            }
-            catch (Exception ex) { return Response<CustomerDto?>.Fail(ex.InnerException?.Message ?? ex.Message); }
+            var customer = await _customerRepo.GetByIdAsync(id);
+            if (customer == null) return Response<CustomerDto?>.NotFound($"Customer with ID {id} not found.");
+            return Response<CustomerDto?>.Success(_mapper.Map<CustomerDto?>(customer));
         }
 
         public async Task<Response<bool>> UpdateAsync(int id, CustomerDto customerDto, CancellationToken cancellationToken)
         {
             var response = new Response<bool>();
-            try
-            {
-                //El DTO de entrada se valida igual que en el alta: es la misma forma y las mismas reglas.
-                var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
-                if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
+           
+            //El DTO de entrada se valida igual que en el alta: es la misma forma y las mismas reglas.
+            var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
+            if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
 
-                var existingCustomer = await _customerRepo.GetByIdAsync(id);
-                if (existingCustomer == null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
-                ManualMappingCustomer.MapInto(existingCustomer, customerDto);
-                response.Data = await _customerRepo.UpdateAsync(existingCustomer);
-                if (response.Data) response.IsSuccess = true;
-                else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
-            }
-            catch (Exception ex) { return Response<bool>.Fail(ex.InnerException?.Message ?? ex.Message); }
+            var existingCustomer = await _customerRepo.GetByIdAsync(id);
+            if (existingCustomer == null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
+            ManualMappingCustomer.MapInto(existingCustomer, customerDto);
+            response.Data = await _customerRepo.UpdateAsync(existingCustomer);
+            if (response.Data) response.IsSuccess = true;
+            else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
+           
             return response;
         }
     }
