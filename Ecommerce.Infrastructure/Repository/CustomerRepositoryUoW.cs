@@ -34,5 +34,21 @@ namespace Ecommerce.Infrastructure.Repository
         }
 
         public void Delete(Customer entity) => _dbContext.Customers.Remove(entity);
+
+        public async Task<bool> CompareInfoInDb(Customer entity, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Customers.AnyAsync(o =>
+                o.CompanyName  == entity.CompanyName  &&
+                o.ContactName  == entity.ContactName  &&
+                o.ContactTitle == entity.ContactTitle &&
+                o.Address      == entity.Address      &&
+                o.City         == entity.City         &&
+                o.Region       == entity.Region       &&
+                o.PostalCode   == entity.PostalCode   &&
+                o.Country      == entity.Country      &&
+                o.Phone        == entity.Phone        &&
+                o.Fax          == entity.Fax,
+            cancellationToken);
+        }
     }
 }

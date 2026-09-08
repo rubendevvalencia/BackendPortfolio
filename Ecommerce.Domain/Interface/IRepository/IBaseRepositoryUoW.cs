@@ -10,5 +10,6 @@ namespace Ecommerce.Domain.Interface.IRepository
         Task AddAsync(T entity, CancellationToken cancellationToken = default);
         void Update(T entity); //No notifica porque el UoW lo hace, por eso void
         void Delete(T entity); //No notifica porque el UoW lo hace, por eso void. Recibe la entidad, no el id: comprobar si existe es decision del caso de uso.
+        Task<bool> CompareInfoInDb(T entity, CancellationToken cancellationToken = default);
     }
 }
