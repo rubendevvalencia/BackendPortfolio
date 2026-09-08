@@ -29,17 +29,7 @@ namespace Ecommerce.Api.Models.GlobalException
                     Message = ex.Message,
                 };
 
-                
-                await JsonSerializer.SerializeAsync(context.Response.Body, response, 
-                    new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Convierte Propiedad a propiedad
-                        WriteIndented = true,                             // Formatea el JSON (Pretty-print)
-                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // Ignora valores nulos
-                        AllowTrailingCommas = true,                       // Permite comas al final
-                        PropertyNameCaseInsensitive = true                // Deserialización tolerante a mayúsculas
-                    }
-                );
+                await JsonSerializer.SerializeAsync(context.Response.Body, response);
             }
 
         }
