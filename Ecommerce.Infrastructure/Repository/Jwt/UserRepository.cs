@@ -36,8 +36,7 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
                 PasswordHash = _passwordHasher.HashPassword(entity, entity.PasswordHash)
             };
             var result = await _dbContext.Users.AddAsync(userTransform);
-            var rowsAffected = await _dbContext.SaveChangesAsync();
-            if (rowsAffected > 0) return true;
+            if(result != null) return true;
             return false;
         }
 

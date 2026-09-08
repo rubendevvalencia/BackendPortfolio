@@ -56,7 +56,9 @@ namespace Ecommerce.Application.MainService
                 }
 
                 var user = _mapper.Map<User>(entity);
-                response.Data = await _unitOfWork._user.CreateUserAsync(user);
+                await _unitOfWork._user.CreateUserAsync(user);
+                var result = await _unitOfWork.SaveChangesAsync();
+                response.Data = result > 0 ? true : false;
                 if(!response.Data)
                 {
                     response.IsSuccess = false;

@@ -1,8 +1,11 @@
 using AutoMapper;
 using Ecommerce.Application.Dto;
+using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Mapping;
 using Ecommerce.Application.Validator;
+using Ecommerce.Application.Validator.Jwt;
 using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Entities.Jwt;
 using FluentValidation;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -21,9 +24,6 @@ namespace Ecommerce.Test.ApplicationTest
         {
             //El mismo perfil que registra la DI en produccion (ver ConfigureServices).
             var configuration = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance);
-
-            //Falta el AssertConfigurationIsValid() que deberia ir aqui: hoy el perfil no lo pasa
-            //(User -> SignUpDto deja Password sin mapear) y tumbaria todos los tests de la capa.
             return configuration.CreateMapper();
         }
 
@@ -31,33 +31,79 @@ namespace Ecommerce.Test.ApplicationTest
         protected static IValidator<CustomerDto> CustomerValidator => new CustomerDtoValidator();
 
         //Datos validos por defecto. Cada test cambia solo lo que le importa y el resto es ruido de fondo.
-        protected static CustomerDto NewCustomerDto(string companyName = "Test") => new()
+        protected CustomerDto NewCustomerDto(string companyName = "Test")
         {
-            CompanyName = companyName,
-            ContactName = "Test",
-            ContactTitle = "Test",
-            Address = "Test",
-            City = "Test",
-            Region = "Test",
-            PostalCode = "Test",
-            Country = "Test",
-            Phone = "Test",
-            Fax = "Test"
-        };
+            return new CustomerDto
+            {
+                 CompanyName = companyName,
+                ContactName = "Test",
+                ContactTitle = "Test",
+                Address = "Test",
+                City = "Test",
+                Region = "Test",
+                PostalCode = "Test",
+                Country = "Test",
+                Phone = "Test",
+                Fax = "Test"
+            };
+        }
 
-        protected static Customer NewCustomer(int? id = 1, string companyName = "Test") => new()
+        protected Customer NewCustomer(int? id = 1, string companyName = "Test")
         {
-            Id = id,
-            CompanyName = companyName,
-            ContactName = "Test",
-            ContactTitle = "Test",
-            Address = "Test",
-            City = "Test",
-            Region = "Test",
-            PostalCode = "Test",
-            Country = "Test",
-            Phone = "Test",
-            Fax = "Test"
-        };
+            return new Customer
+            {
+                 Id = id,
+                CompanyName = companyName,
+                ContactName = "Test",
+                ContactTitle = "Test",
+                Address = "Test",
+                City = "Test",
+                Region = "Test",
+                PostalCode = "Test",
+                Country = "Test",
+                Phone = "Test",
+                Fax = "Test"
+            };
+        }
+
+        protected static IValidator<SignUpDto> SignUpValidator => new SignUpDtoValidator();
+        protected static IValidator<SignInDto> SignInValidator => new SignInValidator();
+
+        //8 caracteres es el minimo que exigen los dos validadores.
+        protected const string ValidPassword = "Password123!";
+
+        protected SignUpDto NewSignUpDto(string email = "ruben@email.com", string userName = "ruben")
+        {
+            return new SignUpDto
+            {
+                FirstName = "Ruben",
+                LastName = "Test",
+                Email = email,
+                UserName = userName,
+                Password = ValidPassword
+            };           
+        }
+
+        protected SignInDto NewSignInDto(string email = "ruben@email.com", string password = ValidPassword) 
+        {
+            return new SignInDto
+            {
+                Email = email,
+                Password = password
+            };
+        }
+
+        protected User NewUser(int id = 1, string email = "ruben@email.com", string userName = "ruben")
+        {
+            return new User
+            {
+                Id = id,
+                FirstName = "Ruben",
+                LastName = "Test",
+                Email = email,
+                UserName = userName,
+                PasswordHash = "hash-ya-cifrado"  //Usuario ya persistido: el PasswordHash llega cifrado desde Infrastructure, nunca en claro.
+            };
+        }
     }
 }

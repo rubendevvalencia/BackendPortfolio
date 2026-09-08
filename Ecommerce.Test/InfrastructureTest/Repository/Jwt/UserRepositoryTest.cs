@@ -28,8 +28,12 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
 
         private static string NewDbName() => Guid.NewGuid().ToString();
 
+        //Antes se llamaba CreateUserAsync_ShouldReturnTrue_WhenUserIsCreatedAsync y daba por hecho que
+        //el usuario quedaba escrito al volver. Ya no: con el pendiente #1 corregido, el repositorio
+        //registra el alta y quien confirma es el UnitOfWork, igual que hace CustomerRepositoryUoW.
+        //El nombre lo dice para que nadie vuelva a meter un SaveChangesAsync aqui dentro sin enterarse.
         [Fact]
-        public async Task CreateUserAsync_ShouldReturnTrue_WhenUserIsCreatedAsync()
+        public async Task CreateUserAsync_RegistraElAltaPeroNoConfirma()
         {
             // Arrange
             var dbName = NewDbName();
@@ -45,10 +49,20 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 PasswordHash = "Password123!"
             };
 
+            // Act
             var result = await userRepository.CreateUserAsync(user);
-            var savedUser = await dbContext.Users.SingleAsync(u => u.Email == user.Email);
 
+            // Assert: el alta esta registrada en el contexto, pero todavia no hay nada en la base.
+            // Una consulta solo ve lo confirmado, asi que aqui no debe encontrar al usuario.
             Assert.True(result);
+            Assert.Empty(await dbContext.Users.ToListAsync());
+
+            // Act: confirma quien manda. En produccion es UnitOfWork.SaveChangesAsync(), que
+            // comparte esta misma instancia de DbContext porque esta registrada como Scoped.
+            await dbContext.SaveChangesAsync();
+
+            // Assert: ahora si, y con la contrasena cifrada por el repositorio.
+            var savedUser = await dbContext.Users.SingleAsync(u => u.Email == user.Email);
             Assert.Equal(1, savedUser.Id);
             Assert.Equal("John", savedUser.FirstName);
             Assert.Equal("Doe", savedUser.LastName);
