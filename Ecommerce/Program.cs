@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Ecommerce.Transversal;
 using Serilog;
 using Ecommerce.Api.Models.Version;
-using Asp.Versioning.ApiExplorer; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using Asp.Versioning.ApiExplorer;
+using Ecommerce.Api.Models.Middleware; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 
 try
 {
@@ -20,12 +21,13 @@ try
     builder.Services.AddInfrastructureServices(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
-    builder.Services.AddAuth(builder.Configuration); // Registra la autenticación JWT usando la configuración de Jwt.
-    builder.Services.AddCorsPolicy(builder.Configuration); //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
-                                                           //OJO: registrar la politica NO la aplica. Aplicarla es tarea de app.UseCors() mas abajo.
+    builder.Services.AddAuth(builder.Configuration);                // Registra la autenticación JWT usando la configuración de Jwt.
+    builder.Services.AddCorsPolicy(builder.Configuration);          //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
+                                                                    //OJO: registrar la politica NO la aplica. Aplicarla es tarea de app.UseCors() mas abajo.
     builder.Services.AddVersioning();
     builder.Services.AddSwagger();
-    builder.Host.UseSerilog(); //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
+    builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
+    builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     
     var app = builder.Build();
     
@@ -97,7 +99,8 @@ try
     app.UseAuthorization();
     
     app.MapControllers();
-    
+
+    app.AddMiddlewares(); //Añade el uso del MiddleWare
     
     Log.Information("Starting ecommerce API...");
     app.Run();
