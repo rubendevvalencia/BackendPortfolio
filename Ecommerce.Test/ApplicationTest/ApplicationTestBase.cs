@@ -24,6 +24,13 @@ namespace Ecommerce.Test.ApplicationTest
         {
             //El mismo perfil que registra la DI en produccion (ver ConfigureServices).
             var configuration = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance);
+
+            //Revienta si algun mapa deja propiedades de destino sin mapear ni marcar como Ignore().
+            //Es la red que caza una propiedad nueva en un DTO o en una entidad que nadie se acordo
+            //de mapear: sin esto el mapeo la deja en su valor por defecto en silencio y el fallo
+            //aparece mucho mas tarde, en un dato que llega vacio sin motivo aparente.
+            configuration.AssertConfigurationIsValid();
+
             return configuration.CreateMapper();
         }
 

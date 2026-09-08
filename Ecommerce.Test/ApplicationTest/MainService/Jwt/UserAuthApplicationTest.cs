@@ -301,7 +301,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //Arrange: el usuario existe y la contrasena es correcta.
             User usuario = NewUser(email: "ruben@test.com");
             _userRepository.GetByEmailAsync("ruben@test.com").Returns(usuario);
-            _userRepository.CheckPassAsync(usuario, ValidPassword).Returns(true);
+            _userRepository.CheckPass(usuario, ValidPassword).Returns(true);
             _jwt.GenerateToken(usuario).Returns(("token-firmado", 3600));
 
             //Comprobacion del Arrange: las tres piezas de la cadena.
@@ -312,7 +312,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                     "Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
             }
 
-            var contrasenaValida = await _userRepository.CheckPassAsync(usuario, ValidPassword);
+            var contrasenaValida = _userRepository.CheckPass(usuario, ValidPassword);
             if (!contrasenaValida)
             {
                 throw new InvalidOperationException(
@@ -374,7 +374,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //Arrange: el usuario existe, pero la comprobacion del hash falla.
             User usuario = NewUser(email: "ruben@test.com");
             _userRepository.GetByEmailAsync("ruben@test.com").Returns(usuario);
-            _userRepository.CheckPassAsync(usuario, "OtraPassword1!").Returns(false);
+            _userRepository.CheckPass(usuario, "OtraPassword1!").Returns(false);
 
             //Comprobacion del Arrange: si el usuario no se encontrara, el caso de uso saldria por la
             //rama de "no existe" y el test se quedaria verde sin haber probado la contrasena.
@@ -385,7 +385,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                     "Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
             }
 
-            var contrasenaValida = await _userRepository.CheckPassAsync(usuario, "OtraPassword1!");
+            var contrasenaValida = _userRepository.CheckPass(usuario, "OtraPassword1!");
             if (contrasenaValida)
             {
                 throw new InvalidOperationException(
@@ -424,7 +424,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             //Assert
             Assert.False(response.IsSuccess);
-            await _userRepository.DidNotReceive().CheckPassAsync(Arg.Any<User>(), Arg.Any<string>());
+            _userRepository.DidNotReceive().CheckPass(Arg.Any<User>(), Arg.Any<string>());
             _jwt.DidNotReceive().GenerateToken(Arg.Any<User>());
         }
 
@@ -447,7 +447,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             User registrado = NewUser(email: "registrado@test.com");
             _userRepository.GetByEmailAsync("fantasma@test.com").Returns((User?)null);
             _userRepository.GetByEmailAsync("registrado@test.com").Returns(registrado);
-            _userRepository.CheckPassAsync(registrado, ValidPassword).Returns(false);
+            _userRepository.CheckPass(registrado, ValidPassword).Returns(false);
 
             //Comprobacion del Arrange: este test compara dos escenarios, asi que si uno de los dos
             //estuviera mal montado la comparacion final no significaria nada.
@@ -465,7 +465,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                     "Arrange mal montado: registrado@test.com si deberia estar registrado.");
             }
 
-            var contrasenaValida = await _userRepository.CheckPassAsync(registrado, ValidPassword);
+            var contrasenaValida = _userRepository.CheckPass(registrado, ValidPassword);
             if (contrasenaValida)
             {
                 throw new InvalidOperationException(
