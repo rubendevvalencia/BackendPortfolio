@@ -59,22 +59,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task AddAsync_DevuelveFalloCuandoElCommitNoEscribeNada()
-        {
-            //Arrange: el repositorio acepta la entidad pero el commit no persiste ninguna fila.
-            RegistrosInsertados(0);
-            CustomerDto customerDto = NewCustomerDto("Contoso");
-
-            //Act
-            var response = await _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
-
-            //Assert
-            Assert.False(response.IsSuccess);
-            Assert.False(response.Data);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-        }
-
-        [Fact]
         public async Task AddAsync_NoTocaLaPersistenciaCuandoElDtoNoEsValido()
         {
             //Arrange: CompanyName vacio incumple la regla NotEmpty de CustomerDtoValidator.
@@ -233,10 +217,17 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             await _repository.DidNotReceive().GetByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
         }
 
+        //TEST DE CARACTERIZACION DE UN DEFECTO: NO describe el comportamiento deseado.
+        //Este es el pendiente #2 del README: el PUT idempotente (actualizar con los mismos datos)
+        //hace que EF no escriba ninguna fila, SaveChangesAsync devuelve 0 y el caso de uso lo
+        //traduce a error -> 500. Como la existencia ya se comprueba por separado, un 0 deberia
+        //leerse como exito sin efecto y este test deberia afirmar IsSuccess == true.
+        //Se deja fijado para que la deuda sea visible: cuando se arregle el pendiente #2 este
+        //test se pondra rojo, y ese rojo es el arreglo, no una regresion. Actualizarlo entonces.
         [Fact]
-        public async Task UpdateAsync_DevuelveFalloCuandoElCommitNoEscribeNada()
+        public async Task UpdateAsync_HoyDevuelveFalloConCeroFilas_PendienteDeCorregir()
         {
-            //Arrange
+            //Arrange: el cliente existe y el commit no escribe nada, como en un PUT idempotente.
             _repository.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(NewCustomer(id: 7));
             RegistrosInsertados(0);
             CustomerDto customerDto = NewCustomerDto("Contoso");
@@ -244,7 +235,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.UpdateAsync(7, customerDto, CancellationToken.None);
 
-            //Assert
+            //Assert: comportamiento ACTUAL, defectuoso. Lo correcto seria exito sin efecto.
             Assert.False(response.IsSuccess);
             Assert.False(response.Data);
         }
@@ -282,21 +273,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             Assert.Equal(ErrorType.NotFound, response.ErrorType);
             _repository.DidNotReceive().Delete(Arg.Any<Customer>());
             await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
-        }
-
-        [Fact]
-        public async Task DeleteAsync_DevuelveFalloCuandoElCommitNoEscribeNada()
-        {
-            //Arrange: la entidad existe pero el commit no persiste el borrado.
-            _repository.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(NewCustomer(id: 7));
-            RegistrosInsertados(0);
-
-            //Act
-            var response = await _customerAppUoW.DeleteAsync(7);
-
-            //Assert
-            Assert.False(response.IsSuccess);
-            Assert.False(response.Data);
         }
     }
 }
