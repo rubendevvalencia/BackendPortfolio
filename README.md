@@ -206,7 +206,9 @@ dotnet user-secrets set "Jwt:Key" "<clave aleatoria de 32 bytes o mas>" --projec
 
 La clave JWT no es opcional: `JwtApplication` falla con un mensaje explícito si falta o si tiene menos de
 32 bytes. HMAC-SHA256 exige 256 bits, y el límite se mide en bytes, no en caracteres — una frase escrita a
-mano no sirve.
+mano no sirve. Ese control está solo en el lado que *emite* el token: si falta la clave, la aplicación
+arranca sin protestar y el fallo no aparece hasta la primera petición. Llevarlo al arranque es el pendiente
+nº 6.
 
 En despliegue ambos valores llegan por variables de entorno: `ConnectionStrings__EcommerceDb` y `Jwt__Key`
 (el doble guion bajo es el separador de claves anidadas).
@@ -362,16 +364,34 @@ también los intentos que acaban en 401.
 
 ### Tests: qué se prueba y con qué
 
-`DbContextEF` hereda de `DbContext` y no expone miembros virtuales, así que **no se puede sustituir con un
-mock**. Los tests de repositorio usan el proveedor InMemory de EF Core, con una base distinta por test y
-un patrón de **dos contextos**: se escribe con uno y se lee con otro, de modo que la lectura venga del
-almacén y no del `ChangeTracker`. Es la diferencia entre probar que algo persiste y probar que algo se
-quedó en memoria.
+**91 tests** repartidos en tres frentes, cada uno con una técnica distinta porque cada uno tiene un
+problema distinto.
 
-`ConfigureServicesTest` prueba el **composition root**: construye el contenedor con
+**Repositorios (`Infrastructure`).** `DbContextEF` hereda de `DbContext` y no expone miembros virtuales,
+así que **no se puede sustituir con un mock**. Estos tests usan el proveedor InMemory de EF Core, con una
+base distinta por test y un patrón de **dos contextos**: se escribe con uno y se lee con otro, de modo que
+la lectura venga del almacén y no del `ChangeTracker`. Es la diferencia entre probar que algo persiste y
+probar que algo se quedó en memoria.
+
+**Casos de uso (`Application`).** Aquí la decisión que importa es **qué se sustituye y qué no**: se
+doblan los *límites* de la capa —los repositorios y el `IUnitOfWork`, con NSubstitute— pero el mapper y
+los validadores se usan **reales**, porque forman parte de lo que se está probando. Doblarlos dejaría los
+tests verdes con un perfil de AutoMapper roto. `ApplicationTestBase` construye ese mapper una sola vez y
+llama a `AssertConfigurationIsValid()`, que revienta si algún mapa deja propiedades de destino sin mapear
+ni marcar como `Ignore()` — la red que caza una propiedad nueva que nadie se acordó de mapear, en lugar de
+descubrirla meses después en un dato que llega vacío sin motivo aparente.
+
+Lo que estos tests demuestran y no se puede demostrar leyendo el código: que **el `SaveChangesAsync` se
+llama una sola vez y en el momento correcto**, y que cuando la validación falla no se llama en absoluto.
+*"Si algo falla no se confirma nada"* es una propiedad de ejecución, no de estructura.
+
+**Composition root.** `ConfigureServicesTest` construye el contenedor con
 `BuildServiceProvider(validateScopes: true)` y resuelve el grafo completo. Detecta la clase de error que
 no rompe la compilación ni la suite, pero sí el arranque de la aplicación — un `AddScoped` olvidado, o una
 *captive dependency* (un singleton que atrapa el `DbContext` scoped).
+
+**Lo que falta:** ningún test cruza un controller. Toda la traducción HTTP está sin ejercitar; es el
+pendiente nº 8 de la lista de abajo.
 
 ---
 
@@ -382,27 +402,36 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 
 | | Pendiente |
 |---|---|
-| 1 | **El Unit of Work está a medias: `IUserRepository` confirma por su cuenta.** `IUnitOfWork` expone dos repositorios y solo uno respeta el patrón — `UserRepository.CreateUserAsync` llama a `SaveChangesAsync` internamente. Quien lea `_unitOfWork.X()` asume que nada se confirma hasta pedirlo, y en esa mitad no es cierto. Es el fallo más sutil del repositorio y el siguiente a arreglar. |
-| 2 | **`PUT` idempotente devuelve 500.** Actualizar con los mismos datos hace que EF no escriba nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Ahora que la existencia se comprueba por separado, un 0 debe leerse como éxito sin efecto. |
-| 3 | **La capa `Application` no tiene tests.** El proyecto de test aún no la referencia. Pesa más desde que hay Unit of Work: *"si algo falla no se confirma nada"* es una propiedad que solo se puede demostrar ejecutándola, no leyendo el código. |
-| 4 | **El test del composition root no cubre los registros nuevos.** `ICustomerRepositoryUoW` no aparece ni en los `Assert` ni en los `[InlineData]` que verifican el lifetime. Ese test existe justo para cazar un `AddScoped` olvidado. |
-| 5 | **Sin healthcheck.** Prerrequisito del despliegue: `/health/live` y `/health/ready` separados, para que una caída transitoria de la base de datos no provoque el reinicio de un proceso sano. |
-| 6 | **Sin middleware global de excepciones.** Cada caso de uso repite su `try/catch` y el detalle de la excepción acaba en la respuesta HTTP, que no debe salir del servidor. |
-| 7 | **`EnableSensitiveDataLogging()` está activo en todos los entornos**, no solo en desarrollo. Debe condicionarse antes de cualquier despliegue. |
-| 8 | **`DefaultApiVersion` apunta a `1.0`, que está marcada como obsoleta.** Quien no especifique versión cae en la deprecada. Debe pasar a `2.0`. |
-| 9 | Rutas con el verbo en la URL (`api/v2/Customer/AddAsync`) en lugar de REST puro, y un único DTO para crear, actualizar y leer. |
-| 10 | Sin paginación en `GetAllAsync`, sin refresh token y sin claims de rol (`[Authorize]` es todo-o-nada). |
+| 1 | **Sin middleware global de excepciones, y el detalle de la excepción sale en la respuesta HTTP.** El bloque `catch (Exception ex) { return Response<T>.Fail(ex.InnerException?.Message ?? ex.Message); }` está repetido en los nueve métodos de `CustomerApplication` y `CustomerApplicationUoW`. Un timeout de SQL Server acaba en el body con el nombre del servidor dentro. Es el siguiente a arreglar: un `ExceptionHandlerMiddleware` resuelve la fuga y borra las nueve repeticiones de una vez. |
+| 2 | **`EnableSensitiveDataLogging()` está activo en todos los entornos**, no solo en desarrollo (`DbContextEF.OnConfiguring`). En producción registra los valores de los parámetros de cada consulta, incluido `PasswordHash`. Debe condicionarse antes de cualquier despliegue. |
+| 3 | **`DefaultApiVersion` apunta a `1.0`, que está marcada como obsoleta**, y `AssumeDefaultVersionWhenUnspecified = true` hace que quien no especifique versión caiga en la deprecada. El analizador de `Asp.Versioning` ya lo avisa en compilación (`AV0016`). Debe pasar a `2.0` y retirarse la asunción. |
+| 4 | **`PUT` idempotente devuelve 500.** Actualizar con los mismos datos hace que EF no escriba nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Contradice lo que explica este mismo README en *Unit of Work*: con la existencia comprobada aparte, un 0 es éxito sin efecto. |
+| 5 | **`SignIn` permite enumerar usuarios.** Un email inexistente devuelve 404 *"User not found, email may be incorrect or not registered"* y una contraseña incorrecta devuelve 400 *"Invalid password"*. Dos respuestas distinguibles permiten averiguar qué correos están registrados. Debe ser un único 401 genérico en ambos casos. |
+| 6 | **La validación de `Jwt:Key` es asimétrica.** `JwtApplication` comprueba presencia y longitud al *emitir* el token, pero `AuthenticationExtension` hace `jwtSettings["Key"]!` al *arrancar*. Si falta la clave, la aplicación arranca sin queja y falla de forma opaca en la primera petición autenticada. La comprobación debe estar en el arranque, una sola vez, para las dos mitades. |
+| 7 | **Sin healthcheck.** Prerrequisito del despliegue: `/health/live` y `/health/ready` separados, para que una caída transitoria de la base de datos no provoque el reinicio de un proceso sano. |
+| 8 | **La frontera HTTP no tiene ni un test.** Los 91 tests cubren `Application` e `Infrastructure`, pero ninguno cruza un controller: `ToActionResult`, el pipeline de autenticación, el versionado y el binding están sin ejercitar. Falta un test de integración con `WebApplicationFactory` que recorra SignUp -> SignIn -> petición autenticada. |
+| 9 | **El dominio es anémico.** Las entidades son propiedades con `set` público y ninguna invariante: no hay value objects (`Email`), ni factory methods, ni excepciones de dominio — `Domain/ValueObject/` y `Domain/Exception/` son carpetas vacías declaradas en el `.csproj`. Es la distancia real que queda entre la *estructura* de Clean Architecture, que sí está, y su *modelo*. Va antes de MediatR: los behaviors sobre un dominio sin invariantes son burocracia. |
+| 10 | **`DbContextEF` depende de `IConfiguration`** y guarda un `_connectionString` que solo usa una rama muerta de `OnConfiguring` (la DI ya configuró el proveedor). Un `DbContext` no debería leer configuración — `DbContextOptions` ya la trae — y ese acoplamiento es lo que obliga a `ConfigureServicesTest` a registrar `IConfiguration` a mano para que el grafo resuelva. |
+| 11 | **`UserRepository.CreateUserAsync` descarta la entidad que recibe** y construye otra copiando campo a campo. Cualquier propiedad nueva en `User` se perderá en silencio. Y el hash de la contraseña se calcula ahí dentro: hashear es una política, no persistencia, y debería ser un puerto del dominio con la implementación en `Infrastructure`. |
+| 12 | **`IUnitOfWork` expone `_customersUoW` y `_user`**: prefijo de campo privado en miembros públicos de una interfaz. Junto con `Customer.Id` declarado `int?` —que obliga al `customer.Id = null` defensivo en la capa `Application`— y `ToActionResult` duplicado literalmente en los dos controllers. |
+| 13 | **13 warnings reales de nulabilidad** (`CS8618` en `SignInDto`, `TokenDto` y `Response<T>.Data`; `CS8604` en `JwtApplication` y `UserAuthApplication`) enterrados bajo 66 `CS1591` de ruido. Silenciar `CS1591` en el `.csproj` es lo que hace visibles los que importan. |
+| 14 | Rutas con el verbo en la URL (`api/v2/Customer/AddAsync`) en lugar de REST puro, y un único DTO para crear, actualizar y leer. |
+| 15 | Sin paginación en `GetAllAsync`, sin refresh token, sin claims de rol (`[Authorize]` es todo-o-nada) y con la caducidad del token fijada en código (`AddHours(1)`) en lugar de en configuración. |
+
+Menores, anotados para no perderlos: `Discount` y `DiscountStatus` son código muerto —sin configuración de
+EF, sin repositorio y sin uso—; el sink de Serilog a SQL Server apunta a la misma base de datos que la
+aplicación, así que una caída se lleva por delante justo los logs que la explican; y con seis proyectos
+repitiendo `TargetFramework`, `Nullable` y versiones de paquetes a mano ya compensa un
+`Directory.Build.props` y *Central Package Management*.
 
 Cuando la v1 se retire, con ella se van el sufijo `UoW` de los nombres de tipo y la duplicación de
 `CustomerController`, que hoy están justificados por el ejemplo.
 
-**Build y tests:** compila sin errores; **23 tests en verde**. Los warnings `CS1591` (comentario XML
-ausente) son ruido de tener `GenerateDocumentationFile` activo mientras se documenta con anotaciones de
-Swagger en lugar de con `///`.
+**Build y tests:** compila sin errores; **91 tests en verde**.
 
-**Cobertura:** ~92 % de líneas sobre el código escrito a mano de `Infrastructure` y `Domain`
-(el porcentaje global del informe es más bajo porque incluye las migraciones autogeneradas de EF).
-`Application`, `Transversal` y `Api` todavía no están medidas.
+**Cobertura:** `Application` e `Infrastructure` están cubiertas; `Transversal` y `Api` todavía no —la
+segunda es el pendiente nº 8. El porcentaje global del informe de Coverlet sale más bajo de lo real porque
+incluye las migraciones autogeneradas de EF.
 
 ---
 
@@ -414,15 +443,16 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 | Bloque | Contenido | Estado |
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado hecho |
-| **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work hecho en `Customer`; falta `IUserRepository` |
-| **C** | Tests de `Application` · CQRS con MediatR y sus *pipeline behaviors* | ⬜ |
-| **D** | Modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
+| **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work cerrado; faltan el middleware y el gateo por entorno |
+| **C** | Tests de `Application` · tests de integración de la frontera HTTP · CQRS con MediatR y sus *pipeline behaviors* | 🟡 Tests de `Application` hechos |
+| **D** | Dominio con invariantes (value objects, factory methods) · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | Dockerfile · GitHub Actions · despliegue en Azure | ⬜ |
 
 El bloque C tiene un orden interno que importa: **los tests van antes que MediatR**. Escritos contra las
 interfaces actuales describen el comportamiento de hoy, y son los que verifican que la migración a
 handlers no cambia nada por el camino. Escritos después, se estarían escribiendo mirando el código nuevo y
-no protegerían de nada.
+no protegerían de nada. Los de `Application` ya están; los que faltan son los de integración, que son
+justamente los que pueden demostrar que la migración no altera la superficie HTTP.
 
 El valor de MediatR aquí no está en los handlers —con un dominio de una entidad, `CreateCustomerCommand`
 es burocracia sobre lo que ya hay— sino en los *pipeline behaviors*, que resuelven problemas que este
