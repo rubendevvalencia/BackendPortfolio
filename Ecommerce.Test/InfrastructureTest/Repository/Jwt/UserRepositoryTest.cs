@@ -49,12 +49,12 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 PasswordHash = "Password123!"
             };
 
-            // Act
-            var result = await userRepository.CreateUserAsync(user);
+            // Act: no devuelve nada, y es lo correcto. Al volver de aqui no se ha escrito nada,
+            // asi que no habria ningun resultado que devolver.
+            await userRepository.CreateUserAsync(user);
 
             // Assert: el alta esta registrada en el contexto, pero todavia no hay nada en la base.
             // Una consulta solo ve lo confirmado, asi que aqui no debe encontrar al usuario.
-            Assert.True(result);
             Assert.Empty(await dbContext.Users.ToListAsync());
 
             // Act: confirma quien manda. En produccion es UnitOfWork.SaveChangesAsync(), que
@@ -76,7 +76,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
         [InlineData("John", "Doe", "john.doe@example.com", "john", "Password123!", "Password123!", true)]
         [InlineData("Jane", "Smith", "jane.smith@example.com", "jane", "Password456!", "WrongPassword!", false)]
         [InlineData("Admin", "User", "admin@example.com", "admin", "Admin789!", "Admin789!", true)]
-        public async Task CheckPassAsync_ShouldReturnExpectedResult_ForDifferentUsers(
+        public async Task CheckPass_ShouldReturnExpectedResult_ForDifferentUsers(
             string firstName,
             string lastName,
             string email,
@@ -97,7 +97,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
             };
             user.PasswordHash = passwordHasher.HashPassword(user, password);
 
-            var result = await repository.CheckPassAsync(user, passwordToCheck);
+            var result = repository.CheckPass(user, passwordToCheck);
 
             Assert.Equal(expectedResult, result);
         }

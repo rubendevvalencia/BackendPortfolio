@@ -1,4 +1,5 @@
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure;
 using Ecommerce.Infrastructure.Data;
 using Ecommerce.Infrastructure.Interceptors;
@@ -48,7 +49,10 @@ namespace Ecommerce.Test.InfrastructureTest
 
             Assert.NotNull(unitOfWork);
             Assert.NotNull(unitOfWork._customersUoW);
+            Assert.NotNull(unitOfWork._user);
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<ICustomerRepository>());
+            Assert.NotNull(scope.ServiceProvider.GetRequiredService<ICustomerRepositoryUoW>());
+            Assert.NotNull(scope.ServiceProvider.GetRequiredService<IUserRepository>());
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<DbContextEF>());
             Assert.NotNull(scope.ServiceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());
         }
@@ -56,6 +60,8 @@ namespace Ecommerce.Test.InfrastructureTest
         [Theory]
         [InlineData(typeof(IUnitOfWork))]
         [InlineData(typeof(ICustomerRepository))]
+        [InlineData(typeof(ICustomerRepositoryUoW))]
+        [InlineData(typeof(IUserRepository))]
         [InlineData(typeof(DbContextEF))]
         [InlineData(typeof(AuditableEntitySaveChangesInterceptor))]
         public void AddInfrastructureServices_RegistraLosServiciosComoScoped(Type serviceType)

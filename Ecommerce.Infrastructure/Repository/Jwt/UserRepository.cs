@@ -19,25 +19,30 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
             _dbContext = dbContext;
             _passwordHasher = passwordHasher;
         }
-        public async Task<bool> CheckPassAsync(User user, string password)
+       
+        public bool CheckPass(User user, string password)
         {
             var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
-            return await Task.FromResult(verificationResult == PasswordVerificationResult.Success);
+            var esCorrecta = verificationResult == PasswordVerificationResult.Success;
+
+            return esCorrecta;
         }
 
-        public async Task<bool> CreateUserAsync(User entity)
+      
+        public async Task CreateUserAsync(User entity)
         {
-            User userTransform = new User
+            var passHash = _passwordHasher.HashPassword(entity, entity.PasswordHash);
+
+            var userTransform = new User
             {
                 FirstName = entity.FirstName,
                 LastName = entity.LastName,
                 Email = entity.Email,
                 UserName = entity.UserName,
-                PasswordHash = _passwordHasher.HashPassword(entity, entity.PasswordHash)
+                PasswordHash = passHash
             };
-            var result = await _dbContext.Users.AddAsync(userTransform);
-            if(result != null) return true;
-            return false;
+
+            await _dbContext.Users.AddAsync(userTransform);
         }
 
         public async Task<User?> GetByEmailAsync(string email) => await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);

@@ -5,11 +5,16 @@ using System.Text;
 
 namespace Ecommerce.Domain.Interface.IRepository.Jwt
 {
+    //Mismo contrato que IBaseRepositoryUoW: el repositorio NO confirma, solo registra la
+    //intencion de cambio. Quien confirma es el caso de uso, con IUnitOfWork.SaveChangesAsync().
     public interface IUserRepository
     {
         Task<User?> GetByEmailAsync(string email);
         Task<User?> GetByUserNameAsync(string userName);
-        Task<bool> CreateUserAsync(User user);
-        Task<bool> CheckPassAsync(User user, string password);
+
+        Task CreateUserAsync(User user);
+
+        //Sincrono: comparar un hash no toca la base de datos ni hace ninguna espera real.
+        bool CheckPass(User user, string password);
     }
 }
