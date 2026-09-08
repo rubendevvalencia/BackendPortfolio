@@ -20,7 +20,8 @@ namespace Ecommerce.Application.Mapping
             /*CreateMap<Customer, CustomerDto>().ReverseMap().
                 ForMember(dest => dest.Id, source => source.MapFrom(src => src.Id))
                 ForMember(dest => dest.CompanyName, source => source.MapFrom(src => src.CompanyName));*/
-            CreateMap<User, SignUpDto>().ReverseMap();
+            CreateMap<User, SignUpDto>().ReverseMap()
+                .ForMember(dest => dest.PasswordHash, opt => opt.MapFrom(src => src.Password));
         }
     }
 }
