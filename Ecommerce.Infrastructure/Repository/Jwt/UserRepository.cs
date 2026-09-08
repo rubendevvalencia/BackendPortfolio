@@ -21,7 +21,7 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
         }
         public async Task<bool> CheckPassAsync(User user, string password)
         {
-            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, password);
             return await Task.FromResult(verificationResult == PasswordVerificationResult.Success);
         }
 
@@ -33,7 +33,7 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
                 LastName = entity.LastName,
                 Email = entity.Email,
                 UserName = entity.UserName,
-                PasswordHash = _passwordHasher.HashPassword(entity, entity.PasswordHash)
+                Password = _passwordHasher.HashPassword(entity, entity.Password)
             };
             var result = await _dbContext.Users.AddAsync(userTransform);
             var rowsAffected = await _dbContext.SaveChangesAsync();

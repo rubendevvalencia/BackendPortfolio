@@ -35,7 +35,7 @@ namespace Ecommerce.Infrastructure.Persistence.Jwt
 
             builder.HasIndex(u => u.UserName).IsUnique(); // Crea un índice único en la propiedad UserName para garantizar que no haya duplicados.
 
-            builder.Property(u => u.PasswordHash)
+            builder.Property(u => u.Password)
                 .IsRequired() // Indica que la propiedad PasswordHash es obligatoria (no puede ser nula).
                 .HasMaxLength(255); // 255 caracteres: un hash BCrypt ocupa 60 y un SHA-256 en hexadecimal 64.
         }

@@ -42,7 +42,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 LastName = "Doe",
                 Email = "john.doe@example.com",
                 UserName = "john",
-                PasswordHash = "Password123!"
+                Password = "Password123!"
             };
 
             var result = await userRepository.CreateUserAsync(user);
@@ -54,7 +54,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
             Assert.Equal("Doe", savedUser.LastName);
             Assert.Equal("john.doe@example.com", savedUser.Email);
             Assert.Equal("john", savedUser.UserName);
-            Assert.NotEqual("Password123!", savedUser.PasswordHash);
+            Assert.NotEqual("Password123!", savedUser.Password);
         }
 
 
@@ -81,7 +81,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 Email = email,
                 UserName = userName
             };
-            user.PasswordHash = passwordHasher.HashPassword(user, password);
+            user.Password = passwordHasher.HashPassword(user, password);
 
             var result = await repository.CheckPassAsync(user, passwordToCheck);
 
@@ -103,7 +103,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 Email = "john.doe@example.com",
                 UserName = "john"
             };
-            user.PasswordHash = passwordHasher.HashPassword(user, "Password123!");
+            user.Password = passwordHasher.HashPassword(user, "Password123!");
             await dbContext.Users.AddAsync(user);
             await dbContext.SaveChangesAsync();
 
@@ -129,7 +129,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 Email = "john.doe@example.com",
                 UserName = "john"
             };
-            user.PasswordHash = passwordHasher.HashPassword(user, "Password123!");
+            user.Password = passwordHasher.HashPassword(user, "Password123!");
             await dbContext.Users.AddAsync(user);
             await dbContext.SaveChangesAsync();
 
