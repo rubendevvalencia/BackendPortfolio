@@ -100,7 +100,7 @@ try
     
     app.MapControllers();
 
-    app.AddMiddlewares(); //Añade el uso del MiddleWare
+    app.UseMiddlewares(); //Añade el uso del MiddleWare
     
     Log.Information("Starting ecommerce API...");
     app.Run();
