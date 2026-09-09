@@ -3,6 +3,8 @@ using Ecommerce.Application.Dto;
 using Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand;
 using Ecommerce.Application.Feature.Customers.Commands.DeleteCustomer;
 using Ecommerce.Application.Feature.Customers.Commands.UpdateCustomer;
+using Ecommerce.Application.Feature.Customers.Queries.GetAllCustomerQuery;
+using Ecommerce.Application.Feature.Customers.Queries.GetCustomerQuery;
 using Ecommerce.Application.Interface;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
@@ -39,11 +41,11 @@ namespace Ecommerce.Api.Controllers.v3
             };
         }
 
-        [HttpPost("AddAsync")]
+        [HttpPost("Create")]
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
-        public async Task<IActionResult> AddAsync([FromBody] CreateCustomerCommand command)
+        public async Task<IActionResult> Create([FromBody] CreateCustomerCommand command)
         {
             if (command == null) return BadRequest();
            
@@ -80,19 +82,19 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<CustomerDto>))]
-        public async Task<IActionResult> GetByIdAsync([FromRoute] int id)
+        public async Task<IActionResult> GetByIdAsync([FromRoute] GetCustomerQuery query)
         {
-            if(id<0) return BadRequest("Invalid Id");
-            var response = await _customerApplication.GetByIdAsync(id);
+            if(query.Id < 0) return BadRequest("Invalid Id");
+            var response = await _mediator.Send(query);
             return ToActionResult(response);
         }
 
         [HttpGet("GetAllAsync")]
         [SwaggerOperation(Summary = "Retrieves all customers.", Description = "Retrieves a list of all customers in the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customers retrieved successfully.", typeof(Response<IEnumerable<CustomerDto>>))]
-        public async Task<IActionResult> GetAllAsync()
+        public async Task<IActionResult> GetAllAsync([FromRoute]GetAllCustomerQuery query)
         {
-            var response = await _customerApplication.GetAllAsync();
+            var response = await _mediator.Send(query);
             return ToActionResult(response);
         }
     }
