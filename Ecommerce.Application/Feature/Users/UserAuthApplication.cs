@@ -13,7 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Application.MainService
+namespace Ecommerce.Application.Feature.Users
 {
     public class UserAuthApplication : IUserAuthApplication
     {

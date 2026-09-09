@@ -1,6 +1,6 @@
 using Ecommerce.Application.Dto.Jwt;
+using Ecommerce.Application.Feature.Users;
 using Ecommerce.Application.Interface.Jwt;
-using Ecommerce.Application.MainService;
 using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
