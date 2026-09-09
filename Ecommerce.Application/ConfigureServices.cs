@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
+using Ecommerce.Application.Feature.Customers;
+using Ecommerce.Application.Feature.Users;
 using Ecommerce.Application.Interface;
 using Ecommerce.Application.Interface.Jwt;
-using Ecommerce.Application.MainService;
 using Ecommerce.Application.MainService.Jwt;
 using Ecommerce.Application.Mapping;
-using Ecommerce.Application.Service;
 using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Interface.IRepository;
 using FluentValidation;

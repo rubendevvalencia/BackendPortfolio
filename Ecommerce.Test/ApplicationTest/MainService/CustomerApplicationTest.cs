@@ -1,4 +1,4 @@
-using Ecommerce.Application.Service;
+using Ecommerce.Application.Feature.Customers;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common.Enums;

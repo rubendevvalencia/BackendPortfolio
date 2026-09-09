@@ -9,11 +9,13 @@
     <ProjectReference Include="..\Ecommerce.Transversal\Ecommerce.Transversal.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Feature\Customers\Commands\" />
     <Folder Include="Helper\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="MediatR" Version="14.2.0" />
   </ItemGroup>
 </Project>
