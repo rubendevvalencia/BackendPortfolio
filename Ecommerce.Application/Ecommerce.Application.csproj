@@ -9,7 +9,6 @@
     <ProjectReference Include="..\Ecommerce.Transversal\Ecommerce.Transversal.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Feature\Customers\Commands\" />
     <Folder Include="Helper\" />
   </ItemGroup>
   <ItemGroup>

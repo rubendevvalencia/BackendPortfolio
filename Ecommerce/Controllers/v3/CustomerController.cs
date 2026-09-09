@@ -1,6 +1,8 @@
 ﻿using Asp.Versioning;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand;
+using Ecommerce.Application.Feature.Customers.Commands.DeleteCustomer;
+using Ecommerce.Application.Feature.Customers.Commands.UpdateCustomer;
 using Ecommerce.Application.Interface;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
@@ -46,6 +48,51 @@ namespace Ecommerce.Api.Controllers.v3
             if (command == null) return BadRequest();
            
             var response = await _mediator.Send(command);
+            return ToActionResult(response);
+        }
+
+        [HttpPost("UpdateAsyncPost/{id}")]
+        [SwaggerOperation(Summary = "Updates an existing customer using POST.", Description = "Updates the details of an existing customer in the system using a POST request.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
+        public async Task<IActionResult> UpdateAsyncPost([FromBody] UpdateCustomerCommand command)
+        {
+            if (command == null) return BadRequest();
+
+            var response = await _mediator.Send(command);
+            return ToActionResult(response);
+        }
+
+        [HttpDelete("DeleteAsync/{id}")]
+        [SwaggerOperation(Summary = "Deletes an existing customer.", Description = "Deletes an existing customer from the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer deleted successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
+        public async Task<IActionResult> DeleteAsync([FromRoute] DeleteCustomerCommand command)
+        {
+            if(command.Id<0) return BadRequest(); //Se puede añadir un data annotation para validar que el id sea mayor que 0, pero en este caso lo hacemos de manera manual.
+
+            var response = await _mediator.Send(command);
+            return ToActionResult(response);
+        }
+
+        [HttpGet("GetByIdAsync/{id}")]
+        [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<CustomerDto>))]
+        public async Task<IActionResult> GetByIdAsync([FromRoute] int id)
+        {
+            if(id<0) return BadRequest("Invalid Id");
+            var response = await _customerApplication.GetByIdAsync(id);
+            return ToActionResult(response);
+        }
+
+        [HttpGet("GetAllAsync")]
+        [SwaggerOperation(Summary = "Retrieves all customers.", Description = "Retrieves a list of all customers in the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Customers retrieved successfully.", typeof(Response<IEnumerable<CustomerDto>>))]
+        public async Task<IActionResult> GetAllAsync()
+        {
+            var response = await _customerApplication.GetAllAsync();
             return ToActionResult(response);
         }
     }
