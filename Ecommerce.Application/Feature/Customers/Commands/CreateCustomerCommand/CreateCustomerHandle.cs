@@ -16,21 +16,21 @@ namespace Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly IValidator<CreateCustomerCommand> _validator;
+        //private readonly IValidator<CreateCustomerCommand> _validator;
 
-        public CreateCustomerHandle(IUnitOfWork unitOfWork, IMapper mapper, IValidator validator)
+        public CreateCustomerHandle(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _validator = validator;
+            //_validator = validator;
         }
 
         public async Task<Response<bool>> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
         {
             var response = new Response<bool>();
 
-            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
+            //var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            //if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
             var customer = _mapper.Map<Customer>(request);
             customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
             var exitingUser = await _unitOfWork._customersUoW.CompareInfoInDb(customer, cancellationToken);
