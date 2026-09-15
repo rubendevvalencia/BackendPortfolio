@@ -11,17 +11,17 @@ namespace Ecommerce.Application.Feature.Customers.Queries.GetCustomerQuery
 {
     public class GetCustomerHandler : IRequestHandler<GetCustomerQuery, Response<CustomerDto>>
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICustomerReadRepository _customerReadRepo;
         private readonly IMapper _mapper;
 
-        public GetCustomerHandler(IUnitOfWork unitOfWork, IMapper mapper)
+        public GetCustomerHandler(ICustomerReadRepository customerReadRepo, IMapper mapper)
         {
-            _unitOfWork = unitOfWork;
+            _customerReadRepo = customerReadRepo;
             _mapper = mapper;
         }
         public async Task<Response<CustomerDto?>> Handle(GetCustomerQuery request, CancellationToken cancellationToken)
         {
-            var customer = await _unitOfWork._customersUoW.GetByIdAsync(request.Id, cancellationToken);
+            var customer = await _customerReadRepo.GetByIdAsync(request.Id, cancellationToken);
             if (customer == null) return Response<CustomerDto?>.NotFound($"Customer with ID {request.Id} not found.");
             return Response<CustomerDto?>.Success(_mapper.Map<CustomerDto?>(customer));
         }
