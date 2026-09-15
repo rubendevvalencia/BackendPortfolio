@@ -20,7 +20,7 @@ namespace Ecommerce.Application.Feature.Customers.Queries.GetAllCustomerQuery
         }
         public async Task<Response<IEnumerable<CustomerDto>>> Handle(GetAllCustomerQuery request, CancellationToken cancellationToken)
         {
-            var customers = await _customerReadRepo.GetAllAsync();
+            var customers = await _customerReadRepo.GetAllAsync(cancellationToken);
             return Response<IEnumerable<CustomerDto>>.Success(_mapper.Map<IEnumerable<CustomerDto>>(customers));
         }
     }
