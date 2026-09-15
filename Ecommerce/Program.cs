@@ -13,6 +13,9 @@ using Ecommerce.Api.Models.Middleware; //Necesario para ForwardedHeadersOptions 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+
+    
     // Add services to the container.
     
     builder.Services.AddControllers();
@@ -31,6 +34,8 @@ try
     
     var app = builder.Build();
     
+    app.UseMiddlewares(); //Añade el uso del MiddleWare, se añade aquí para tener un mejor control de todo el inicio
+
     // Configure the HTTP request pipeline.
     
     //IMPORTANTE: cada app.UseXxx() se ejecuta UNA SOLA VEZ al arrancar, para ir construyendo en orden
@@ -100,7 +105,6 @@ try
     
     app.MapControllers();
 
-    app.UseMiddlewares(); //Añade el uso del MiddleWare
     
     Log.Information("Starting ecommerce API...");
     app.Run();
