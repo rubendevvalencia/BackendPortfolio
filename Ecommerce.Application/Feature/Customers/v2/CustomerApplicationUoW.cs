@@ -36,7 +36,7 @@ namespace Ecommerce.Application.Feature.Customers
             var customer = _mapper.Map<Customer>(customerDto);
             customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
             var exitingUser = await _unitOfWork._customersUoW.CompareInfoInDb(customer, cancellationToken);
-            if(exitingUser != null) return Response<bool>.Fail("Customer are registered");
+            if(exitingUser != null) return Response<bool>.Fail("Customer is already registered");
 
             //Dos pasos: el repositorio marca la intencion, el UnitOfWork confirma.
             await _unitOfWork._customersUoW.AddAsync(customer, cancellationToken);
