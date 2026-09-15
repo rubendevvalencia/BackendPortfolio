@@ -24,11 +24,11 @@ namespace Ecommerce.Application.Feature.Customers.Commands.DeleteCustomer
            
             //Comprobar si existe es responsabilidad del caso de uso, no del repositorio:
             //asi el "no existe" (404) queda separado del "no se pudo borrar" (500).
-            var customer = await _unitOfWork._customersUoW.GetByIdAsync(command.Id);
+            var customer = await _unitOfWork._customersUoW.GetByIdAsync(command.Id, cancellationToken);
             if (customer is null) return Response<bool>.NotFound($"Customer with ID {command.Id} not found.");
 
             _unitOfWork._customersUoW.Delete(customer); //No se pone await porque es void, lo ejecuta el SavechangeAsync
-            var result = await _unitOfWork.SaveChangesAsync();
+            var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
             response.Data = result > 0 ? true : false;
 
             if (response.Data) response.IsSuccess = true;

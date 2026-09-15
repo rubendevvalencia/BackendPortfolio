@@ -48,11 +48,11 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
-        public async Task<IActionResult> Create([FromBody] CreateCustomerCommand command)
+        public async Task<IActionResult> Create([FromBody] CreateCustomerCommand command, CancellationToken cancellationToken)
         {
             if (command == null) return BadRequest();
            
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
             return ToActionResult(response);
         }
 
@@ -61,12 +61,12 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> UpdateAsyncPost([FromBody] UpdateCustomerCommand command)
+        public async Task<IActionResult> UpdateAsyncPost([FromBody] UpdateCustomerCommand command, CancellationToken cancellationToken)
         {
             if (command == null) return BadRequest();
             if(command.Id <= 0) return BadRequest();
 
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
             return ToActionResult(response);
         }
 
@@ -74,14 +74,14 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerOperation(Summary = "Deletes an existing customer.", Description = "Deletes an existing customer from the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer deleted successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> DeleteAsync([FromRoute] int id)
+        public async Task<IActionResult> DeleteAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             if(id<=0) return BadRequest(); //Se puede añadir un data annotation para validar que el id sea mayor que 0, pero en este caso lo hacemos de manera manual.
             DeleteCustomerCommand command = new()
             {
                 Id = id
             };
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
             return ToActionResult(response);
         }
 
@@ -89,24 +89,24 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<CustomerDto>))]
-        public async Task<IActionResult> GetByIdAsync([FromRoute] int id)
+        public async Task<IActionResult> GetByIdAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             if(id <= 0) return BadRequest("Invalid Id");
             GetCustomerQuery query = new()
             {
                 Id = id
             };
-            var response = await _mediator.Send(query);
+            var response = await _mediator.Send(query, cancellationToken);
             return ToActionResult(response);
         }
 
         [HttpGet("GetAllAsync")]
         [SwaggerOperation(Summary = "Retrieves all customers.", Description = "Retrieves a list of all customers in the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customers retrieved successfully.", typeof(Response<IEnumerable<CustomerDto>>))]
-        public async Task<IActionResult> GetAllAsync()
+        public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
         {
             GetAllCustomerQuery query = new GetAllCustomerQuery();
-            var response = await _mediator.Send(query);
+            var response = await _mediator.Send(query, cancellationToken);
             return ToActionResult(response);
         }
     }

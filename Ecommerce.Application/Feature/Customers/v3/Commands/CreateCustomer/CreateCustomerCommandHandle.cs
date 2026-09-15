@@ -25,7 +25,7 @@ namespace Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand
             _mapper = mapper;
             _validator = validator;
         }
-
+        //Antigua versión v2 -> AddAsync
         public async Task<Response<bool>> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
         {
             var response = new Response<bool>();
