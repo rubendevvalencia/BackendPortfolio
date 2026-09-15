@@ -4,6 +4,7 @@ using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
+using Ecommerce.Transversal.Common.Enums;
 using FluentValidation;
 using MediatR;
 using System;
@@ -34,7 +35,7 @@ namespace Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand
             var customer = _mapper.Map<Customer>(request);
             customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
             var exitingUser = await _unitOfWork._customersUoW.CompareInfoInDb(customer, cancellationToken);
-            if (exitingUser) return Response<bool>.Fail("Customer are registered");
+            if (exitingUser) return Response<bool>.Fail("Customer is already registered", ErrorType.Duplicated);
 
             //Dos pasos: el repositorio marca la intencion, el UnitOfWork confirma.
             await _unitOfWork._customersUoW.AddAsync(customer, cancellationToken);
