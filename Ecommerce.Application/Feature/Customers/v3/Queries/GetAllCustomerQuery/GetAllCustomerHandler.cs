@@ -11,16 +11,16 @@ namespace Ecommerce.Application.Feature.Customers.Queries.GetAllCustomerQuery
 {
     public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQuery, Response<IEnumerable<CustomerDto>>>
     {
-        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public GetAllCustomerHandler(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly ICustomerReadRepository _customerReadRepo;
+        public GetAllCustomerHandler(ICustomerReadRepository customerReadRepo, IMapper mapper)
         {
-            _unitOfWork = unitOfWork;
+            _customerReadRepo = customerReadRepo;
             _mapper = mapper;
         }
         public async Task<Response<IEnumerable<CustomerDto>>> Handle(GetAllCustomerQuery request, CancellationToken cancellationToken)
         {
-            var customers = await _unitOfWork._customersUoW.GetAllAsync();
+            var customers = await _customerReadRepo.GetAllAsync();
             return Response<IEnumerable<CustomerDto>>.Success(_mapper.Map<IEnumerable<CustomerDto>>(customers));
         }
     }

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
+using System.Net.NetworkInformation;
 
 namespace Ecommerce.Api.Controllers.v3
 {
@@ -37,14 +38,16 @@ namespace Ecommerce.Api.Controllers.v3
             {
                 ErrorType.Validation => BadRequest(response),                                        //400: el cliente envio datos incorrectos.
                 ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
+                ErrorType.Duplicated => Conflict(response),                                          // 409. Duplicado
                 _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
             };
         }
 
         [HttpPost("Create")]
-        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
-        [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
+        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]   
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
         public async Task<IActionResult> Create([FromBody] CreateCustomerCommand command)
         {
             if (command == null) return BadRequest();
@@ -53,7 +56,7 @@ namespace Ecommerce.Api.Controllers.v3
             return ToActionResult(response);
         }
 
-        [HttpPost("UpdateAsyncPost/{id}")]
+        [HttpPost("UpdateAsyncPost")]
         [SwaggerOperation(Summary = "Updates an existing customer using POST.", Description = "Updates the details of an existing customer in the system using a POST request.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
@@ -61,6 +64,7 @@ namespace Ecommerce.Api.Controllers.v3
         public async Task<IActionResult> UpdateAsyncPost([FromBody] UpdateCustomerCommand command)
         {
             if (command == null) return BadRequest();
+            if(command.Id <= 0) return BadRequest();
 
             var response = await _mediator.Send(command);
             return ToActionResult(response);

@@ -4,8 +4,10 @@ namespace Ecommerce.Application.Feature.Customers.Commands.UpdateCustomer
 {
     public class UpdateCustomerValidator : AbstractValidator<UpdateCustomerCommand>
     {
-         public UpdateCustomerValidator()
+        public UpdateCustomerValidator()
         {
+            RuleFor(x => x.Id)
+                .GreaterThan(0).WithMessage("Id must be greater than 0");
             RuleFor(x => x.CompanyName)
                 .NotEmpty().WithMessage("Company name is required.")
                 .MaximumLength(100).WithMessage("Company name cannot exceed 100 characters.");
