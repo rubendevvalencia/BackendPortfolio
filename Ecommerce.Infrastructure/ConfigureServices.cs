@@ -29,6 +29,7 @@ namespace Ecommerce.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<AuditableEntitySaveChangesInterceptor>();
             services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+            services.AddScoped<ICustomerReadRepository, CustomerReadRepository>();
             return services;
         }
     }
