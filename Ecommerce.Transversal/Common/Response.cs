@@ -13,6 +13,7 @@ namespace Ecommerce.Transversal.Common
         //Detalle de los errores de validacion agrupados por propiedad ("City" -> ["City is required."]).
         //Se mantiene vacio cuando el fallo no es de validacion.
         public Dictionary<string, List<string>> Errors { get; set; } = new();
+        public IEnumerable<BaseError> Error { get; set;  }
 
         //Motivo del fallo. Permite que el controller decida el status code sin inspeccionar el Message.
         public ErrorType ErrorType { get; set; } = ErrorType.None;

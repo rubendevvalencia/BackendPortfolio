@@ -20,7 +20,7 @@ namespace Ecommerce.Application.Feature.Users
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly IValidator<SignUpDto> _validatorSignUp;
+        private readonly IValidator<SignUpDto> _validatorSignUp; 
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
         private readonly ILogger<UserAuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
