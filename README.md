@@ -12,26 +12,27 @@ un proyecto de producción tendrían bastante menos densidad.
 
 ## Cómo leer este repositorio
 
-**El mismo recurso (`Customer`) está implementado tres veces, una por versión de la API.** No es
+**El mismo recurso (`Customer`) está implementado cuatro veces, una por versión de la API.** No es
 duplicación accidental: cada versión resuelve el mismo caso de uso con un enfoque distinto, y que convivan
-es lo que permite evaluar la evolución completa desde la propia API — mismo recurso, tres formas de decidir
-dónde vive la transacción y cómo se separan lecturas y escrituras.
+es lo que permite evaluar la evolución completa desde la propia API — mismo recurso, cuatro formas de decidir
+dónde vive la transacción, cómo se separan lecturas y escrituras y dónde se valida.
 
-| | **v1** | **v2** | **v3** |
-|---|---|---|---|
-| Enfoque | Repositorio directo | Unit of Work | CQRS con MediatR |
-| Quién confirma (`SaveChanges`) | Cada método del repositorio | El caso de uso, una vez | El handler, una vez |
-| Lecturas | Mismo repositorio | Mismo repositorio | Repositorio de lectura separado |
-| Controller depende de | `ICustomerApplication` | `ICustomerApplicationUoW` | Solo `IMediator` |
-| Detección de duplicados | No | Sí → 409 | Sí → 409 |
-| Qué demuestra | **El antipatrón**, a propósito | El límite transaccional en el caso de uso | Separación de comandos y consultas |
-| Estado | `Deprecated` | Vigente | Vigente |
+| | **v1** | **v2** | **v3** | **v4** |
+|---|---|---|---|---|
+| Enfoque | Repositorio directo | Unit of Work | CQRS con MediatR | CQRS + validación en el pipeline |
+| Quién confirma (`SaveChanges`) | Cada método del repositorio | El caso de uso, una vez | El handler, una vez | El handler, una vez |
+| Lecturas | Mismo repositorio | Mismo repositorio | Repositorio de lectura separado | Repositorio de lectura separado |
+| Controller depende de | `ICustomerApplication` | `ICustomerApplicationUoW` | Solo `IMediator` | Solo `IMediator` |
+| Dónde se valida | Caso de uso | Caso de uso | Handler → `Response.Invalid` | `ValidationBehaviour` → excepción → middleware |
+| Detección de duplicados | No | Sí → 409 | Sí → 409 | Sí → 409 |
+| Qué demuestra | **El antipatrón**, a propósito | El límite transaccional en el caso de uso | Separación de comandos y consultas | La validación como preocupación transversal |
+| Estado | `Deprecated` | Vigente | Vigente | Vigente |
 
 Recorrido recomendado: [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) →
-[`v2`](Ecommerce/Controllers/v2/CustomerController.cs) → [`v3`](Ecommerce/Controllers/v3/CustomerController.cs),
-y detrás de cada uno su implementación en
+[`v2`](Ecommerce/Controllers/v2/CustomerController.cs) → [`v3`](Ecommerce/Controllers/v3/CustomerController.cs) →
+[`v4`](Ecommerce/Controllers/v4/CustomerController.cs), y detrás de cada uno su implementación en
 [`Ecommerce.Application/Feature/Customers`](Ecommerce.Application/Feature/Customers). Las secciones
-[*Evolución v1 → v2 → v3*](#evolución-v1--v2--v3) y [*Decisiones técnicas*](#decisiones-técnicas) explican
+[*Evolución v1 → v4*](#evolución-v1--v4) y [*Decisiones técnicas*](#decisiones-técnicas) explican
 el porqué de cada salto.
 
 ---
@@ -43,7 +44,7 @@ apuntan siempre hacia dentro**, hacia lo que menos cambia.
 
 ```mermaid
 flowchart RL
-    API["<b>Ecommerce.Api</b><br/>Controllers v1 · v2 · v3<br/>Versionado · Swagger · CORS · JWT<br/>Middleware de excepciones<br/><i>la única capa que conoce HTTP</i>"]
+    API["<b>Ecommerce.Api</b><br/>Controllers v1 · v2 · v3 · v4<br/>Versionado · Swagger · CORS · JWT<br/>Middleware de excepciones<br/><i>la única capa que conoce HTTP</i>"]
     APP["<b>Ecommerce.Application</b><br/>Casos de uso · Commands/Queries (MediatR)<br/>DTOs · Validadores · Mapeo"]
     DOM["<b>Ecommerce.Domain</b><br/>Entidades<br/>Interfaces de repositorio<br/><i>cero dependencias externas</i>"]
     INF["<b>Ecommerce.Infrastructure</b><br/>EF Core · DbContext · Migraciones<br/>Repositorios de escritura y lectura<br/>Interceptores"]
@@ -64,7 +65,7 @@ quien las *usa* — y `Infrastructure` las implementa; ahí está la inversión 
 | Proyecto | Responsabilidad |
 |---|---|
 | `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, Swagger, manejo global de excepciones. Composition root. |
-| `Ecommerce.Application` | Orquesta los casos de uso (servicios en v1/v2, handlers de MediatR en v3). No sabe qué es un código HTTP. |
+| `Ecommerce.Application` | Orquesta los casos de uso (servicios en v1/v2, handlers de MediatR en v3 y v4). No sabe qué es un código HTTP. |
 | `Ecommerce.Domain` | Entidades y contratos. No sabe que existe una base de datos. |
 | `Ecommerce.Infrastructure` | Persistencia con EF Core. Implementa los contratos del dominio. |
 | `Ecommerce.Transversal` | Tipos y servicios compartidos por varias capas (`Response<T>`, `ErrorType`, logging). |
@@ -79,20 +80,29 @@ Feature/
 ├── Customers/
 │   ├── v1/  CustomerApplication.cs          ← repositorio que confirma
 │   ├── v2/  CustomerApplicationUoW.cs       ← Unit of Work
-│   └── v3/
-│       ├── Commands/
-│       │   ├── CreateCustomer/   Command · Handler · Validator
-│       │   ├── UpdateCustomer/   Command · Handler · Validator
-│       │   └── DeleteCustomer/   Command · Handler · Validator
-│       └── Queries/
-│           ├── GetAllCustomerQuery/   Query · Handler
-│           └── GetCustomerQuery/      Query · Handler
+│   ├── v3/
+│   │   ├── Commands/
+│   │   │   ├── CreateCustomer/   Command · Handler · Validator
+│   │   │   ├── UpdateCustomer/   Command · Handler · Validator
+│   │   │   └── DeleteCustomer/   Command · Handler · Validator
+│   │   └── Queries/
+│   │       ├── GetAllCustomerQuery/   Query · Handler
+│   │       └── GetCustomerQuery/      Query · Handler
+│   └── v4/   misma estructura; GetCustomerQuery gana Validator y los handlers pierden IValidator
 ├── Users/   UserAuthApplication.cs
 └── Jwt/     JwtApplication.cs
+
+Common/
+├── Behaviours/
+│   ├── LoggingBehaviour.cs            ← todo lo que pasa por Send (v3 y v4)
+│   ├── ValidationBehaviour.cs         ← solo peticiones marcadas con IValidatableRequest (v4)
+│   └── Exceptions/ValidationExceptionCustom.cs
+└── Interface/IValidatableRequest.cs
 ```
 
-En v3 cada operación es una carpeta autocontenida: todo lo que hace falta para entender *crear un cliente*
-está junto, en lugar de repartido entre un servicio, un DTO compartido y un validador genérico.
+En v3 y v4 cada operación es una carpeta autocontenida: todo lo que hace falta para entender *crear un
+cliente* está junto, en lugar de repartido entre un servicio, un DTO compartido y un validador genérico.
+`Common` reúne lo que no pertenece a ninguna operación: las piezas del pipeline de MediatR.
 
 ---
 
@@ -100,7 +110,7 @@ está junto, en lugar de repartido entre un servicio, un DTO compartido y un val
 
 - **.NET 10** · C# · ASP.NET Core Web API
 - **Entity Framework Core 10** (Code First, migraciones) sobre **SQL Server**
-- **MediatR** — CQRS en la v3 de la API
+- **MediatR** — CQRS en v3 y v4, con *pipeline behaviors* para logging y validación
 - **Asp.Versioning** — versionado de la API por segmento de URL
 - **JWT Bearer** — autenticación con `Microsoft.AspNetCore.Authentication.JwtBearer`
 - **FluentValidation** — validación desacoplada del modelo
@@ -111,7 +121,7 @@ está junto, en lugar de repartido entre un servicio, un DTO compartido y un val
 
 ---
 
-## Evolución v1 → v2 → v3
+## Evolución v1 → v4
 
 ### v1 → v2: mover el límite transaccional
 
@@ -174,16 +184,56 @@ varias versiones sobre la misma clase, como hace el controller de autenticación
 ```csharp
 // Controllers/UserAuthController.cs — una clase, varias versiones
 [ApiVersion("1.0", Deprecated = true)]
-[ApiVersion("2.0")]
+[ApiVersion("2.0", Deprecated = true)]
+[ApiVersion("3.0")]
 public class UserAuthController : ControllerBase
 ```
+
+### v3 → v4: la validación sale del handler
+
+En v3 cada handler de escritura recibe un `IValidator<TCommand>`, valida al principio y, si falla, devuelve
+`Response.Invalid(...)`. Son las mismas tres líneas en cada handler, y la comprobación de `id <= 0` de las
+lecturas vive además en el controller. v4 saca todo eso al pipeline de MediatR:
+
+- **`ValidationBehaviour<TRequest, TResponse>`** resuelve todos los `IValidator<TRequest>` registrados, los
+  ejecuta y, si hay errores, **lanza `ValidationExceptionCustom` sin llamar a `next()`**: el handler no llega
+  a ejecutarse.
+- **Los handlers de v4 no tienen `IValidator`** en el constructor. Reciben una petición que ya es válida.
+- **`GlobalExceptionHandler` captura esa excepción** en un `catch` específico, antes del genérico, y
+  responde **400** con la lista de errores.
+- **El controller ya no comprueba nada**: el `id > 0` de `GetById` y `Delete` pasa a `GetCustomerValidator`
+  y `DeleteCustomerValidator`, y su `ToActionResult` no tiene rama de `Validation`.
+
+**Por qué una marca y no todas las peticiones.** El behaviour está restringido con
+`where TRequest : IValidatableRequest`, una interfaz vacía que solo implementan los commands y queries de v4.
+Sin ella se aplicaría también a v3, validaría antes que su handler y lanzaría la excepción: v3 dejaría de
+responder su `Response.Invalid` y cambiaría su contrato sin que nadie tocara v3. El contenedor de dependencias
+omite un behaviour genérico cuando la petición no cumple la restricción, así que la marca basta para aislar
+las dos versiones. `ValidationBehaviourRegistrationTests` lo fija: una petición de v4 incluye el behaviour y
+una de v3 no.
+
+**El orden importa.** Los behaviours se ejecutan en el orden en que se registran, del más externo al más
+interno: `LoggingBehaviour` envuelve a `ValidationBehaviour`, y este al handler.
+
+**La contrapartida, y es deliberada.** v4 usa una excepción para un fallo *esperado*, justo lo que la
+sección [*`Response<T>` para los fallos esperados*](#responset-para-los-fallos-esperados-middleware-para-los-inesperados)
+desaconseja. Es el precio de sacar la validación del handler sin resolver el problema de fondo: dentro del
+behaviour `TResponse` es genérico y no hay forma directa de construir un `Response<X>.Invalid(...)` sin
+conocer `X`. La excepción lo esquiva, a cambio de tres cosas: el flujo de control deja de leerse en la firma,
+`Application` depende de que exista un middleware que la traduzca, y el fallo de validación ya no llega a
+`LoggingBehaviour` como `Response` (ver [*Quién escribe los logs*](#quién-escribe-los-logs-interceptor-o-call-site)).
+v3 y v4 conviven precisamente para poder comparar las dos formas.
+
+La alternativa sin excepción existe y queda anotada: un miembro estático abstracto en una interfaz
+(C# 11) que `Response<T>` implemente, de modo que el behaviour, con
+`where TResponse : IInvalidResponse<TResponse>`, pueda llamar a `TResponse.Invalid(errors)` y devolverlo.
 
 ---
 
 ## Versionado de la API
 
 La API se versiona **por segmento de URL**: la versión viaja en la propia ruta, `api/v1/...`, `api/v2/...`,
-`api/v3/...`.
+`api/v3/...`, `api/v4/...`.
 
 ### Cómo está montado
 
@@ -226,7 +276,7 @@ ortodoxia. En una API interna con clientes generados, la cabecera sería la elec
 
 `ConfigureSwaggerOptions` implementa `IConfigureOptions<SwaggerGenOptions>` y **recorre
 `IApiVersionDescriptionProvider`**, así que crea un documento por cada versión que descubra en los
-controllers. No hay ningún `SwaggerDoc("v1", ...)` escrito a mano: **la v3 se añadió sin tocar la
+controllers. No hay ningún `SwaggerDoc("v1", ...)` escrito a mano: **v3 y v4 se añadieron sin tocar la
 configuración de Swagger**, que es exactamente lo que este diseño prometía.
 
 `Program.cs` hace lo simétrico en la UI: resuelve el provider desde `app.Services` (en lugar de construir
@@ -266,6 +316,10 @@ uso. v1 y v2 dejaron de tener `try/catch`: la excepción sube hasta `GlobalExcep
 `IMiddleware` que la registra con Serilog y devuelve un 500. Los tests lo fijan explícitamente
 (`*_PropagaLaExcepcion*`): el caso de uso **no** debe tragarse la excepción. Quedan puntos por cerrar en
 este middleware — ver [*Estado actual*](#estado-actual-y-limitaciones-conocidas).
+
+**La excepción a la regla es v4**, y está hecha a propósito: su validación sí viaja como excepción
+(`ValidationExceptionCustom`), que el middleware traduce a 400 en un `catch` propio y sin registrarla en el
+log. El motivo y lo que cuesta están en [*v3 → v4*](#v3--v4-la-validación-sale-del-handler).
 
 ### Unit of Work: quién decide cuándo se confirma
 
@@ -345,6 +399,22 @@ Tres destinos con criterios distintos: consola para desarrollo, fichero rotado a
 histórico local, y **SQL Server solo a partir de `Warning`** — la tabla de logs no debe llenarse con el
 tráfico normal.
 
+| Destino | Recibe | Retención |
+|---|---|---|
+| Consola | `Information` o más | Ninguna |
+| `Logs/log-.txt` | `Information` o más | 7 días |
+| Tabla SQL `Logs` | Solo `Warning` o más (`restrictedToMinimumLevel`) | **Indefinida**: nadie la purga |
+
+**Cada llamada al logger es una entrada independiente**, y cada destino la acepta o la descarta entera. Dos
+llamadas seguidas sobre el mismo caso de uso —una en `Information` con detalle y otra en `Warning`— no se
+fusionan: la tabla SQL recibe solo la segunda, con sus propias propiedades y nada de la primera.
+
+Qué guarda una fila de la tabla: `Message` (ya renderizado), `MessageTemplate`, `Level`, `TimeStamp`,
+`Exception` si la hay, y `Properties` en XML con **todas las propiedades estructuradas de esa entrada** —las
+del mensaje más las del contexto: `Application` y las de la petición HTTP (`RequestId`, `RequestPath`).
+Por eso lo que se escribe en `Warning` o `Error` hay que tratarlo como dato persistido: cualquier propiedad
+del mensaje acaba en una tabla que no caduca.
+
 `UseSerilogRequestLogging()` va antes de la autenticación en el pipeline, a propósito: así registra también
 los intentos que acaban en 401.
 
@@ -356,14 +426,66 @@ compiten entre sí.
 **`LoggingBehaviour<TRequest,TResponse>` — cobertura automática.** Un `IPipelineBehavior` de MediatR que
 envuelve la ejecución del handler y deja rastro de entrada y salida sin que el handler sepa que existe.
 Cero código por caso de uso, a cambio de ver solo el borde: request y response, nunca el interior de la
-decisión. Y cubre únicamente lo que pasa por MediatR como `IRequest` — hoy eso es **exactamente v3**.
+decisión. Y cubre únicamente lo que pasa por MediatR como `IRequest` — hoy eso es **v3 y v4**.
 
 Aquí el diseño de `Response<T>` paga un dividendo que no estaba buscado: como los fallos esperados viajan
-*dentro* de la respuesta en lugar de lanzarse como excepción, el motivo del fallo llega al log del pipeline
-serializado, con su `ErrorType` incluido. El behaviour sabe que un alta se rechazó por duplicada sin que
-nadie se lo cuente. En un diseño que devolviera un DTO pelado, solo vería un `null`.
+*dentro* de la respuesta en lugar de lanzarse como excepción, el behaviour puede leer el motivo del fallo y
+**elegir el nivel del log según el `ErrorType`**. Sabe que un alta se rechazó por duplicada sin que nadie se
+lo cuente. En un diseño que devolviera un DTO pelado, solo vería un `null`.
 
-**Por qué solo sale en v3: es MediatR, no CQRS.** Es fácil atribuirlo al patrón porque aquí van juntos, pero
+El obstáculo técnico es que dentro del behaviour la respuesta es un `TResponse` genérico, y no se puede
+preguntar si es un `Response<T>` sin conocer el `T` concreto. Lo resuelve `IResponse`, una cara no genérica
+de `Response<T>` que expone `IsSuccess`, `Message` y `ErrorType`, y que vive en `Transversal` junto a él
+porque ese proyecto no puede referenciar `Application`. Con eso, cada petición deja una única línea con el
+nivel que le corresponde:
+
+| Resultado | Nivel | Por qué |
+|---|---|---|
+| Éxito | `Information` | La traza normal |
+| `Validation` | `Information` | Error del cliente; los detalles ya viajan en el body |
+| `NotFound` | `Information` | Tráfico normal; un escaneo llenaría la tabla SQL |
+| `Duplicated` | `Warning` | Conflicto de negocio que interesa conservar |
+| `Unexpected` | `Warning` | Hoy es `SaveChangesAsync` devolviendo 0 — ver [pendiente nº 4](#corrección) |
+
+El nivel decide el destino: desde `Warning` la entrada también llega a la tabla SQL. `Unexpected` no sube a
+`Error` a propósito, porque las excepciones reales ya las registra `GlobalExceptionHandler` como `Error`, y
+así "no se guardó nada" no se confunde con "se cayó la base de datos".
+
+```
+[Information] CreateCustomerCommand -> None:
+[Warning]     CreateCustomerCommand -> Duplicated: Customer is already registered
+[Information] GetCustomerQuery -> NotFound: Customer with ID 7 not found.
+```
+
+El behaviour **observa, pero no altera**: devuelve exactamente la respuesta que obtuvo de `next()`. Registrar
+es un efecto secundario; si la sustituyera, el controller recibiría otra cosa distinta de lo que produjo el
+handler.
+
+**Por qué no se registra el payload.** La primera versión volcaba request y response completos con
+`JsonSerializer.Serialize`, y es tentador para depurar. Se retiró, y conviene dejar claro el motivo porque es
+fácil equivocarse con él: **la fuga no viene del formato JSON, sino del contenido.** Al serializar el objeto
+entero se escriben todos sus campos, y un `SignUpDto` lleva la contraseña y un `TokenDto` el JWT.
+
+De ahí salen dos trampas:
+
+- **Pasar el objeto con `{@Payload}` no lo arregla.** El operador `@` hace que Serilog descomponga el objeto
+  en propiedades, y `Password` es una más. Cambia el formato, no lo que se escribe.
+- **Bajarlo a `Debug` tampoco.** Reduce la exposición, porque con el nivel mínimo actual no se escribe, pero
+  la fuga reaparece el día que alguien active `Debug` para investigar un fallo.
+
+Hoy no se filtra nada: solo Customer pasa por MediatR y sus requests no llevan secretos. El riesgo es de
+diseño y se materializa el día que auth migre a commands. Si entonces hace falta el payload, hay que decidir
+qué campos no se escriben nunca, no solo en qué nivel:
+
+- **Excluir los requests sensibles**: una interfaz vacía (`ISensitiveRequest`) que implementan los commands
+  de auth, y el behaviour registra solo el nombre cuando la encuentra. Explícito y fácil de revisar.
+- **Ocultar campos concretos**: con `Destructurama.Attributed`, `[NotLogged]` o `[LogMasked]` en la
+  propiedad del DTO. La protección viaja con el dato y funciona desde cualquier sitio que lo registre.
+
+Las dos exigen pasar el **objeto** a Serilog con `@`. Si se serializa antes a mano, Serilog recibe un string
+ya cerrado y los atributos no se aplican.
+
+**Por qué solo sale en v3 y v4: es MediatR, no CQRS.** Es fácil atribuirlo al patrón porque aquí van juntos, pero
 CQRS solo separa lecturas de escrituras y no ejecuta nada. Lo que activa el behaviour es *cómo llama el
 controller*:
 
@@ -371,7 +493,7 @@ controller*:
 // v2 — llamada directa a un método: no hay ningún intermediario donde engancharse
 var response = await _customerApplication.AddAsync(customerDto, cancellationToken);
 
-// v3 — Send busca el handler y, antes de invocarlo, lo envuelve con los IPipelineBehavior registrados
+// v3 y v4 — Send busca el handler y, antes de invocarlo, lo envuelve con los IPipelineBehavior registrados
 var response = await _mediator.Send(command, cancellationToken);
 ```
 
@@ -380,19 +502,28 @@ resto del contenedor no sabe que existe. Las combinaciones cruzadas lo confirman
 llamados a mano no sacaría el log, y MediatR con un único request que lee y escribe sí. Y por lo mismo
 `UserAuthController` no lo saca aunque declare la `3.0`: la versión cambia la ruta, no el mecanismo.
 
-Dicho con precisión, **tiene traza todo `Send` de un request con respuesta, y la salida solo si el handler
-no lanza**. Los tres matices, que hoy no afectan a ningún caso pero conviene conocer antes de fiarse:
+Dicho con precisión, **tiene traza todo `Send` de un request con respuesta, siempre que nada por debajo
+lance**. Tres matices; los dos primeros hoy no afectan a ningún caso, el tercero ya afecta a v4:
 
 - **`Publish` no pasa por el pipeline.** Las notificaciones de MediatR (`INotification`) no atraviesan
   `IPipelineBehavior`; el día que se publique un evento de dominio, no tendrá traza automática.
 - **Un request sin respuesta se salta el behaviour en silencio.** La restricción
   `where TRequest : IRequest<TResponse>` no la cumple un command declarado como `IRequest` a secas, y el
-  contenedor simplemente no lo aplica —sin error ni aviso—. Los cinco requests actuales devuelven
-  `Response<T>`; si aparece uno sin retorno, basta con quitar la restricción, de la que nada más depende.
-- **Si el handler lanza, no hay log de salida.** `await next()` no está dentro de un `try`, así que la
-  excepción sube y deja la entrada sin su pareja. El error no se pierde —lo registra
-  `GlobalExceptionHandler` más arriba—, pero el behaviour no lo ve. Es el hueco que cubriría un
+  contenedor simplemente no lo aplica —sin error ni aviso—. Los diez requests actuales (cinco en v3, cinco
+  en v4) devuelven `Response<T>`; si aparece uno sin retorno, basta con quitar la restricción, de la que
+  nada más depende.
+- **Si algo por debajo lanza, el behaviour no registra nada visible.** `await next()` no está dentro de un
+  `try`, así que la excepción sube sin pasar por la clasificación; solo queda la línea de entrada, que va
+  a `Debug` y con el nivel mínimo actual no se escribe. Para un error inesperado no se pierde nada —lo
+  registra `GlobalExceptionHandler` como `Error`—, pero el behaviour no lo ve. Es el hueco que cubriría un
   `UnhandledExceptionBehaviour` (pendiente nº 10).
+
+  **En v4 esto incluye la validación.** `ValidationBehaviour` va *dentro* de `LoggingBehaviour` y lanza
+  `ValidationExceptionCustom`, así que un fallo de validación de v4 nunca llega a clasificarse como
+  `Validation`. Y el `catch` de esa excepción en el middleware responde el 400 **sin registrarla**. El único
+  rastro es la línea de `UseSerilogRequestLogging()` con el status. Encaja con la regla de reparto —un fallo
+  de validación es tráfico del cliente y el status ya lo dice—, pero es una diferencia real con v3, donde
+  sí queda una línea `Information` con el caso de uso.
 
 **`IApiLogger<T>` — logs con intención.** Se inyecta en la clase y se llama a mano, en el punto donde se
 sabe qué regla se ha incumplido. Es lo que el interceptor no puede darte —un código de estado no dice
@@ -403,17 +534,20 @@ La regla de reparto que se sigue aquí, para que los dos no produzcan ruido dupl
 solo lo que el código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo, cada petición deja
 ya una entrada con su status, así que repetir un 404 desde `Application` no aporta nada.
 
-| Rama del caso de uso | ¿Log manual? | Por qué |
+| Rama del caso de uso | v3 y v4 (behaviour) | v1 y v2 (a mano) |
 |---|---|---|
-| Validación falla | No | Los errores ya viajan en el body de la respuesta |
-| `NotFound` | No | Tráfico normal; un escaneo llenaría el log de avisos |
-| `Duplicated` → 409 | **Sí**, `Warning` | El status no dice con qué dato se produjo el choque |
-| `SaveChangesAsync` devuelve 0 | **Sí**, `Warning` | El caso más opaco del diseño — ver [pendiente nº 4](#corrección) |
+| Validación falla | v3: `Information`, automático · v4: sin entrada, solo el status del request log | No — los errores ya viajan en el body |
+| `NotFound` | `Information`, automático | No — tráfico normal |
+| `Duplicated` → 409 | `Warning`, automático | **Sí**, `Warning` — el status no dice con qué dato chocó |
+| `SaveChangesAsync` devuelve 0 | `Warning`, automático | **Sí**, `Warning` — el caso más opaco del diseño |
 
-**Estado actual:** el behaviour está registrado y activo para v3. `IApiLogger` y su implementación
+Lo único que el behaviour no da es el *sujeto*: registra que el alta chocó, no con qué email, porque para
+eso tendría que volcar el request. Si hace falta, se inyecta logger en ese handler concreto.
+
+**Estado actual:** el behaviour está registrado y activo para v3 y v4. `IApiLogger` y su implementación
 `AppLogger<T>` se conservan **sin registrar**, como ejemplo del enfoque manual, y `UserAuthApplication` usa
 hoy `ILogger<T>` directo. Cablear `IApiLogger` en v1 y v2 es el siguiente paso: cuando esté, el mismo
-recurso en tres versiones también servirá para contrastar las dos formas de loguear.
+recurso en cuatro versiones también servirá para contrastar las dos formas de loguear.
 
 ### Arranque que falla de forma visible
 
@@ -425,7 +559,7 @@ configurar— acababa en un proceso que salía con código 0 y sin rastro en la 
 
 ## Tests
 
-**126 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
+**131 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
 
 **Repositorios (`Infrastructure`).** `DbContextEF` no expone miembros virtuales, así que **no se puede
 sustituir con un mock**. Estos tests usan el proveedor InMemory de EF Core, con una base distinta por test y
@@ -449,6 +583,12 @@ no se llama en absoluto.
 longitud exactamente en el límite (válida) y un carácter por encima (inválida). Si alguien cambia una regla,
 falla su fila concreta.
 
+**Behaviours del pipeline.** `ValidationBehaviourTests` prueba el behaviour aislado, sin MediatR: con una
+petición válida llama a `next()`, con una inválida lanza `ValidationExceptionCustom` **y no llama a
+`next()`** —que es la garantía de que el handler no se ejecuta—, y sin validadores registrados deja pasar.
+`ValidationBehaviourRegistrationTests` construye el contenedor real y comprueba lo que no se ve en el código:
+que una petición de v4 recibe el behaviour y una de v3 no. `LoggingBehaviour` todavía no tiene tests.
+
 **Tests de caracterización.** Algunos tests fijan a propósito un comportamiento **defectuoso** conocido
 (sufijo `_DefectoDeSeguridad` o `_PendienteDeCorregir`). No describen lo deseado: hacen visible la deuda y
 garantizan que, al arreglarla, el rojo diga exactamente qué ha cambiado.
@@ -457,8 +597,8 @@ garantizan que, al arreglarla, el rojo diga exactamente qué ha cambiado.
 `BuildServiceProvider(validateScopes: true)` y resuelve el grafo completo. Detecta la clase de error que no
 rompe la compilación ni la suite, pero sí el arranque — un `AddScoped` olvidado, o una *captive dependency*.
 
-**Lo que falta:** ningún test cruza un controller, y los handlers de v3 salvo `CreateCustomer` están sin
-cubrir. Ver pendientes nº 8 y nº 9.
+**Lo que falta:** ningún test cruza un controller, los handlers de v3 salvo `CreateCustomer` están sin
+cubrir, los de v4 no tienen ninguno y `LoggingBehaviour` tampoco. Ver pendientes nº 8, 9 y 21.
 
 ---
 
@@ -511,9 +651,9 @@ dotnet test
 
 Todos devuelven un `Response<T>` con el mismo contrato.
 
-### Autenticación — `api/v{1|2}/UserAuth`
+### Autenticación — `api/v{1|2|3}/UserAuth`
 
-Un solo controller sirviendo ambas versiones. Los dos endpoints son `[AllowAnonymous]`; el resto de la API
+Un solo controller sirviendo las tres versiones (v1 y v2 obsoletas); no declara la `4.0`. Los dos endpoints son `[AllowAnonymous]`; el resto de la API
 exige un JWT válido en la cabecera `Authorization: Bearer <token>`.
 
 | Verbo | Ruta | Descripción |
@@ -544,6 +684,13 @@ Mismos endpoints; lo que cambia es la implementación detrás.
 | `POST` | `/UpdateAsyncPost` | `UpdateCustomerCommand` | Actualiza un cliente; el `Id` va en el body |
 | `DELETE` | `/DeleteAsync/{id}` | `DeleteCustomerCommand` | Elimina un cliente |
 
+### Clientes v4 (validación en el pipeline) — `api/v4/Customer`
+
+Mismas rutas y mensajes que v3, en su propio namespace. Lo que cambia es la respuesta a una petición
+inválida, incluido un `id <= 0` en `GetByIdAsync` y `DeleteAsync`: **400** generado por
+`GlobalExceptionHandler`, con los errores en la propiedad `Error` como lista de
+`{ PropertyMessage, ErrorMessage }`, en lugar del diccionario `Errors` que devuelven v1–v3. Ver pendiente nº 20.
+
 > Las rutas llevan el verbo dentro de la URL en lugar de seguir REST puro (`POST api/v3/customers`), y
 > `UpdateAsync{id}` genera una ruta sin separador. Está en la lista de pendientes.
 
@@ -569,6 +716,7 @@ dejaba abierto.
 | 11 | Detección de duplicados → 409 en v2 y v3 | Alta duplicada como resultado de negocio, no como error |
 | 12 | Tests de v3 · reorganización de tests por feature y versión | La suite refleja la misma estructura que el código |
 | 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `IApiLogger` conservado como el enfoque manual | Traza automática de v3 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
+| 14 | **v4: `ValidationBehaviour`** · `IValidatableRequest` · `ValidationExceptionCustom` → 400 en el middleware | Validación fuera de handlers y controller, aislada de v3 con una marca en la petición |
 
 ---
 
@@ -582,9 +730,9 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 | | Pendiente |
 |---|---|
 | 1 | **El middleware de excepciones está al final del pipeline y devuelve `ex.Message`.** Registrado después de `MapControllers()`, solo envuelve a los endpoints: lo que falle en autenticación o CORS no lo captura. Y el mensaje crudo de la excepción llega al cliente. Debe ir el primero, responder un texto genérico (`ProblemDetails`) y dejar el detalle solo en el log. `UserAuthApplication` conserva además sus `try/catch` con la misma fuga, y el endpoint de prueba `UserAuth/boom` sigue publicado. |
-| 2 | **`EnableSensitiveDataLogging()` está activo en todos los entornos** (`DbContextEF.OnConfiguring`). En producción registraría los valores de los parámetros, incluido `PasswordHash`. |
+| 2 | **`EnableSensitiveDataLogging()` está activo en todos los entornos** (`DbContextEF.OnConfiguring`). En producción registraría los valores de los parámetros, incluido `PasswordHash`. Y como `GlobalExceptionHandler` registra en `Error`, una excepción de EF con esos valores en el mensaje acabaría en la columna `Exception` de la tabla SQL, que no se purga. |
 | 3 | **`SignIn` permite enumerar usuarios.** Un email inexistente y una contraseña incorrecta dan respuestas distinguibles. Debe ser un único 401 genérico. |
-| 19 | **`LoggingBehaviour` serializa el payload completo** con `JsonSerializer.Serialize`, a nivel `Information`. Hoy solo afecta a v3 (Customer, sin datos sensibles), pero el día que auth pase por MediatR escribiría la contraseña en claro y el JWT en `Logs/log-.txt`. La tabla SQL se salva solo porque está restringida a `Warning`, que es suerte y no diseño. Debe bajar a `Debug`, registrar el *nombre* del request en vez del contenido y redactar los campos sensibles con `Destructure.ByTransforming`. |
+| 19 | **Emails de usuario persistidos en la tabla de logs.** `UserAuthApplication` registra `"User already exists: {Email}"` y `"Failed to create user: {Email}"` en `Warning`, y el error de alta en `Error` con el mismo dato: los tres llegan a SQL, en `Message` y en `Properties`, sin fecha de caducidad. No es un secreto, pero es un dato personal guardado indefinidamente sin necesidad. Registrar un identificador en lugar del email, o bajar a `Information` los dos avisos para que se queden en el fichero rotado. |
 
 ### Corrección
 
@@ -592,25 +740,28 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 |---|---|
 | 4 | **Actualizar con los mismos datos devuelve 500** en v2 y v3: EF no escribe nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Contradice lo explicado en *Unit of Work*. |
 | 5 | **`CustomerDto` no expone `Id`**: el listado devuelve clientes que luego no se pueden identificar para actualizar o borrar. |
-| 6 | **`DefaultApiVersion` apunta a `1.0`, obsoleta.** Debe apuntar a la vigente. `UserAuthController` no declara la `3.0`, así que un cliente de v3 se autentica contra v2. |
+| 6 | **`DefaultApiVersion` apunta a `1.0`, obsoleta.** Debe apuntar a la vigente. `UserAuthController` no declara la `4.0`, así que un cliente de v4 se autentica contra v3. |
 | 7 | **La validación de `Jwt:Key` es asimétrica**: se comprueba al emitir el token, no al arrancar. La comprobación debe estar en el arranque (`JwtOptions` con `ValidateOnStart()`). |
+| 20 | **v4 responde los errores de validación con otro contrato.** `Response<T>` tiene ahora dos colecciones para lo mismo, con nombres que se diferencian en una letra: `Errors` (diccionario por propiedad, v1–v3) y `Error` (lista de `BaseError`, v4). Las dos se serializan en todas las respuestas —`Error: null` en v1–v3, `Errors: {}` en v4—, `Error` no tiene inicializador, y el 400 de v4 sale con `ErrorType = None`, que el propio enum define como *operación correcta*. Además `BaseError.PropertyMessage` guarda el nombre de la propiedad, no un mensaje, y el comentario de `ValidationExceptionCustom` dice que los errores van "agrupados por propiedad, igual que `Response.Errors`", cuando son una lista plana. |
 
 ### Tests
 
 | | Pendiente |
 |---|---|
-| 8 | **La frontera HTTP no tiene ni un test.** Falta un test de integración con `WebApplicationFactory` que recorra SignUp → SignIn → CRUD, y que ejecute **los mismos casos contra v1, v2 y v3** para demostrar que comparten contrato. |
-| 9 | **Handlers de v3 sin cubrir** (`Update`, `Delete` y las dos queries), y `ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR. |
+| 8 | **La frontera HTTP no tiene ni un test.** Falta un test de integración con `WebApplicationFactory` que recorra SignUp → SignIn → CRUD, y que ejecute **los mismos casos contra v1, v2, v3 y v4** para demostrar que comparten contrato —o, en el caso del 400 de v4, dónde deja de compartirlo—. |
+| 9 | **Handlers de v3 sin cubrir** (`Update`, `Delete` y las dos queries), **los de v4 sin ningún test**, y `ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR. `LoggingBehaviour` tampoco tiene tests: su clasificación por `ErrorType` es lógica pura y fácil de fijar. |
+| 21 | **Un test en rojo**: `SignUpAsync_TraduceLaExcepcionAFalloInesperado`. Al pasar `UserAuthApplication` de `IApiLogger<T>` a `ILogger<T>`, la aserción `_logger.Received(1).LogError(...)` dejó de funcionar: en `ILogger<T>`, `LogError` es un método de extensión estático que NSubstitute no puede interceptar, y lanza `RedundantArgumentMatcherException`. Lo razonable es retirar la aserción sobre el logger —el test ya fija lo que importa, que la excepción se traduce a `Unexpected`— en lugar de comprobar la llamada a `ILogger.Log` con sus cinco argumentos. |
 
 ### Diseño
 
 | | Pendiente |
 |---|---|
-| 10 | **MediatR con un solo *pipeline behavior*.** `LoggingBehaviour` ya está montado (ver [*Quién escribe los logs*](#quién-escribe-los-logs-interceptor-o-call-site)), pero el valor de MediatR no está en los handlers, sino en la tubería: falta `ValidationBehavior`, que sacaría la validación que hoy repite cada handler, y `UnhandledExceptionBehavior`/`TransactionBehavior`, que llevarían al borde del pipeline lo que hoy está dentro de cada caso de uso. También falta corregir el propio `LoggingBehaviour`: usa `typeof(TResponse).Name` en la traza de entrada, donde debería ir `TRequest`. |
+| 10 | **Pipeline con dos behaviors, y la validación resuelta con excepción.** `LoggingBehaviour` (v3 y v4) y `ValidationBehaviour` (v4) están montados. Queda pendiente la versión sin excepción de la validación —miembro estático abstracto para construir `TResponse.Invalid(...)`, ver [*v3 → v4*](#v3--v4-la-validación-sale-del-handler)—. `UnhandledExceptionBehavior` duplicaría a `GlobalExceptionHandler`, y `TransactionBehavior` contradiría la decisión de que el caso de uso fije el límite transaccional: solo tendrían sentido como decisiones explícitas, no por completar el catálogo. |
 | 11 | **El lado de lectura devuelve entidades**, y `GetByIdAsync` usa `FindAsync` con tracking. En CQRS la consulta debería proyectar directamente al DTO con `AsNoTracking()`. |
 | 12 | **El dominio es anémico** y las reglas de `Customer` están repartidas: tres validadores con reglas idénticas, una configuración de EF que admite nulos que los validadores rechazan, y un mapeo que contempla nulos que nunca llegan. Faltan invariantes en la entidad (factory methods, value objects). La detección de duplicados compara los diez campos y no se apoya en un índice único. |
 | 13 | **Generar el JWT y hashear contraseñas son infraestructura**, pero viven en `Application` (`JwtApplication` lee `IConfiguration`) y en el repositorio (`UserRepository.CreateUserAsync`). Deberían ser puertos con la implementación en `Infrastructure`. |
-| 14 | **Duplicación que no forma parte de la comparación entre versiones**: `ToActionResult` repetido en los tres controllers y dos sobrecargas idénticas de `ManualMappingCustomer`. |
+| 14 | **Duplicación que no forma parte de la comparación entre versiones**: `ToActionResult` repetido en los cuatro controllers y tres sobrecargas idénticas de `ManualMappingCustomer` (DTO, command de v3 y command de v4). |
+| 22 | **`ValidationBehaviour` ejecuta los validadores en paralelo** con `Task.WhenAll`. Hoy es inocuo porque todas las reglas son síncronas, pero el día que un validador use `MustAsync` contra el `DbContext` —comprobar un duplicado, por ejemplo— dos validadores de la misma petición lo usarían a la vez, y EF Core no admite operaciones concurrentes sobre la misma instancia. Validar en secuencia elimina el riesgo sin coste apreciable. |
 
 ### Higiene
 
@@ -626,7 +777,7 @@ SQL Server apunta a la misma base de datos que la aplicación; y con seis proyec
 `TargetFramework` y versiones de paquetes ya compensa un `Directory.Build.props` y *Central Package
 Management*.
 
-**Build y tests:** compila sin errores; **126 tests en verde**.
+**Build y tests:** compila sin errores; **130 de 131 tests en verde** — el rojo es el pendiente nº 21.
 
 ---
 
@@ -637,9 +788,9 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 
 | Bloque | Contenido | Estado |
 |---|---|---|
-| **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado hecho (v1, v2, v3) |
+| **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado hecho (v1 a v4) |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work cerrado; middleware montado pero por corregir (pendiente nº 1) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Tests de `Application`, handlers de v3 y `LoggingBehaviour` hechos; faltan `ValidationBehavior`, el resto de behaviors e integración |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Tests de `Application` y handlers de v3 hechos; `LoggingBehaviour` y `ValidationBehaviour` (v4) montados; faltan tests de v4 y del logging, e integración |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | Dockerfile · GitHub Actions · despliegue en Azure | ⬜ |
 
@@ -647,12 +798,12 @@ Siguientes pasos concretos:
 
 1. Cerrar el bloque B: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
    `UserAuthApplication`, `EnableSensitiveDataLogging` por entorno.
-2. `ValidationBehavior` y tests de los handlers de v3 que faltan. Cerrar el logging: corregir el
-   `TRequest`/`TResponse` del `LoggingBehaviour`, bajarlo a `Debug` y cablear `IApiLogger` en v1 y v2, que
-   es donde el enfoque manual es el único disponible.
+2. Cerrar v4 y el logging: volver a verde (nº 21), unificar el contrato de error de validación (nº 20),
+   tests de los handlers de v3 y v4 que faltan y de `LoggingBehaviour`, y cablear `IApiLogger` en v1 y v2,
+   que es donde el enfoque manual es el único disponible.
 3. Autenticación: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en
    `Infrastructure`.
-4. Tests de integración con `WebApplicationFactory` recorriendo las tres versiones, y healthcheck.
+4. Tests de integración con `WebApplicationFactory` recorriendo las cuatro versiones, y healthcheck.
 5. Bloque D: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que confirmar
    de forma atómica.
 

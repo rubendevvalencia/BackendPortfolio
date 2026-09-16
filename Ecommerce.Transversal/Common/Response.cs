@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Transversal.Common
 {
-    public class Response<T>
+    public class Response<T> : IResponse
     {
         public T Data { get; set; }
         public bool IsSuccess { get; set; } = false;
