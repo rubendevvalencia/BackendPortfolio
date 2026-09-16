@@ -1,5 +1,16 @@
 # Backend Portfolio — API Ecommerce
 
+> **En 30 segundos**
+>
+> - **Qué es:** API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
+> - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
+> - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
+> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · secretos fuera del repositorio.
+> - **Tests:** 131 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
+> - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
+> - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
+> - **Trabajo pendiente, a la vista:** limitaciones conocidas y [hoja de ruta](#hoja-de-ruta) (tests de integración, Docker/CI, dominio rico) documentadas al final.
+
 API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de portfolio y aprendizaje
 deliberado de backend en C#.
 
