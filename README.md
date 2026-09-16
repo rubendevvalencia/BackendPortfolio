@@ -348,6 +348,73 @@ tráfico normal.
 `UseSerilogRequestLogging()` va antes de la autenticación en el pipeline, a propósito: así registra también
 los intentos que acaban en 401.
 
+### Quién escribe los logs: interceptor o call site
+
+*Dónde* van los logs es la parte fácil. La decisión está en *quién los escribe*, y hay dos formas que no
+compiten entre sí.
+
+**`LoggingBehaviour<TRequest,TResponse>` — cobertura automática.** Un `IPipelineBehavior` de MediatR que
+envuelve la ejecución del handler y deja rastro de entrada y salida sin que el handler sepa que existe.
+Cero código por caso de uso, a cambio de ver solo el borde: request y response, nunca el interior de la
+decisión. Y cubre únicamente lo que pasa por MediatR como `IRequest` — hoy eso es **exactamente v3**.
+
+Aquí el diseño de `Response<T>` paga un dividendo que no estaba buscado: como los fallos esperados viajan
+*dentro* de la respuesta en lugar de lanzarse como excepción, el motivo del fallo llega al log del pipeline
+serializado, con su `ErrorType` incluido. El behaviour sabe que un alta se rechazó por duplicada sin que
+nadie se lo cuente. En un diseño que devolviera un DTO pelado, solo vería un `null`.
+
+**Por qué solo sale en v3: es MediatR, no CQRS.** Es fácil atribuirlo al patrón porque aquí van juntos, pero
+CQRS solo separa lecturas de escrituras y no ejecuta nada. Lo que activa el behaviour es *cómo llama el
+controller*:
+
+```csharp
+// v2 — llamada directa a un método: no hay ningún intermediario donde engancharse
+var response = await _customerApplication.AddAsync(customerDto, cancellationToken);
+
+// v3 — Send busca el handler y, antes de invocarlo, lo envuelve con los IPipelineBehavior registrados
+var response = await _mediator.Send(command, cancellationToken);
+```
+
+Por eso el behaviour se registra *dentro* de `AddMediatR(cfg => ...)`: es configuración de MediatR, y el
+resto del contenedor no sabe que existe. Las combinaciones cruzadas lo confirman: CQRS con los handlers
+llamados a mano no sacaría el log, y MediatR con un único request que lee y escribe sí. Y por lo mismo
+`UserAuthController` no lo saca aunque declare la `3.0`: la versión cambia la ruta, no el mecanismo.
+
+Dicho con precisión, **tiene traza todo `Send` de un request con respuesta, y la salida solo si el handler
+no lanza**. Los tres matices, que hoy no afectan a ningún caso pero conviene conocer antes de fiarse:
+
+- **`Publish` no pasa por el pipeline.** Las notificaciones de MediatR (`INotification`) no atraviesan
+  `IPipelineBehavior`; el día que se publique un evento de dominio, no tendrá traza automática.
+- **Un request sin respuesta se salta el behaviour en silencio.** La restricción
+  `where TRequest : IRequest<TResponse>` no la cumple un command declarado como `IRequest` a secas, y el
+  contenedor simplemente no lo aplica —sin error ni aviso—. Los cinco requests actuales devuelven
+  `Response<T>`; si aparece uno sin retorno, basta con quitar la restricción, de la que nada más depende.
+- **Si el handler lanza, no hay log de salida.** `await next()` no está dentro de un `try`, así que la
+  excepción sube y deja la entrada sin su pareja. El error no se pierde —lo registra
+  `GlobalExceptionHandler` más arriba—, pero el behaviour no lo ve. Es el hueco que cubriría un
+  `UnhandledExceptionBehaviour` (pendiente nº 10).
+
+**`IApiLogger<T>` — logs con intención.** Se inyecta en la clase y se llama a mano, en el punto donde se
+sabe qué regla se ha incumplido. Es lo que el interceptor no puede darte —un código de estado no dice
+*por qué*— y, sobre todo, **es el único enfoque posible fuera de MediatR**: v1, v2 y `UserAuthApplication`
+no pasan por `Send`, así que no entran al pipeline.
+
+La regla de reparto que se sigue aquí, para que los dos no produzcan ruido duplicado: **a mano se registra
+solo lo que el código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo, cada petición deja
+ya una entrada con su status, así que repetir un 404 desde `Application` no aporta nada.
+
+| Rama del caso de uso | ¿Log manual? | Por qué |
+|---|---|---|
+| Validación falla | No | Los errores ya viajan en el body de la respuesta |
+| `NotFound` | No | Tráfico normal; un escaneo llenaría el log de avisos |
+| `Duplicated` → 409 | **Sí**, `Warning` | El status no dice con qué dato se produjo el choque |
+| `SaveChangesAsync` devuelve 0 | **Sí**, `Warning` | El caso más opaco del diseño — ver [pendiente nº 4](#corrección) |
+
+**Estado actual:** el behaviour está registrado y activo para v3. `IApiLogger` y su implementación
+`AppLogger<T>` se conservan **sin registrar**, como ejemplo del enfoque manual, y `UserAuthApplication` usa
+hoy `ILogger<T>` directo. Cablear `IApiLogger` en v1 y v2 es el siguiente paso: cuando esté, el mismo
+recurso en tres versiones también servirá para contrastar las dos formas de loguear.
+
 ### Arranque que falla de forma visible
 
 Todo `Program.cs` está envuelto en un `try/catch` que escribe en `stderr`, registra con `Log.Fatal` y fija
@@ -501,6 +568,7 @@ dejaba abierto.
 | 10 | **v3 con CQRS (MediatR)** · commands y queries por carpeta · repositorio de lectura | Separación de escrituras y lecturas; controller acoplado solo a `IMediator` |
 | 11 | Detección de duplicados → 409 en v2 y v3 | Alta duplicada como resultado de negocio, no como error |
 | 12 | Tests de v3 · reorganización de tests por feature y versión | La suite refleja la misma estructura que el código |
+| 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `IApiLogger` conservado como el enfoque manual | Traza automática de v3 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
 
 ---
 
@@ -516,6 +584,7 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 | 1 | **El middleware de excepciones está al final del pipeline y devuelve `ex.Message`.** Registrado después de `MapControllers()`, solo envuelve a los endpoints: lo que falle en autenticación o CORS no lo captura. Y el mensaje crudo de la excepción llega al cliente. Debe ir el primero, responder un texto genérico (`ProblemDetails`) y dejar el detalle solo en el log. `UserAuthApplication` conserva además sus `try/catch` con la misma fuga, y el endpoint de prueba `UserAuth/boom` sigue publicado. |
 | 2 | **`EnableSensitiveDataLogging()` está activo en todos los entornos** (`DbContextEF.OnConfiguring`). En producción registraría los valores de los parámetros, incluido `PasswordHash`. |
 | 3 | **`SignIn` permite enumerar usuarios.** Un email inexistente y una contraseña incorrecta dan respuestas distinguibles. Debe ser un único 401 genérico. |
+| 19 | **`LoggingBehaviour` serializa el payload completo** con `JsonSerializer.Serialize`, a nivel `Information`. Hoy solo afecta a v3 (Customer, sin datos sensibles), pero el día que auth pase por MediatR escribiría la contraseña en claro y el JWT en `Logs/log-.txt`. La tabla SQL se salva solo porque está restringida a `Warning`, que es suerte y no diseño. Debe bajar a `Debug`, registrar el *nombre* del request en vez del contenido y redactar los campos sensibles con `Destructure.ByTransforming`. |
 
 ### Corrección
 
@@ -537,7 +606,7 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 
 | | Pendiente |
 |---|---|
-| 10 | **MediatR sin *pipeline behaviors*.** Su valor aquí no está en los handlers, sino en los behaviors: `ValidationBehavior` sacaría la validación que hoy repite cada handler, y `UnhandledExceptionBehavior`/`TransactionBehavior` llevarían al borde del pipeline lo que hoy está dentro de cada caso de uso. |
+| 10 | **MediatR con un solo *pipeline behavior*.** `LoggingBehaviour` ya está montado (ver [*Quién escribe los logs*](#quién-escribe-los-logs-interceptor-o-call-site)), pero el valor de MediatR no está en los handlers, sino en la tubería: falta `ValidationBehavior`, que sacaría la validación que hoy repite cada handler, y `UnhandledExceptionBehavior`/`TransactionBehavior`, que llevarían al borde del pipeline lo que hoy está dentro de cada caso de uso. También falta corregir el propio `LoggingBehaviour`: usa `typeof(TResponse).Name` en la traza de entrada, donde debería ir `TRequest`. |
 | 11 | **El lado de lectura devuelve entidades**, y `GetByIdAsync` usa `FindAsync` con tracking. En CQRS la consulta debería proyectar directamente al DTO con `AsNoTracking()`. |
 | 12 | **El dominio es anémico** y las reglas de `Customer` están repartidas: tres validadores con reglas idénticas, una configuración de EF que admite nulos que los validadores rechazan, y un mapeo que contempla nulos que nunca llegan. Faltan invariantes en la entidad (factory methods, value objects). La detección de duplicados compara los diez campos y no se apoya en un índice único. |
 | 13 | **Generar el JWT y hashear contraseñas son infraestructura**, pero viven en `Application` (`JwtApplication` lee `IConfiguration`) y en el repositorio (`UserRepository.CreateUserAsync`). Deberían ser puertos con la implementación en `Infrastructure`. |
@@ -570,7 +639,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado hecho (v1, v2, v3) |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work cerrado; middleware montado pero por corregir (pendiente nº 1) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Tests de `Application` y handlers de v3 hechos; faltan behaviors e integración |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Tests de `Application`, handlers de v3 y `LoggingBehaviour` hechos; faltan `ValidationBehavior`, el resto de behaviors e integración |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | Dockerfile · GitHub Actions · despliegue en Azure | ⬜ |
 
@@ -578,7 +647,9 @@ Siguientes pasos concretos:
 
 1. Cerrar el bloque B: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
    `UserAuthApplication`, `EnableSensitiveDataLogging` por entorno.
-2. `ValidationBehavior` y tests de los handlers de v3 que faltan.
+2. `ValidationBehavior` y tests de los handlers de v3 que faltan. Cerrar el logging: corregir el
+   `TRequest`/`TResponse` del `LoggingBehaviour`, bajarlo a `Debug` y cablear `IApiLogger` en v1 y v2, que
+   es donde el enfoque manual es el único disponible.
 3. Autenticación: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en
    `Infrastructure`.
 4. Tests de integración con `WebApplicationFactory` recorriendo las tres versiones, y healthcheck.

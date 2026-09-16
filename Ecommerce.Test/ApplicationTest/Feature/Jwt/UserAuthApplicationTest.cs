@@ -6,6 +6,7 @@ using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Transversal.Common.Enums;
 using Ecommerce.Transversal.Loggin.Interface;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -29,7 +30,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
         private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly IJwtApplication _jwt = Substitute.For<IJwtApplication>();
-        private readonly IApiLogger<UserAuthApplication> _logger = Substitute.For<IApiLogger<UserAuthApplication>>();
+        private readonly ILogger<UserAuthApplication> _logger = Substitute.For<ILogger<UserAuthApplication>>();
         private readonly UserAuthApplication _auth;
 
         //xUnit crea una instancia de la clase por cada [Fact], asi que los dobles
