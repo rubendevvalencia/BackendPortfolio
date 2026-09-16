@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Ecommerce.Application.Common.Behaviours;
 using Ecommerce.Application.Feature.Customers;
 using Ecommerce.Application.Feature.Users;
 using Ecommerce.Application.Interface;
@@ -22,8 +23,12 @@ namespace Ecommerce.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddMediatR(cfg =>
-                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-
+            {
+                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
+            }
+            );
+            
             services.AddScoped<ICustomerApplication, CustomerApplication>();
             services.AddScoped<ICustomerApplicationUoW, CustomerApplicationUoW>();
             services.AddScoped<IUserAuthApplication, UserAuthApplication>();

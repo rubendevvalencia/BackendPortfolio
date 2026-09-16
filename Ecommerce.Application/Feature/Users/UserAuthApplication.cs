@@ -9,6 +9,7 @@ using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
 using Ecommerce.Transversal.Loggin.Interface;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,8 +23,8 @@ namespace Ecommerce.Application.Feature.Users
         private readonly IValidator<SignUpDto> _validatorSignUp;
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
-        private readonly IApiLogger<UserAuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
-        public UserAuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, IApiLogger<UserAuthApplication> logger)
+        private readonly ILogger<UserAuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
+        public UserAuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, ILogger<UserAuthApplication> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;

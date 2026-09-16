@@ -1,4 +1,6 @@
+using System.Security.Cryptography.X509Certificates;
 using Ecommerce.Transversal.Common.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Transversal.Common
 {
