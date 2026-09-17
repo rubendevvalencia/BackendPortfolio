@@ -1,7 +1,3 @@
-using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Asp.Versioning.ApiExplorer;
 using Ecommerce.Api.Models.Auth;
 using Ecommerce.Api.Models.Cors;
@@ -9,6 +5,7 @@ using Ecommerce.Api.Models.Middleware;
 using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Api.Models.Version;
 using Ecommerce.Api.Modules.HealthCheck;
+using Ecommerce.Api.Modules.RateLimiter;
 using Ecommerce.Application;
 using Ecommerce.Infrastructure;
 using Ecommerce.Transversal;
@@ -18,6 +15,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.VisualBasic;
 using Serilog;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 try
 {
@@ -40,7 +41,7 @@ try
     builder.Services.AddSwagger();
     builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
     builder.Services.AddHealthCheck(builder.Configuration);
-    
+    builder.Services.AddRateLimiting(builder.Configuration);
     
     
     builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
@@ -115,6 +116,8 @@ try
     app.UseAuthentication(); // Valida el token JWT y procesa el usuario autenticado antes de que llegue a los controladores.
                              // Siempre debe ir antes de UseAuthorization() para que la autorización tenga un usuario válido.
     app.UseAuthorization();
+
+    app.UseRateLimiter();
     
     app.MapControllers();
 
