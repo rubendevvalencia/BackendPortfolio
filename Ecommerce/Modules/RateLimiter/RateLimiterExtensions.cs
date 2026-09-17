@@ -8,6 +8,9 @@ namespace Ecommerce.Api.Modules.RateLimiter
     {
         public static IServiceCollection AddRateLimiting(this IServiceCollection services, IConfiguration configuration)
         {
+            //Ratelimiter simple para que no hagan ataques masivos, de momento no se encuentra particionado debdido a que tenemos un ejemplo simple
+
+
             var fixedWindowPolicy = "fixedWindow";
             int permitLimit = 0;
             int.TryParse(configuration["RateLimiting:PermitLimit"], out permitLimit);

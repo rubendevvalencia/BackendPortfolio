@@ -5,7 +5,7 @@
 > - **Qué es:** API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
-> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · secretos fuera del repositorio.
+> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija (versión simplificada, de prueba) · secretos fuera del repositorio.
 > - **Tests:** 131 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
 > - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
 > - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
@@ -75,7 +75,7 @@ quien las *usa* — y `Infrastructure` las implementa; ahí está la inversión 
 
 | Proyecto | Responsabilidad |
 |---|---|
-| `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, Swagger, manejo global de excepciones. Composition root. |
+| `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, rate limiting, Swagger, manejo global de excepciones. Composition root. |
 | `Ecommerce.Application` | Orquesta los casos de uso (servicios en v1/v2, handlers de MediatR en v3 y v4). No sabe qué es un código HTTP. |
 | `Ecommerce.Domain` | Entidades y contratos. No sabe que existe una base de datos. |
 | `Ecommerce.Infrastructure` | Persistencia con EF Core. Implementa los contratos del dominio. |
@@ -127,6 +127,7 @@ cliente* está junto, en lugar de repartido entre un servicio, un DTO compartido
 - **FluentValidation** — validación desacoplada del modelo
 - **AutoMapper** — mapeo entidad ↔ DTO
 - **Serilog** — logging estructurado a consola, fichero y SQL Server
+- **Microsoft.AspNetCore.RateLimiting** — rate limiter nativo, con una política de ventana fija de prueba
 - **Swashbuckle / OpenAPI** — documentación con anotaciones, un documento por versión
 - **xUnit · NSubstitute · Coverlet** — tests y cobertura
 
@@ -560,6 +561,58 @@ eso tendría que volcar el request. Si hace falta, se inyecta logger en ese hand
 hoy `ILogger<T>` directo. Cablear `IApiLogger` en v1 y v2 es el siguiente paso: cuando esté, el mismo
 recurso en cuatro versiones también servirá para contrastar las dos formas de loguear.
 
+### Rate limiting: versión simplificada, a modo de prueba
+
+> **Aviso:** lo que hay montado es una **versión simplificada, a modo de prueba**. Sirve para ver cómo se
+> registra y se aplica el rate limiter nativo de ASP.NET Core (`Microsoft.AspNetCore.RateLimiting`), no
+> como protección lista para producción. Sus límites están descritos al final de esta sección y en el
+> [pendiente nº 23](#seguridad).
+
+Una única política de **ventana fija** (`fixedWindow`), registrada en
+[`Modules/RateLimiter/RateLimiterExtensions.cs`](Ecommerce/Modules/RateLimiter/RateLimiterExtensions.cs):
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| `AddRateLimiting(configuration)` | `Program.cs`, al registrar servicios | Lee la sección `RateLimiting` y registra la política |
+| `app.UseRateLimiter()` | `Program.cs`, después de `UseCors()` y antes de `UseAuthentication()` | Aplica el limitador en el pipeline |
+| `[EnableRateLimiting("fixedWindow")]` | `UserAuthController` y los cuatro `CustomerController` | Decide a qué endpoints afecta la política |
+
+Los valores salen de la configuración, no del código:
+
+```json
+"RateLimiting": {
+  "PermitLimit": 4,    // peticiones permitidas por ventana
+  "Window": 30,        // duración de la ventana, en segundos
+  "QueueLimit": 2      // peticiones que esperan a la siguiente ventana cuando no quedan permisos
+}
+```
+
+- **Cola FIFO** (`QueueProcessingOrder.OldestFirst`): cuando se agotan los permisos, hasta `QueueLimit`
+  peticiones esperan sin respuesta a que se abra la siguiente ventana; se atienden de la más antigua a la
+  más nueva.
+- **429 en lugar de 503.** Por defecto el middleware rechaza con `503 Service Unavailable`, que dice "el
+  servidor está caído" cuando lo que pasa es que el cliente se ha pasado. `RejectionStatusCode` lo cambia a
+  **`429 Too Many Requests`**.
+- **Configuración inválida, arranque fallido.** Si alguno de los tres valores falta, no es un número o vale
+  0, `AddRateLimiting` lanza `ValidationExceptionCustom` al arrancar, y el `try/catch` de `Program.cs` lo hace
+  visible (ver *Arranque que falla de forma visible*). Mejor no arrancar que arrancar con un limitador que
+  bloquea todo o no bloquea nada.
+- **Delante de la autenticación.** Al ir antes de `UseAuthentication()`, una petición que sobra se rechaza
+  sin gastar en validar el JWT, y `SignIn` queda cubierto aunque sea `[AllowAnonymous]`.
+- **`/health` no está limitado**: se mapea con `MapHealthChecks`, fuera de los controllers, y no lleva la
+  política.
+
+**Lo que la simplificación deja fuera.** El limitador **no está particionado**: no hay un contador por
+cliente, sino **un único contador compartido por toda la API**. Con los valores actuales, entre todos los
+usuarios y todos los endpoints marcados caben 4 peticiones cada 30 segundos, así que un solo cliente
+insistente agota el cupo de los demás. Para una prueba local es justo lo que se quiere —se provoca el 429 en
+cuatro clics—, pero en un despliegue real convierte el limitador en una forma sencilla de tumbar el servicio.
+
+La versión completa pasaría por `RateLimitPartition.GetFixedWindowLimiter` con una clave por cliente —el
+usuario del JWT si está autenticado, la IP si no, teniendo en cuenta `UseForwardedHeaders()` detrás de un
+balanceador—, una política más estricta y separada para `SignIn`/`SignUp` contra fuerza bruta, y la cabecera
+`Retry-After` en el 429.
+
 ### Arranque que falla de forma visible
 
 Todo `Program.cs` está envuelto en un `try/catch` que escribe en `stderr`, registra con `Log.Fatal` y fija
@@ -660,7 +713,8 @@ dotnet test
 
 ## Endpoints
 
-Todos devuelven un `Response<T>` con el mismo contrato.
+Todos devuelven un `Response<T>` con el mismo contrato. Todos pasan además por el rate limiter de prueba:
+superado el cupo, responden **429** sin cuerpo (ver [*Rate limiting*](#rate-limiting-versión-simplificada-a-modo-de-prueba)).
 
 ### Autenticación — `api/v{1|2|3}/UserAuth`
 
@@ -728,6 +782,7 @@ dejaba abierto.
 | 12 | Tests de v3 · reorganización de tests por feature y versión | La suite refleja la misma estructura que el código |
 | 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `IApiLogger` conservado como el enfoque manual | Traza automática de v3 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
 | 14 | **v4: `ValidationBehaviour`** · `IValidatableRequest` · `ValidationExceptionCustom` → 400 en el middleware | Validación fuera de handlers y controller, aislada de v3 con una marca en la petición |
+| 15 | **Rate limiter de ventana fija** (versión simplificada, de prueba) · 429 · valores en `appsettings.json` | Primer freno a ráfagas de peticiones, con la configuración validada al arrancar |
 
 ---
 
@@ -744,6 +799,7 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 | 2 | **`EnableSensitiveDataLogging()` está activo en todos los entornos** (`DbContextEF.OnConfiguring`). En producción registraría los valores de los parámetros, incluido `PasswordHash`. Y como `GlobalExceptionHandler` registra en `Error`, una excepción de EF con esos valores en el mensaje acabaría en la columna `Exception` de la tabla SQL, que no se purga. |
 | 3 | **`SignIn` permite enumerar usuarios.** Un email inexistente y una contraseña incorrecta dan respuestas distinguibles. Debe ser un único 401 genérico. |
 | 19 | **Emails de usuario persistidos en la tabla de logs.** `UserAuthApplication` registra `"User already exists: {Email}"` y `"Failed to create user: {Email}"` en `Warning`, y el error de alta en `Error` con el mismo dato: los tres llegan a SQL, en `Message` y en `Properties`, sin fecha de caducidad. No es un secreto, pero es un dato personal guardado indefinidamente sin necesidad. Registrar un identificador en lugar del email, o bajar a `Information` los dos avisos para que se queden en el fichero rotado. |
+| 23 | **El rate limiter es global, no por cliente.** Es la versión simplificada de prueba: un único contador para toda la API (4 peticiones cada 30 s), así que un solo cliente agota el cupo de todos. Falta particionar por usuario o IP, una política propia y más estricta para `SignIn`/`SignUp`, y `Retry-After` en el 429. |
 
 ### Corrección
 
