@@ -1,4 +1,6 @@
-﻿namespace Ecommerce.Api.Modules.HealthCheck
+﻿using System.Text.Json;
+
+namespace Ecommerce.Api.Modules.HealthCheck
 {
     public static class HealthCheckExtensions
     {
