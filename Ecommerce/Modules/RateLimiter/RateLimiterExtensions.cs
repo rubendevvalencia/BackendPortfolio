@@ -16,7 +16,7 @@ namespace Ecommerce.Api.Modules.RateLimiter
             int queueLimit = 0;
             int.TryParse(configuration["RateLimiting:QueueLimit"], out queueLimit);
 
-            if (permitLimit == 0 || windowTime == 0)
+            if (permitLimit == 0 || windowTime == 0 || queueLimit == 0)
                 throw new ValidationExceptionCustom(
                     new List<BaseError>
                     {
