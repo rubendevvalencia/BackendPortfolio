@@ -8,6 +8,7 @@ using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Entities.Jwt;
 using FluentValidation;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute.Core;
 
 namespace Ecommerce.Test.ApplicationTest
 {
@@ -71,6 +72,18 @@ namespace Ecommerce.Test.ApplicationTest
                 Phone = "Test",
                 Fax = "Test"
             };
+        }
+
+        //Customer que recibio el doble del repositorio. Empieza en null y lo rellena SaveCustomer durante el Act.
+        //xUnit crea una instancia nueva por cada test, asi que no se mezcla entre tests.
+        protected Customer? _customerGuardado;
+
+        //Se usa dentro de un When(...).Do(...): "llamada" la crea NSubstitute con los datos de la llamada
+        //(por ejemplo, a AddAsync). Sacamos el Customer de sus argumentos y lo guardamos en _customerGuardado.
+        protected void SaveCustomer(CallInfo llamada)
+        {
+            var customerRecibido = llamada.Arg<Customer>();
+            _customerGuardado = customerRecibido;
         }
 
         protected static IValidator<SignUpDto> SignUpValidator => new SignUpDtoValidator();

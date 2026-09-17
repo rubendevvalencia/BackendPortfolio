@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
+using Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand;
+using CreateCustomerCommandV4 = Ecommerce.Application.Feature.Customers.v4.Commands.CreateCustomer.CreateCustomerCommand; //Mismo nombre que el de v3: el alias evita la ambiguedad.
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Entities.Jwt;
 using System;
@@ -41,6 +43,9 @@ namespace Ecommerce.Application.Mapping
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
                 .ForMember(dest => dest.LastUpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.LastUpdatedBy, opt => opt.Ignore());
+
+            CreateMap<Customer, CreateCustomerCommand>().ReverseMap();
+            CreateMap<Customer, CreateCustomerCommandV4>().ReverseMap();
         }
     }
 }

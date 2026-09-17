@@ -6,27 +6,24 @@ using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
+using Ecommerce.Transversal.Common.Enums;
 using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Ecommerce.Application.Service
+namespace Ecommerce.Application.Feature.Customers
 {
-    public class CustomerApplication : ICustomerApplication
+    public class CustomerApplicationUoW : ICustomerApplicationUoW
     {
-        //La capa Application orquesta el caso de uso y decide el límite transaccional:
+        //La capa Application orquesta el caso de uso y decide el limite transaccional:
         //registra los cambios en los repositorios y confirma una sola vez con SaveChangesAsync.
-        private readonly ICustomerRepository _customerRepo;
-        private readonly IMapper _mapper;
         //Se depende de la abstraccion IValidator<CustomerDto>, no de la clase concreta:
         //el servicio no conoce la implementacion y en los tests se puede sustituir por un doble.
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
         private readonly IValidator<CustomerDto> _validator; //Se inyecta el validador de CustomerDto la abstracción en vez de la implementación, que es el que contiene las reglas de validación para la entidad Customer.
 
-        public CustomerApplication(ICustomerRepository customerRepo, IMapper mapper, IValidator<CustomerDto> validator)
+        public CustomerApplicationUoW(IUnitOfWork unitOfWork, IMapper mapper, IValidator<CustomerDto> validator)
         {
-            _customerRepo = customerRepo;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _validator = validator;
         }
@@ -37,39 +34,54 @@ namespace Ecommerce.Application.Service
             
             var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
             if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
-
             var customer = _mapper.Map<Customer>(customerDto);
             customer.Id = null; //El Id lo genera la base de datos (columna identity), forzamos a null para no tener problemas al insertar un nuevo registro.
-            response.Data = await _customerRepo.AddAsync(customer);
+            var exitingUser = await _unitOfWork._customersUoW.CompareInfoInDb(customer, cancellationToken);
+            if (exitingUser) return Response<bool>.Fail("Customer is already registered", ErrorType.Duplicated);
+
+            //Dos pasos: el repositorio marca la intencion, el UnitOfWork confirma.
+            await _unitOfWork._customersUoW.AddAsync(customer, cancellationToken);
+            var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            response.Data = result > 0 ? true : false;
+
             if (response.Data) response.IsSuccess = true;
             else return Response<bool>.Fail("Customer could not be added.");
-          
+        
             return response;
         }
 
         public async Task<Response<bool>> DeleteAsync(int id)
         {
             var response = new Response<bool>();
-            
-            response.Data = await _customerRepo.DeleteAsync(id);
+           
+            //Comprobar si existe es responsabilidad del caso de uso, no del repositorio:
+            //asi el "no existe" (404) queda separado del "no se pudo borrar" (500).
+            var customer = await _unitOfWork._customersUoW.GetByIdAsync(id);
+            if (customer is null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
+
+            _unitOfWork._customersUoW.Delete(customer); //No se pone await porque es void, lo ejecuta el SavechangeAsync
+            var result = await _unitOfWork.SaveChangesAsync();
+            response.Data = result > 0 ? true : false;
+
             if (response.Data) response.IsSuccess = true;
-            else return Response<bool>.NotFound($"Customer with ID {id} not found.");
-          
+            else return Response<bool>.Fail($"Customer with ID {id} could not be deleted.");
+
             return response;
         }
 
         public async Task<Response<IEnumerable<CustomerDto>>> GetAllAsync()
         {
-            var customers = await _customerRepo.GetAllAsync();
+            var customers = await _unitOfWork._customersUoW.GetAllAsync();
                 return Response<IEnumerable<CustomerDto>>.Success(_mapper.Map<IEnumerable<CustomerDto>>(customers));
-            
         }
 
         public async Task<Response<CustomerDto?>> GetByIdAsync(int id)
         {
-            var customer = await _customerRepo.GetByIdAsync(id);
+           var customer = await _unitOfWork._customersUoW.GetByIdAsync(id);
             if (customer == null) return Response<CustomerDto?>.NotFound($"Customer with ID {id} not found.");
+
             return Response<CustomerDto?>.Success(_mapper.Map<CustomerDto?>(customer));
+           
         }
 
         public async Task<Response<bool>> UpdateAsync(int id, CustomerDto customerDto, CancellationToken cancellationToken)
@@ -80,10 +92,17 @@ namespace Ecommerce.Application.Service
             var validationResult = await _validator.ValidateAsync(customerDto, cancellationToken);
             if (!validationResult.IsValid) return validationResult.ToFailedResponse<bool>();
 
-            var existingCustomer = await _customerRepo.GetByIdAsync(id);
+            var existingCustomer = await _unitOfWork._customersUoW.GetByIdAsync(id, cancellationToken);
             if (existingCustomer == null) return Response<bool>.NotFound($"Customer with ID {id} not found.");
+
             ManualMappingCustomer.MapInto(existingCustomer, customerDto);
-            response.Data = await _customerRepo.UpdateAsync(existingCustomer);
+
+            //La entidad viene trackeada desde GetByIdAsync, asi que Update() no hace nada:
+            //se deja explicito para que el caso de uso declare su intencion de modificar.
+            _unitOfWork._customersUoW.Update(existingCustomer); //No se pone await porque es void, lo ejecuta el SavechangeAsync
+            var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            response.Data = result > 0 ? true : false;
+
             if (response.Data) response.IsSuccess = true;
             else return Response<bool>.Fail($"Customer with ID {id} could not be updated.");
            

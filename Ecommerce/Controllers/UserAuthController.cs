@@ -12,7 +12,9 @@ namespace Ecommerce.Api.Controllers
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [ApiVersion("1.0", Deprecated = true)]
-    [ApiVersion("2.0")]
+    [ApiVersion("2.0", Deprecated = true)]
+    [ApiVersion("3.0")]
+    [ApiVersion("4.0")]
     [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
     public class UserAuthController : ControllerBase
     {

@@ -1,8 +1,10 @@
+using System.Security.Cryptography.X509Certificates;
 using Ecommerce.Transversal.Common.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Transversal.Common
 {
-    public class Response<T>
+    public class Response<T> : IResponse
     {
         public T Data { get; set; }
         public bool IsSuccess { get; set; } = false;
@@ -11,6 +13,7 @@ namespace Ecommerce.Transversal.Common
         //Detalle de los errores de validacion agrupados por propiedad ("City" -> ["City is required."]).
         //Se mantiene vacio cuando el fallo no es de validacion.
         public Dictionary<string, List<string>> Errors { get; set; } = new();
+        public IEnumerable<BaseError> Error { get; set;  }
 
         //Motivo del fallo. Permite que el controller decida el status code sin inspeccionar el Message.
         public ErrorType ErrorType { get; set; } = ErrorType.None;

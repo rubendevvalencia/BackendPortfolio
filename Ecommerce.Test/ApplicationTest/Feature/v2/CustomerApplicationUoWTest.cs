@@ -1,5 +1,5 @@
 using Ecommerce.Application.Dto;
-using Ecommerce.Application.MainService;
+using Ecommerce.Application.Feature.Customers;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common.Enums;
@@ -76,7 +76,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task AddAsync_DevuelveFalloCuandoLaPersistenciaLanzaExcepcion()
+        public async Task AddAsync_PropagaLaExcepcionCuandoLaPersistenciaFalla()
         {
             //Arrange: el commit revienta, como haria un fallo real de base de datos.
             _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
@@ -84,12 +84,11 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             CustomerDto customerDto = NewCustomerDto("Contoso");
 
             //Act
-            var response = await _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
+            Func<Task> work = () => _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: el caso de uso no propaga la excepcion, la traduce a Response.
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            //Assert: el caso de uso no captura la excepcion, la deja subir hasta el middleware.
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("fallo de base de datos", exception.Message);
         }
 
         // ---------- GetByIdAsync ----------

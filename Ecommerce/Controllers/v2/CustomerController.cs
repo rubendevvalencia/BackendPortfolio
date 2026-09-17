@@ -14,7 +14,7 @@ namespace Ecommerce.Api.Controllers.v2
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
-    [ApiVersion("2.0")]
+    [ApiVersion("2.0", Deprecated = true)]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
     public class CustomerController : ControllerBase
     {
@@ -32,6 +32,7 @@ namespace Ecommerce.Api.Controllers.v2
             {
                 ErrorType.Validation => BadRequest(response),                                        //400: el cliente envio datos incorrectos.
                 ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
+                 ErrorType.Duplicated => Conflict(response),                                         // 409. Duplicado      
                 _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
             };
         }
@@ -40,6 +41,7 @@ namespace Ecommerce.Api.Controllers.v2
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
         public async Task<IActionResult> AddAsync([FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
             if (customerDto == null) return BadRequest();

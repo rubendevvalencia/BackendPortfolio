@@ -1,4 +1,4 @@
-using Ecommerce.Application.Service;
+using Ecommerce.Application.Feature.Customers;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common.Enums;
@@ -87,7 +87,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task AddAsync_DevuelveFalloCuandoElRepositorioLanzaExcepcion()
+        public async Task AddAsync_PropagaLaExcepcionCuandoElRepositorioFalla()
         {
             //Arrange
             _repository.AddAsync(Arg.Any<Customer>()).ThrowsAsync(NewDbException());
@@ -95,12 +95,11 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             var customerDto = NewCustomerDto();
 
             //Act
-            var response = await sut.AddAsync(customerDto, CancellationToken.None);
+            Func<Task> work = () => sut.AddAsync(customerDto, CancellationToken.None);
 
             //Assert
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("wrapper", exception.Message);
         }
 
         //---------------------------------------------------------------- GetByIdAsync
@@ -139,19 +138,18 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task GetByIdAsync_DevuelveFalloCuandoElRepositorioLanzaExcepcion()
+        public async Task GetByIdAsync_PropagaLaExcepcionCuandoElRepositorioFalla()
         {
             //Arrange
             _repository.GetByIdAsync(Arg.Any<int>()).ThrowsAsync(NewDbException());
             var sut = CreateCustomerApp();
 
             //Act
-            var response = await sut.GetByIdAsync(1);
+            Func<Task> work = () => sut.GetByIdAsync(1);
 
             //Assert
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("wrapper", exception.Message);
         }
 
         //---------------------------------------------------------------- GetAllAsync
@@ -191,19 +189,18 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task GetAllAsync_DevuelveFalloCuandoElRepositorioLanzaExcepcion()
+        public async Task GetAllAsync_PropagaLaExcepcionCuandoElRepositorioFalla()
         {
             //Arrange
             _repository.GetAllAsync().ThrowsAsync(NewDbException());
             var sut = CreateCustomerApp();
 
             //Act
-            var response = await sut.GetAllAsync();
+            Func<Task> work = () => sut.GetAllAsync();
 
             //Assert
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("wrapper", exception.Message);
         }
 
         //---------------------------------------------------------------- UpdateAsync
@@ -284,7 +281,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task UpdateAsync_DevuelveFalloCuandoElRepositorioLanzaExcepcion()
+        public async Task UpdateAsync_PropagaLaExcepcionCuandoElRepositorioFalla()
         {
             //Arrange
             _repository.GetByIdAsync(Arg.Any<int>()).ThrowsAsync(NewDbException());
@@ -292,12 +289,11 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             var customerDto = NewCustomerDto();
 
             //Act
-            var response = await sut.UpdateAsync(7, customerDto, CancellationToken.None);
+            Func<Task> work = () => sut.UpdateAsync(7, customerDto, CancellationToken.None);
 
             //Assert
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("wrapper", exception.Message);
         }
 
         //---------------------------------------------------------------- DeleteAsync
@@ -335,19 +331,18 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         [Fact]
-        public async Task DeleteAsync_DevuelveFalloCuandoElRepositorioLanzaExcepcion()
+        public async Task DeleteAsync_PropagaLaExcepcionCuandoElRepositorioFalla()
         {
             //Arrange
             _repository.DeleteAsync(Arg.Any<int>()).ThrowsAsync(NewDbException());
             var sut = CreateCustomerApp();
 
             //Act
-            var response = await sut.DeleteAsync(7);
+            Func<Task> work = () => sut.DeleteAsync(7);
 
             //Assert
-            Assert.False(response.IsSuccess);
-            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
-            Assert.Equal("fallo de base de datos", response.Message);
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
+            Assert.Equal("wrapper", exception.Message);
         }
     }
 }
