@@ -113,12 +113,12 @@ try
     //(doble guion bajo = el ":" de las claves anidadas). Sin barra final en el origen.
     app.UseCors(CorsExtension.myPolicy);
     
+    app.UseRateLimiter();
+
     app.UseAuthentication(); // Valida el token JWT y procesa el usuario autenticado antes de que llegue a los controladores.
                              // Siempre debe ir antes de UseAuthorization() para que la autorización tenga un usuario válido.
     app.UseAuthorization();
 
-    app.UseRateLimiter();
-    
     app.MapControllers();
 
     //1st point -> Formato con código http por si lo mira servicios como Azure

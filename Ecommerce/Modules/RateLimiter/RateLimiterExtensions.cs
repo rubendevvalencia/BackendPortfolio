@@ -11,12 +11,12 @@ namespace Ecommerce.Api.Modules.RateLimiter
             var fixedWindowPolicy = "fixedWindow";
             int permitLimit = 0;
             int.TryParse(configuration["RateLimiting:PermitLimit"], out permitLimit);
-            TimeSpan windowTime = TimeSpan.Zero;
-            TimeSpan.TryParse(configuration["RateLimiting:Window"], out windowTime);
+            int windowTime = 0;
+            int.TryParse(configuration["RateLimiting:Window"], out windowTime);
             int queueLimit = 0;
             int.TryParse(configuration["RateLimiting:QueueLimit"], out queueLimit);
 
-            if (permitLimit == 0 || windowTime == TimeSpan.Zero /*|| queueLimit == 0*/)
+            if (permitLimit == 0 || windowTime == 0)
                 throw new ValidationExceptionCustom(
                     new List<BaseError>
                     {
@@ -29,10 +29,10 @@ namespace Ecommerce.Api.Modules.RateLimiter
             {
                 configureOptions.AddFixedWindowLimiter(policyName: fixedWindowPolicy, fixedWindow =>
                 {
-                    fixedWindow.PermitLimit = permitLimit;
-                    fixedWindow.Window = windowTime;
-                    fixedWindow.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-                    fixedWindow.QueueLimit = queueLimit; 
+                    fixedWindow.PermitLimit = permitLimit;                                                              //Nº de peticiones máximo por ventana de tiempo
+                    fixedWindow.Window = TimeSpan.FromSeconds(windowTime);                                              //Tiempo de la ventana
+                    fixedWindow.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;  //Gestión de la cola (FIFO)
+                    fixedWindow.QueueLimit = queueLimit;                                                                //Nº de peticiones que esperan en la cola (sin respuesta) a la siguiente ventana cuando no quedan permisos
                 });
 
                 configureOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests; //Responde 429 con demasiadas request
