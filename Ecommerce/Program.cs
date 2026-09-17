@@ -1,14 +1,23 @@
-using Ecommerce.Infrastructure;
-using Ecommerce.Api.Models.Auth;
-using Ecommerce.Api.Models.Swagger;
-using Ecommerce.Application;
-using Ecommerce.Api.Models.Cors;
-using Microsoft.AspNetCore.HttpOverrides;
-using Ecommerce.Transversal;
-using Serilog;
-using Ecommerce.Api.Models.Version;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Asp.Versioning.ApiExplorer;
-using Ecommerce.Api.Models.Middleware; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using Ecommerce.Api.Models.Auth;
+using Ecommerce.Api.Models.Cors;
+using Ecommerce.Api.Models.Middleware;
+using Ecommerce.Api.Models.Swagger;
+using Ecommerce.Api.Models.Version;
+using Ecommerce.Api.Modules.HealthCheck;
+using Ecommerce.Application;
+using Ecommerce.Infrastructure;
+using Ecommerce.Transversal;
+using HealthChecks.UI.Client; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
+using HealthChecks.UI.Core;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.VisualBasic;
+using Serilog;
 
 try
 {
@@ -30,6 +39,10 @@ try
     builder.Services.AddVersioning();
     builder.Services.AddSwagger();
     builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
+    builder.Services.AddHealthCheck(builder.Configuration);
+    
+    
+    
     builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     
     var app = builder.Build();
@@ -105,7 +118,38 @@ try
     
     app.MapControllers();
 
-    
+    //1st point -> Formato con código http por si lo mira servicios como Azure
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        Predicate = _ => true,
+        ResponseWriter = (context, report) =>
+        {
+            var uiReport = UIHealthReport.CreateFrom(report);
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true,
+                Converters = {new JsonStringEnumConverter()}
+            };
+
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsJsonAsync(uiReport, jsonOptions);
+        }
+    });
+
+    //"2do end point -> Formato tipo http web para el usuario personalizado en vez de librería UI
+    app.MapHealthChecks("/health/ui", new HealthCheckOptions
+    {
+        Predicate = _ => true,
+        ResponseWriter = (context, report) =>
+        {
+            var html = HealthHtmlUi.htmlFormat(report);
+            context.Response.ContentType = "text/html; charset=utf-8";
+            return context.Response.WriteAsync(html);
+        }
+    });
+
+
     Log.Information("Starting ecommerce API...");
     app.Run();
 }
