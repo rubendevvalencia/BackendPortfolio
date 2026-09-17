@@ -12,7 +12,7 @@ namespace Ecommerce.Api.Modules.HealthCheck
         public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {
             //Aquí configuras la lógica para comprobar con cualquier servicio que quieras comprobar su conexión, api, db, etc..
-            var time = _random.Next(1, 200); //ms
+            var time = _random.Next(1, 300); //ms
 
             if(time<100) return Task.FromResult(HealthCheckResult.Healthy("Healthy from HealthCheckCustome-1"));
             if (time < 200) return Task.FromResult(HealthCheckResult.Degraded("Degraded from HealthCheckCustome-1"));
