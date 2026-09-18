@@ -3,6 +3,9 @@ using Ecommerce.Application.Dto;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text;
+using System.Text.Json;
 
 namespace Ecommerce.Application.Feature.Customers.v4.Queries.GetAllCustomerQuery
 {
@@ -10,7 +13,7 @@ namespace Ecommerce.Application.Feature.Customers.v4.Queries.GetAllCustomerQuery
     {
         private readonly IMapper _mapper;
         private readonly ICustomerReadRepository _customerReadRepo;
-
+      
         public GetAllCustomerHandler(ICustomerReadRepository customerReadRepo, IMapper mapper)
         {
             _customerReadRepo = customerReadRepo;

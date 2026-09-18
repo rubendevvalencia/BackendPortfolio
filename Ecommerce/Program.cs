@@ -44,6 +44,7 @@ try
     builder.Services.AddRateLimiting(builder.Configuration);
     
     
+    
     builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     
     var app = builder.Build();
