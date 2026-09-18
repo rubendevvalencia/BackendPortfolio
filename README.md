@@ -5,11 +5,11 @@
 > - **Qué es:** API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
-> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija (versión simplificada, de prueba) · secretos fuera del repositorio.
+> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks · secretos fuera del repositorio.
 > - **Tests:** 131 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
-> - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
+> - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · Redis · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
 > - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
-> - **Trabajo pendiente, a la vista:** limitaciones conocidas y [hoja de ruta](#hoja-de-ruta) (tests de integración, Docker/CI, dominio rico) documentadas al final.
+> - **Trabajo pendiente, a la vista:** 30 limitaciones conocidas y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
 
 API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de portfolio y aprendizaje
 deliberado de backend en C#.
@@ -39,6 +39,12 @@ dónde vive la transacción, cómo se separan lecturas y escrituras y dónde se 
 | Qué demuestra | **El antipatrón**, a propósito | El límite transaccional en el caso de uso | Separación de comandos y consultas | La validación como preocupación transversal |
 | Estado | `Deprecated` | Vigente | Vigente | Vigente |
 
+> **Una advertencia sobre la comparación.** v3 y v4 comparten `ICustomerReadRepository`, así que la caché
+> que se añadió sobre el listado entró en las dos a la vez. La tabla compara *dónde se valida*, y eso sigue
+> siendo exacto; pero en `GetAllAsync` las dos versiones se comportan hoy igual y las dos arrastran la misma
+> falta de invalidación. Cualquier pieza que se añada al lado de lectura afecta a ambas: conviene que sea una
+> decisión consciente y no un efecto colateral. Ver pendientes nº 24 y 28.
+
 Recorrido recomendado: [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) →
 [`v2`](Ecommerce/Controllers/v2/CustomerController.cs) → [`v3`](Ecommerce/Controllers/v3/CustomerController.cs) →
 [`v4`](Ecommerce/Controllers/v4/CustomerController.cs), y detrás de cada uno su implementación en
@@ -58,7 +64,7 @@ flowchart RL
     API["<b>Ecommerce.Api</b><br/>Controllers v1 · v2 · v3 · v4<br/>Versionado · Swagger · CORS · JWT<br/>Middleware de excepciones<br/><i>la única capa que conoce HTTP</i>"]
     APP["<b>Ecommerce.Application</b><br/>Casos de uso · Commands/Queries (MediatR)<br/>DTOs · Validadores · Mapeo"]
     DOM["<b>Ecommerce.Domain</b><br/>Entidades<br/>Interfaces de repositorio<br/><i>cero dependencias externas</i>"]
-    INF["<b>Ecommerce.Infrastructure</b><br/>EF Core · DbContext · Migraciones<br/>Repositorios de escritura y lectura<br/>Interceptores"]
+    INF["<b>Ecommerce.Infrastructure</b><br/>EF Core · DbContext · Migraciones<br/>Repositorios de escritura y lectura<br/>Interceptores · Caché distribuida (Redis)"]
     TRA["<b>Ecommerce.Transversal</b><br/>Response&lt;T&gt; · ErrorType<br/>Logging (Serilog)"]
 
     API --> APP
@@ -78,7 +84,7 @@ quien las *usa* — y `Infrastructure` las implementa; ahí está la inversión 
 | `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, rate limiting, Swagger, manejo global de excepciones. Composition root. |
 | `Ecommerce.Application` | Orquesta los casos de uso (servicios en v1/v2, handlers de MediatR en v3 y v4). No sabe qué es un código HTTP. |
 | `Ecommerce.Domain` | Entidades y contratos. No sabe que existe una base de datos. |
-| `Ecommerce.Infrastructure` | Persistencia con EF Core. Implementa los contratos del dominio. |
+| `Ecommerce.Infrastructure` | Persistencia con EF Core y caché distribuida con Redis. Implementa los contratos del dominio. Ningún almacén de datos asoma por encima de esta capa. |
 | `Ecommerce.Transversal` | Tipos y servicios compartidos por varias capas (`Response<T>`, `ErrorType`, logging). |
 | `Ecommerce.Test` | xUnit + NSubstitute + EF Core InMemory. |
 
@@ -127,7 +133,9 @@ cliente* está junto, en lugar de repartido entre un servicio, un DTO compartido
 - **FluentValidation** — validación desacoplada del modelo
 - **AutoMapper** — mapeo entidad ↔ DTO
 - **Serilog** — logging estructurado a consola, fichero y SQL Server
+- **Redis** (`StackExchange.Redis` vía `IDistributedCache`) — caché *cache-aside* sobre el listado de clientes, a modo de ejercicio del patrón
 - **Microsoft.AspNetCore.RateLimiting** — rate limiter nativo, con una política de ventana fija de prueba
+- **AspNetCore.HealthChecks** — `/health` en JSON y `/health/ui` en HTML, con SQL Server y Redis como dependencias vigiladas
 - **Swashbuckle / OpenAPI** — documentación con anotaciones, un documento por versión
 - **xUnit · NSubstitute · Coverlet** — tests y cobertura
 
@@ -581,11 +589,16 @@ Los valores salen de la configuración, no del código:
 
 ```json
 "RateLimiting": {
-  "PermitLimit": 4,    // peticiones permitidas por ventana
-  "Window": 30,        // duración de la ventana, en segundos
-  "QueueLimit": 2      // peticiones que esperan a la siguiente ventana cuando no quedan permisos
+  "PermitLimit": 4,          // peticiones permitidas por ventana
+  "Window": "00:00:30",      // duración de la ventana, en formato "hh:mm:ss"
+  "QueueLimit": 2            // peticiones que esperan a la siguiente ventana cuando no quedan permisos
 }
 ```
+
+La ventana se escribe **`"00:00:30"`, no `30`**, y no es cosmético: `RateLimiterConfiguration` la lee con
+`TimeSpan.TryParseExact` y no con `TryParse` justo por eso — `TimeSpan` interpreta un entero suelto como
+**días**, así que un `30` pensado como segundos daría una ventana de 30 días y el limitador no frenaría
+nunca. Exigir el formato convierte ese error silencioso en un fallo al arrancar.
 
 - **Cola FIFO** (`QueueProcessingOrder.OldestFirst`): cuando se agotan los permisos, hasta `QueueLimit`
   peticiones esperan sin respuesta a que se abra la siguiente ventana; se atienden de la más antigua a la
@@ -593,10 +606,11 @@ Los valores salen de la configuración, no del código:
 - **429 en lugar de 503.** Por defecto el middleware rechaza con `503 Service Unavailable`, que dice "el
   servidor está caído" cuando lo que pasa es que el cliente se ha pasado. `RejectionStatusCode` lo cambia a
   **`429 Too Many Requests`**.
-- **Configuración inválida, arranque fallido.** Si alguno de los tres valores falta, no es un número o vale
-  0, `AddRateLimiting` lanza `ValidationExceptionCustom` al arrancar, y el `try/catch` de `Program.cs` lo hace
-  visible (ver *Arranque que falla de forma visible*). Mejor no arrancar que arrancar con un limitador que
-  bloquea todo o no bloquea nada.
+- **Configuración inválida, arranque fallido.** Si alguno de los tres valores falta, no tiene el formato
+  esperado o queda fuera de rango, `AddRateLimiting` lanza `InvalidOperationException` **al arrancar**, con
+  un mensaje que nombra la clave concreta, y el `try/catch` de `Program.cs` lo hace visible (ver *Arranque
+  que falla de forma visible*). Mejor no arrancar que arrancar con un limitador que bloquea todo o no
+  bloquea nada. *(Este criterio es el que todavía no sigue la caché: ver pendiente nº 25.)*
 - **Delante de la autenticación.** Al ir antes de `UseAuthentication()`, una petición que sobra se rechaza
   sin gastar en validar el JWT, y `SignIn` queda cubierto aunque sea `[AllowAnonymous]`.
 - **`/health` no está limitado**: se mapea con `MapHealthChecks`, fuera de los controllers, y no lleva la
@@ -612,6 +626,88 @@ La versión completa pasaría por `RateLimitPartition.GetFixedWindowLimiter` con
 usuario del JWT si está autenticado, la IP si no, teniendo en cuenta `UseForwardedHeaders()` detrás de un
 balanceador—, una política más estricta y separada para `SignIn`/`SignUp` contra fuerza bruta, y la cabecera
 `Retry-After` en el 429.
+
+### Caché distribuida con Redis: ejercicio del patrón *cache-aside*
+
+> **Aviso:** igual que el rate limiter, esto está montado **a modo de ejercicio del patrón**, no como
+> respuesta a un problema de rendimiento medido. No hay carga, ni métricas, ni paginación: el endpoint
+> cacheado devuelve hoy un puñado de filas. La decisión de si compensa de verdad está aplazada a propósito.
+> Lo que sigue explica qué hay, dónde vive, por qué vive ahí y qué le falta al ejemplo para estar completo.
+
+**Qué hay montado.** Una caché *cache-aside* —mirar la caché; si no está, ir a la base de datos y
+guardar— sobre una sola consulta, `GetAllCustomers`:
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| `AddStackExchangeRedisCache` | [`Infrastructure/ConfigureServices.cs`](Ecommerce.Infrastructure/ConfigureServices.cs) | Registra `IDistributedCache` contra Redis |
+| `CustomerReadRepository.GetAllAsync` | [`Infrastructure/Repository`](Ecommerce.Infrastructure/Repository/CustomerReadRepository.cs) | Lee de Redis; si no hay acierto, consulta con EF y guarda |
+| `CacheConfiguration` | [`Infrastructure/Data/Cache`](Ecommerce.Infrastructure/Data/Cache/CacheConfiguration.cs) | Traduce las caducidades de `appsettings.json` a `TimeSpan` |
+| `eCacheKey` | [`Infrastructure/Data/Cache`](Ecommerce.Infrastructure/Data/Cache/eCacheKey.cs) | Las claves como `enum`, para que no viajen como *string* suelto |
+| `.AddRedis(...)` | [`Modules/HealthCheck`](Ecommerce/Modules/HealthCheck/HealthCheckExtensions.cs) | Mete Redis en `/health` con la etiqueta `caché` |
+
+Las caducidades salen de la configuración, por política y no del código:
+
+```json
+"Cache": {
+  "Default":  { "AbsoluteExpiration": "02:00:00", "SlidingExpiration": "01:00:00" },
+  "Policies": {
+    "GetAllCustomers": { "AbsoluteExpiration": "01:00:00", "SlidingExpiration": "00:12:00" }
+  }
+}
+```
+
+Mismo criterio de formato que en el rate limiter, y por el mismo motivo: `TimeSpan.TryParseExact` con
+`"hh:mm:ss"` en lugar de `TryParse`, porque un entero suelto se leería como días.
+
+**Solo se cachea el listado, y es deliberado.** `GetByIdAsync` va contra la clave primaria: SQL Server lo
+resuelve con un *seek* sobre el índice agrupado, y el salto de red hasta Redis puede costar más que la
+consulta que ahorra. A cambio multiplicaría la superficie de invalidación —una clave por cliente en lugar
+de una sola— por una ganancia dudosa. El criterio para decidir qué se cachea no es "devuelve muchas filas",
+sino la **proporción lectura/escritura**, la **concurrencia sobre la misma clave** y la **tolerancia a datos
+viejos**. El patrón de persistencia no entra en la ecuación: tener Unit of Work y confirmar una sola vez por
+caso de uso no hace que una lectura se beneficie más o menos de una caché.
+
+**Y "devuelve muchas filas" es, en realidad, el síntoma de otra cosa.** `GetAll` no está paginado
+(pendiente nº 18). Con la tabla pequeña el blob cabe de sobra en Redis; con 100.000 clientes, cada acierto
+significa traer varios MB por red, deserializarlos enteros y mapearlos enteros con AutoMapper —el mapeo se
+paga igual, se acierte o no—, lo que puede salir **más caro** que la consulta paginada que debería existir.
+La caché no arregla un `SELECT` sin límite: lo encarece a medida que la tabla crece. El orden sensato es
+**paginar primero y volver a hacerse la pregunta después**, porque una vez paginado el problema cambia de
+forma: se cachearía por página, y entonces un alta invalida todas las páginas, no una.
+
+**Por qué la caché vive en `Infrastructure` y no detrás de un puerto en `Application`.** La alternativa
+considerada era un `ICacheService` declarado en `Application` con el adaptador de Redis en
+`Infrastructure` —el mismo patrón que pide el pendiente nº 13 para el JWT—. Tiene dos ventajas reales:
+cachearía el DTO, que es el contrato ya estabilizado por el versionado, y ahorraría el mapeo en cada
+acierto. Se ha descartado a propósito: **Redis es un almacén de datos, y aquí la regla es que ningún
+almacén asome por encima de `Infrastructure`**, ni siquiera detrás de una interfaz. Elegir la caché
+transparente tiene una contrapartida que conviene decir en voz alta: leyendo `DeleteCustomerCommandHandle`
+no hay **ninguna** pista de que exista una caché.
+
+**Dónde tiene que ir la invalidación.** De esa decisión sale un problema que no es evidente: **el
+repositorio no puede invalidar.** `CustomerRepositoryUoW` no confirma —esa es justamente la regla que
+define el Unit of Work aquí—, así que cuando ejecuta `Delete(customer)` todavía no ha pasado nada en la
+base de datos. Desalojar ahí y que el `SaveChangesAsync` falle después tiraría una caché válida; desalojar
+antes del commit abre una ventana en la que otra petición puede repoblarla con el estado viejo. La
+invalidación tiene que ocurrir **después de un commit con éxito**, y quien confirma es el caso de uso.
+
+Manteniendo la caché fuera de `Application`, la salida es un segundo `SaveChangesInterceptor` —hermano del
+de auditoría— que en `SavedChangesAsync` mire si entre los cambios confirmados había alguna entidad
+`Customer` y, en ese caso, desaloje la clave. Dos detalles lo hacen menos trivial que el de auditoría: el
+que corre *después* del commit es `SavedChangesAsync` y no `SavingChangesAsync`, y para entonces el
+`ChangeTracker` ya ha dejado las entidades en `Unchanged` — así que el estado hay que capturarlo antes y
+consumirlo después.
+
+**Lo que le falta al ejemplo para estar completo.** Un *cache-aside* sin invalidación demuestra la mitad
+fácil del patrón; la invalidación es la parte difícil, y es la que no está. Por orden:
+
+| | Falta | Por qué importa |
+|---|---|---|
+| 1 | **Invalidar tras el commit** (nº 24) | Hoy un alta, una edición o un borrado no tocan la caché: el listado devuelve el estado anterior hasta que la entrada caduca |
+| 2 | **Un modelo de caché propio** (nº 27) | Ahora se serializa la entidad `Customer` entera, auditoría incluida: el modelo de dominio acaba siendo el contrato de Redis |
+| 3 | **Clave versionada** (`customers:v1:all`) | Convierte un cambio de forma en un *miss* limpio, en lugar de una deserialización a medias sin error visible |
+| 4 | **Validar la configuración al arrancar** (nº 25) | Hoy `CacheConfiguration` lanza en el primer *miss*, dentro de una petición: lo contrario del criterio aplicado en el rate limiter |
+| 5 | **Degradar si Redis cae** (nº 26) | Una caché es *best-effort*: si el almacén no responde se va a la base de datos, no se responde 500 |
 
 ### Arranque que falla de forma visible
 
@@ -662,13 +758,16 @@ garantizan que, al arreglarla, el rojo diga exactamente qué ha cambiado.
 rompe la compilación ni la suite, pero sí el arranque — un `AddScoped` olvidado, o una *captive dependency*.
 
 **Lo que falta:** ningún test cruza un controller, los handlers de v3 salvo `CreateCustomer` están sin
-cubrir, los de v4 no tienen ninguno y `LoggingBehaviour` tampoco. Ver pendientes nº 8, 9 y 21.
+cubrir, los de v4 no tienen ninguno, y `LoggingBehaviour` y `CustomerReadRepository` —con toda la lógica de
+caché dentro— tampoco. Ver pendientes nº 8, 9, 21 y 29.
 
 ---
 
 ## Puesta en marcha
 
-**Requisitos:** SDK de .NET 10 y una instancia de SQL Server (vale SQL Server Express).
+**Requisitos:** SDK de .NET 10, una instancia de SQL Server (vale SQL Server Express) y una de Redis. Para
+Redis en local, lo más rápido es `docker run -p 6379:6379 redis`. Sin Redis la API arranca, pero
+`GET /GetAllAsync` de v3 y v4 responde 500 al no poder hablar con la caché — es el pendiente nº 26.
 
 ```bash
 git clone https://github.com/rubendevvalencia/BackendPortfolio.git
@@ -683,11 +782,14 @@ dotnet user-secrets set "ConnectionStrings:EcommerceDb" \
   "Server=localhost\SQLEXPRESS;Database=Ecommerce;Trusted_Connection=True;TrustServerCertificate=True;" \
   --project Ecommerce
 
+dotnet user-secrets set "ConnectionStrings:RedisConnection" "localhost:6379" --project Ecommerce
+
 dotnet user-secrets set "Jwt:Key" "<clave aleatoria de 32 bytes o mas>" --project Ecommerce
 ```
 
 La clave JWT no es opcional: HMAC-SHA256 exige 256 bits, y el límite se mide en bytes, no en caracteres.
-En despliegue ambos valores llegan por variables de entorno: `ConnectionStrings__EcommerceDb` y `Jwt__Key`.
+En despliegue esos valores llegan por variables de entorno: `ConnectionStrings__EcommerceDb`,
+`ConnectionStrings__RedisConnection` y `Jwt__Key`.
 
 **2. Crea la base de datos.**
 
@@ -743,11 +845,15 @@ Mismos endpoints; lo que cambia es la implementación detrás.
 
 | Verbo | Ruta | Mensaje MediatR | Descripción |
 |---|---|---|---|
-| `GET` | `/GetAllAsync` | `GetAllCustomerQuery` | Lista todos los clientes |
-| `GET` | `/GetByIdAsync/{id}` | `GetCustomerQuery` | Recupera un cliente |
+| `GET` | `/GetAllAsync` | `GetAllCustomerQuery` | Lista todos los clientes — **servido desde Redis**, sin paginar |
+| `GET` | `/GetByIdAsync/{id}` | `GetCustomerQuery` | Recupera un cliente (sin caché, a propósito) |
 | `POST` | `/Create` | `CreateCustomerCommand` | Crea un cliente (409 si ya existe) |
 | `POST` | `/UpdateAsyncPost` | `UpdateCustomerCommand` | Actualiza un cliente; el `Id` va en el body |
 | `DELETE` | `/DeleteAsync/{id}` | `DeleteCustomerCommand` | Elimina un cliente |
+
+> **Ojo con `GetAllAsync` en v3 y v4:** las tres operaciones de escritura **no invalidan la caché**, así que
+> el listado puede seguir devolviendo el estado anterior durante un buen rato después de crear, actualizar o
+> borrar. Es el pendiente nº 24 y hoy es el fallo funcional más visible de la API.
 
 ### Clientes v4 (validación en el pipeline) — `api/v4/Customer`
 
@@ -783,6 +889,8 @@ dejaba abierto.
 | 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `IApiLogger` conservado como el enfoque manual | Traza automática de v3 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
 | 14 | **v4: `ValidationBehaviour`** · `IValidatableRequest` · `ValidationExceptionCustom` → 400 en el middleware | Validación fuera de handlers y controller, aislada de v3 con una marca en la petición |
 | 15 | **Rate limiter de ventana fija** (versión simplificada, de prueba) · 429 · valores en `appsettings.json` | Primer freno a ráfagas de peticiones, con la configuración validada al arrancar |
+| 16 | **Health checks** (`/health` en JSON, `/health/ui` en HTML) con SQL Server y Redis | Las dependencias externas dejan de fallar en silencio |
+| 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
 
 ---
 
@@ -805,10 +913,13 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 
 | | Pendiente |
 |---|---|
+| 24 | **La caché no se invalida nunca.** `GetAllCustomers` se guarda en Redis con una hora de caducidad absoluta y doce minutos deslizantes, y **no hay un solo `RemoveAsync` en toda la solución**: crear, actualizar o borrar un cliente no toca la caché, así que el listado sigue devolviendo el estado anterior hasta que la entrada expira sola. Es el fallo funcional más grave que hay ahora mismo, y afecta a v3 y v4 a la vez. La invalidación va en un `SaveChangesInterceptor` sobre `SavedChangesAsync`, por lo explicado en [*Caché distribuida*](#caché-distribuida-con-redis-ejercicio-del-patrón-cache-aside). |
 | 4 | **Actualizar con los mismos datos devuelve 500** en v2 y v3: EF no escribe nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Contradice lo explicado en *Unit of Work*. |
 | 5 | **`CustomerDto` no expone `Id`**: el listado devuelve clientes que luego no se pueden identificar para actualizar o borrar. |
 | 6 | **`DefaultApiVersion` apunta a `1.0`, obsoleta.** Debe apuntar a la vigente. `UserAuthController` no declara la `4.0`, así que un cliente de v4 se autentica contra v3. |
 | 7 | **La validación de `Jwt:Key` es asimétrica**: se comprueba al emitir el token, no al arrancar. La comprobación debe estar en el arranque (`JwtOptions` con `ValidateOnStart()`). |
+| 25 | **`CacheConfiguration` valida tarde y parsea dos veces.** Lanza `InvalidOperationException` en el primer *cache miss* —es decir, en runtime, dentro de una petición de usuario, que acabará en 500— en lugar de al arrancar, que es justo el criterio que sí se aplicó en `RateLimiterConfiguration`. Además `CustomerReadRepository` la llama **dos veces seguidas** para leer `[0]` y `[1]`, reparseando la configuración entera cada vez. Y devolver un `TimeSpan[]` de dos posiciones pide ser un tipo con nombres, como ya lo es `RateLimiterSettings`. |
+| 26 | **Si Redis no responde, el endpoint se cae.** `AbortOnConnectFail = false` está comentado y la lectura no tiene red de seguridad, así que una caída de la caché se convierte en un 500 en `GetAllAsync` en lugar de en una consulta a la base de datos. El health check lo *reporta*, pero no protege la petición: una caché debe ser *best-effort*. |
 | 20 | **v4 responde los errores de validación con otro contrato.** `Response<T>` tiene ahora dos colecciones para lo mismo, con nombres que se diferencian en una letra: `Errors` (diccionario por propiedad, v1–v3) y `Error` (lista de `BaseError`, v4). Las dos se serializan en todas las respuestas —`Error: null` en v1–v3, `Errors: {}` en v4—, `Error` no tiene inicializador, y el 400 de v4 sale con `ErrorType = None`, que el propio enum define como *operación correcta*. Además `BaseError.PropertyMessage` guarda el nombre de la propiedad, no un mensaje, y el comentario de `ValidationExceptionCustom` dice que los errores van "agrupados por propiedad, igual que `Response.Errors`", cuando son una lista plana. |
 
 ### Tests
@@ -817,6 +928,7 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 |---|---|
 | 8 | **La frontera HTTP no tiene ni un test.** Falta un test de integración con `WebApplicationFactory` que recorra SignUp → SignIn → CRUD, y que ejecute **los mismos casos contra v1, v2, v3 y v4** para demostrar que comparten contrato —o, en el caso del 400 de v4, dónde deja de compartirlo—. |
 | 9 | **Handlers de v3 sin cubrir** (`Update`, `Delete` y las dos queries), **los de v4 sin ningún test**, y `ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR. `LoggingBehaviour` tampoco tiene tests: su clasificación por `ErrorType` es lógica pura y fácil de fijar. |
+| 29 | **La caché no tiene ni un test.** `CustomerReadRepository` es la única clase de `Infrastructure` sin cubrir, y su lógica no es trivial: acierto, fallo, guardado con las caducidades correctas y —cuando exista— desalojo después del commit. `IDistributedCache` es una interfaz, así que se dobla con NSubstitute y no hace falta levantar Redis para probarlo. |
 | 21 | **Un test en rojo**: `SignUpAsync_TraduceLaExcepcionAFalloInesperado`. Al pasar `UserAuthApplication` de `IApiLogger<T>` a `ILogger<T>`, la aserción `_logger.Received(1).LogError(...)` dejó de funcionar: en `ILogger<T>`, `LogError` es un método de extensión estático que NSubstitute no puede interceptar, y lanza `RedundantArgumentMatcherException`. Lo razonable es retirar la aserción sobre el logger —el test ya fija lo que importa, que la excepción se traduce a `Unexpected`— en lugar de comprobar la llamada a `ILogger.Log` con sus cinco argumentos. |
 
 ### Diseño
@@ -825,6 +937,8 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 |---|---|
 | 10 | **Pipeline con dos behaviors, y la validación resuelta con excepción.** `LoggingBehaviour` (v3 y v4) y `ValidationBehaviour` (v4) están montados. Queda pendiente la versión sin excepción de la validación —miembro estático abstracto para construir `TResponse.Invalid(...)`, ver [*v3 → v4*](#v3--v4-la-validación-sale-del-handler)—. `UnhandledExceptionBehavior` duplicaría a `GlobalExceptionHandler`, y `TransactionBehavior` contradiría la decisión de que el caso de uso fije el límite transaccional: solo tendrían sentido como decisiones explícitas, no por completar el catálogo. |
 | 11 | **El lado de lectura devuelve entidades**, y `GetByIdAsync` usa `FindAsync` con tracking. En CQRS la consulta debería proyectar directamente al DTO con `AsNoTracking()`. |
+| 27 | **Se cachea la entidad de dominio y la clave no está versionada.** `CustomerReadRepository` serializa `Customer` entero —los cuatro campos de auditoría incluidos— bajo `eCacheKey.GetAllCustomers`. El modelo de dominio acaba siendo el contrato de serialización de Redis: el día que `Customer` cambie de forma, las entradas ya guardadas deserializarán a medias y **sin error visible**. Hace falta un modelo de caché propio de `Infrastructure` —plano, con solo los campos que se usan— y una clave versionada (`customers:v1:all`) que convierta un cambio de forma en un *miss* limpio. Consecuencia colateral de cachear la entidad: el mapeo a DTO se paga entero también en los aciertos, así que lo único que se ahorra es el viaje a la base de datos. |
+| 28 | **La caché alteró el contrato comparativo de v3.** v3 y v4 comparten `ICustomerReadRepository`, así que la caché entró en las dos a la vez. Este README presentaba v3 → v4 como "solo cambia dónde vive la validación", y desde entonces ya no es cierto: ambas comparten además una caché sin invalidar. Lo que hay que decidir no es solo si se cachea, sino **en qué versiones**; el lado de lectura compartido hace que cualquier añadido ahí se propague sin pedir permiso. |
 | 12 | **El dominio es anémico** y las reglas de `Customer` están repartidas: tres validadores con reglas idénticas, una configuración de EF que admite nulos que los validadores rechazan, y un mapeo que contempla nulos que nunca llegan. Faltan invariantes en la entidad (factory methods, value objects). La detección de duplicados compara los diez campos y no se apoya en un índice único. |
 | 13 | **Generar el JWT y hashear contraseñas son infraestructura**, pero viven en `Application` (`JwtApplication` lee `IConfiguration`) y en el repositorio (`UserRepository.CreateUserAsync`). Deberían ser puertos con la implementación en `Infrastructure`. |
 | 14 | **Duplicación que no forma parte de la comparación entre versiones**: `ToActionResult` repetido en los cuatro controllers y tres sobrecargas idénticas de `ManualMappingCustomer` (DTO, command de v3 y command de v4). |
@@ -837,12 +951,16 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 | 15 | `DbContextEF` depende de `IConfiguration` para una rama muerta de `OnConfiguring`. `IUnitOfWork` expone `_customersUoW` y `_user` con prefijo de campo privado. `Customer.Id` es `int?`. |
 | 16 | 13 warnings de nulabilidad enterrados bajo los `CS1591` de documentación XML, y avisos del analizador de `Asp.Versioning` (`AV0013`, `AV0016`, `AV0029`). |
 | 17 | `Microsoft.AspNetCore.Identity` 2.3 es el paquete heredado de ASP.NET Core 2.x; `PasswordHasher<T>` está en `Microsoft.Extensions.Identity.Core`. `Transversal` mezcla tipos puros con la configuración de Serilog, y arrastra ASP.NET Core hasta `Application` por dependencia transitiva. |
-| 18 | Rutas con el verbo en la URL, sin paginación en `GetAll`, sin refresh token ni roles, caducidad del token fijada en código y sin healthcheck. |
+| 18 | Rutas con el verbo en la URL, sin refresh token ni roles y caducidad del token fijada en código. **Sin paginación en `GetAll`**, que además es el endpoint cacheado: cachear un `SELECT` sin límite lo encarece según crece la tabla, así que paginar va **antes** que afinar la caché. *(El healthcheck ya está: hecho en el hito 16.)* |
+| 30 | `_distributedCache.GetAsync(...)` no recibe el `CancellationToken` que sí se pasa al `SetAsync` tres líneas más abajo, así que una petición cancelada sigue esperando a Redis. |
 
 Menores, anotados para no perderlos: `Discount` y `DiscountStatus` son código muerto; el sink de Serilog a
-SQL Server apunta a la misma base de datos que la aplicación; y con seis proyectos repitiendo
+SQL Server apunta a la misma base de datos que la aplicación; con seis proyectos repitiendo
 `TargetFramework` y versiones de paquetes ya compensa un `Directory.Build.props` y *Central Package
-Management*.
+Management*; y la densidad de comentarios —deliberada, y explicada al principio— mezcla dos cosas que no
+valen lo mismo: los que explican el *porqué* (CORS fuera del `if`, `TryParseExact`, `IValidatableRequest`)
+y los que repiten lo que el código ya dice, como `CustomerConfiguration`, donde diez comentarios describen
+lo que declaran diez llamadas a `HasMaxLength`. Los segundos envejecen mal y sobran.
 
 **Build y tests:** compila sin errores; **130 de 131 tests en verde** — el rojo es el pendiente nº 21.
 
@@ -855,23 +973,30 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 
 | Bloque | Contenido | Estado |
 |---|---|---|
-| **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado hecho (v1 a v4) |
+| **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work cerrado; middleware montado pero por corregir (pendiente nº 1) |
 | **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Tests de `Application` y handlers de v3 hechos; `LoggingBehaviour` y `ValidationBehaviour` (v4) montados; faltan tests de v4 y del logging, e integración |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | Dockerfile · GitHub Actions · despliegue en Azure | ⬜ |
+| **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres piezas montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al limitador el particionado (nº 23) |
 
 Siguientes pasos concretos:
 
-1. Cerrar el bloque B: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
+1. **Cerrar la caché**, que es regresión reciente y no deuda antigua: invalidación tras el commit con un
+   `SaveChangesInterceptor` (nº 24), modelo de caché propio y clave versionada (nº 27), validación de la
+   configuración al arrancar (nº 25) y degradación si Redis no responde (nº 26). Sin la invalidación, lo
+   que hay montado demuestra solo la mitad fácil del patrón.
+2. Cerrar el bloque B: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
    `UserAuthApplication`, `EnableSensitiveDataLogging` por entorno.
-2. Cerrar v4 y el logging: volver a verde (nº 21), unificar el contrato de error de validación (nº 20),
-   tests de los handlers de v3 y v4 que faltan y de `LoggingBehaviour`, y cablear `IApiLogger` en v1 y v2,
-   que es donde el enfoque manual es el único disponible.
-3. Autenticación: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en
+3. Cerrar v4 y el logging: volver a verde (nº 21), unificar el contrato de error de validación (nº 20),
+   tests de los handlers de v3 y v4 que faltan, de `LoggingBehaviour` y de la caché (nº 29), y cablear
+   `IApiLogger` en v1 y v2, que es donde el enfoque manual es el único disponible.
+4. Autenticación: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en
    `Infrastructure`.
-4. Tests de integración con `WebApplicationFactory` recorriendo las cuatro versiones, y healthcheck.
-5. Bloque D: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que confirmar
+5. Tests de integración con `WebApplicationFactory` recorriendo las cuatro versiones.
+6. Paginar `GetAll` (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
+   respuesta puede ser perfectamente que ninguna.
+7. Bloque D: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que confirmar
    de forma atómica.
 
 ---
