@@ -1,11 +1,6 @@
-﻿using Ecommerce.Transversal.Common;
-using Ecommerce.Transversal.Common.Enums;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.VisualBasic;
-using System.Net;
-using System.Text;
+﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Ecommerce.Api.Modules.HealthCheck
+namespace Ecommerce.Infrastructure.HealthCheck
 {
     public class HealthCheckCustome : IHealthCheck
     {
