@@ -2,6 +2,7 @@
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
+using Ecommerce.Infrastructure.HealthCheck;
 using Ecommerce.Infrastructure.Interceptors;
 using Ecommerce.Infrastructure.Repository;
 using Ecommerce.Infrastructure.Repository.Jwt;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Ecommerce.Infrastructure
 {
@@ -29,8 +31,13 @@ namespace Ecommerce.Infrastructure
                 options.Configuration = configuration.GetConnectionString("RedisConnection");
                 //options.ConfigurationOptions.AbortOnConnectFail = false;
             });
-            
-            
+
+            services.AddHealthChecks()
+                .AddSqlServer(configuration.GetConnectionString("EcommerceDb"), tags: new[] { "database" })
+                .AddRedis(configuration.GetConnectionString("RedisConnection"), tags: new[] { "caché" })
+                .AddCheck<HealthCheckCustome>("HealthCheckCustom", tags: new[] { "custom" });
+
+
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<ICustomerRepositoryUoW, CustomerRepositoryUoW>();
             services.AddScoped<IUserRepository, UserRepository>();

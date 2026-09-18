@@ -5,11 +5,11 @@
 > - **Qué es:** API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
-> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks · secretos fuera del repositorio.
+> - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks registrados en `Infrastructure` y expuestos en `Api` · secretos fuera del repositorio.
 > - **Tests:** 131 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
 > - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · Redis · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
 > - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
-> - **Trabajo pendiente, a la vista:** 30 limitaciones conocidas y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
+> - **Trabajo pendiente, a la vista:** 29 limitaciones conocidas (de 30 anotadas, una ya resuelta) y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
 
 API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de portfolio y aprendizaje
 deliberado de backend en C#.
@@ -61,10 +61,10 @@ apuntan siempre hacia dentro**, hacia lo que menos cambia.
 
 ```mermaid
 flowchart RL
-    API["<b>Ecommerce.Api</b><br/>Controllers v1 · v2 · v3 · v4<br/>Versionado · Swagger · CORS · JWT<br/>Middleware de excepciones<br/><i>la única capa que conoce HTTP</i>"]
+    API["<b>Ecommerce.Api</b><br/>Controllers v1 · v2 · v3 · v4<br/>Versionado · Swagger · CORS · JWT<br/>Middleware de excepciones · endpoints /health<br/><i>la única capa que conoce HTTP</i>"]
     APP["<b>Ecommerce.Application</b><br/>Casos de uso · Commands/Queries (MediatR)<br/>DTOs · Validadores · Mapeo"]
     DOM["<b>Ecommerce.Domain</b><br/>Entidades<br/>Interfaces de repositorio<br/><i>cero dependencias externas</i>"]
-    INF["<b>Ecommerce.Infrastructure</b><br/>EF Core · DbContext · Migraciones<br/>Repositorios de escritura y lectura<br/>Interceptores · Caché distribuida (Redis)"]
+    INF["<b>Ecommerce.Infrastructure</b><br/>EF Core · DbContext · Migraciones<br/>Repositorios de escritura y lectura<br/>Interceptores · Caché distribuida (Redis)<br/>Health checks de sus dependencias"]
     TRA["<b>Ecommerce.Transversal</b><br/>Response&lt;T&gt; · ErrorType<br/>Logging (Serilog)"]
 
     API --> APP
@@ -81,10 +81,10 @@ quien las *usa* — y `Infrastructure` las implementa; ahí está la inversión 
 
 | Proyecto | Responsabilidad |
 |---|---|
-| `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, rate limiting, Swagger, manejo global de excepciones. Composition root. |
+| `Ecommerce.Api` | Traduce HTTP ↔ casos de uso. Versionado, autenticación, rate limiting, Swagger, manejo global de excepciones, exposición de `/health` y `/health/ui`. Composition root. |
 | `Ecommerce.Application` | Orquesta los casos de uso (servicios en v1/v2, handlers de MediatR en v3 y v4). No sabe qué es un código HTTP. |
 | `Ecommerce.Domain` | Entidades y contratos. No sabe que existe una base de datos. |
-| `Ecommerce.Infrastructure` | Persistencia con EF Core y caché distribuida con Redis. Implementa los contratos del dominio. Ningún almacén de datos asoma por encima de esta capa. |
+| `Ecommerce.Infrastructure` | Persistencia con EF Core y caché distribuida con Redis. Implementa los contratos del dominio y registra los health checks de las dependencias que ella misma abre. Ningún almacén de datos asoma por encima de esta capa. |
 | `Ecommerce.Transversal` | Tipos y servicios compartidos por varias capas (`Response<T>`, `ErrorType`, logging). |
 | `Ecommerce.Test` | xUnit + NSubstitute + EF Core InMemory. |
 
@@ -135,7 +135,7 @@ cliente* está junto, en lugar de repartido entre un servicio, un DTO compartido
 - **Serilog** — logging estructurado a consola, fichero y SQL Server
 - **Redis** (`StackExchange.Redis` vía `IDistributedCache`) — caché *cache-aside* sobre el listado de clientes, a modo de ejercicio del patrón
 - **Microsoft.AspNetCore.RateLimiting** — rate limiter nativo, con una política de ventana fija de prueba
-- **AspNetCore.HealthChecks** — `/health` en JSON y `/health/ui` en HTML, con SQL Server y Redis como dependencias vigiladas
+- **AspNetCore.HealthChecks** — `/health` en JSON y `/health/ui` en HTML, con SQL Server, Redis y un check propio como comprobaciones registradas; los paquetes de sonda viven en `Infrastructure` y `Api` solo publica los endpoints
 - **Swashbuckle / OpenAPI** — documentación con anotaciones, un documento por versión
 - **xUnit · NSubstitute · Coverlet** — tests y cobertura
 
@@ -643,7 +643,7 @@ guardar— sobre una sola consulta, `GetAllCustomers`:
 | `CustomerReadRepository.GetAllAsync` | [`Infrastructure/Repository`](Ecommerce.Infrastructure/Repository/CustomerReadRepository.cs) | Lee de Redis; si no hay acierto, consulta con EF y guarda |
 | `CacheConfiguration` | [`Infrastructure/Data/Cache`](Ecommerce.Infrastructure/Data/Cache/CacheConfiguration.cs) | Traduce las caducidades de `appsettings.json` a `TimeSpan` |
 | `eCacheKey` | [`Infrastructure/Data/Cache`](Ecommerce.Infrastructure/Data/Cache/eCacheKey.cs) | Las claves como `enum`, para que no viajen como *string* suelto |
-| `.AddRedis(...)` | [`Modules/HealthCheck`](Ecommerce/Modules/HealthCheck/HealthCheckExtensions.cs) | Mete Redis en `/health` con la etiqueta `caché` |
+| `.AddRedis(...)` | [`Infrastructure/ConfigureServices.cs`](Ecommerce.Infrastructure/ConfigureServices.cs) | Mete Redis en `/health` con la etiqueta `caché`, junto al resto de health checks |
 
 Las caducidades salen de la configuración, por política y no del código:
 
@@ -709,6 +709,41 @@ fácil del patrón; la invalidación es la parte difícil, y es la que no está.
 | 4 | **Validar la configuración al arrancar** (nº 25) | Hoy `CacheConfiguration` lanza en el primer *miss*, dentro de una petición: lo contrario del criterio aplicado en el rate limiter |
 | 5 | **Degradar si Redis cae** (nº 26) | Una caché es *best-effort*: si el almacén no responde se va a la base de datos, no se responde 500 |
 
+### Health checks: el registro baja a `Infrastructure`, la exposición se queda en `Api`
+
+Los health checks nacieron enteros en la capa de API: un `Modules/HealthCheck/HealthCheckExtensions.cs`
+con `AddHealthCheck(configuration)` que leía las cadenas de conexión de SQL Server y de Redis y registraba
+las sondas. Funcionaba, pero colocaba la decisión en el sitio equivocado y se notaba en el `.csproj`:
+`Ecommerce.Api` tenía que referenciar **`AspNetCore.HealthChecks.SqlServer` y `AspNetCore.HealthChecks.Redis`**
+—dos paquetes que hablan de almacenes de datos— solo para poder registrarlos, justo lo que la regla *ningún
+almacén de datos asoma por encima de `Infrastructure`* dice que no debe pasar. La capa que ni siquiera sabe
+que existe una base de datos estaba declarando cómo se comprueba que esa base de datos responde.
+
+El reparto ahora sigue la misma línea que el resto de la solución: **quien abre la conexión, la vigila.**
+
+| Pieza | Dónde vive | Por qué ahí |
+|---|---|---|
+| `AddHealthChecks()` con `.AddSqlServer(...)`, `.AddRedis(...)` y `.AddCheck<HealthCheckCustome>(...)` | [`Infrastructure/ConfigureServices.cs`](Ecommerce.Infrastructure/ConfigureServices.cs) | Las sondas comprueban las dos dependencias que **esta misma capa** registra tres líneas más arriba (`AddDbContext` y `AddStackExchangeRedisCache`), leyendo las mismas cadenas de conexión |
+| `HealthCheckCustome` | [`Infrastructure/HealthCheck`](Ecommerce.Infrastructure/HealthCheck/HealthCheckCustome.cs) | Un `IHealthCheck` propio, con la etiqueta `custom` |
+| `MapHealthChecks("/health")` y `MapHealthChecks("/health/ui")` | [`Program.cs`](Ecommerce/Program.cs) | Las rutas y los códigos HTTP son HTTP: eso es de `Api` |
+| `HealthHtmlUi` | [`Modules/HealthCheck`](Ecommerce/Modules/HealthCheck/HealthHtmlUi.cs) | Presentación pura: convierte el `HealthReport` en una tabla HTML |
+
+El resultado se lee en los `.csproj`, que es donde estas cosas se demuestran: los dos paquetes de sonda se
+han movido a `Ecommerce.Infrastructure.csproj` —junto con
+`Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions`, que es solo el contrato `IHealthCheck`— y de
+`Ecommerce.Api.csproj` ha desaparecido cualquier referencia a SQL Server o Redis por esta vía. En `Api`
+queda `AspNetCore.HealthChecks.UI.Client`, que no sonda nada: solo serializa el informe en el JSON que
+esperan servicios como Azure. Con el registro dentro de `AddInfrastructureServices`, `Program.cs` pierde
+también su línea `AddHealthCheck(...)`: añadir mañana una sonda nueva a un almacén nuevo no obliga a tocar
+la capa de API.
+
+**Sobre `HealthCheckCustome`.** Es el hueco donde enchufar una comprobación propia —un servicio externo,
+una cola, una API de terceros—, y hoy está relleno con un `Random` que devuelve `Healthy`, `Degraded` o
+`Unhealthy` según un número entre 1 y 300 ms. Está así **a propósito**: es la única forma de ver los tres
+estados en `/health/ui` sin tirar de verdad una dependencia. No es una comprobación real y no debe
+confundirse con una; el día que haya un servicio externo que vigilar, la lógica sustituye al `Random` sin
+tocar nada más. *(Le sobra un campo `_htmlFormat` sin usar, residuo de cuando la clase vivía junto al HTML.)*
+
 ### Arranque que falla de forma visible
 
 Todo `Program.cs` está envuelto en un `try/catch` que escribe en `stderr`, registra con `Log.Fatal` y fija
@@ -759,7 +794,7 @@ rompe la compilación ni la suite, pero sí el arranque — un `AddScoped` olvid
 
 **Lo que falta:** ningún test cruza un controller, los handlers de v3 salvo `CreateCustomer` están sin
 cubrir, los de v4 no tienen ninguno, y `LoggingBehaviour` y `CustomerReadRepository` —con toda la lógica de
-caché dentro— tampoco. Ver pendientes nº 8, 9, 21 y 29.
+caché dentro— tampoco. Ver pendientes nº 8, 9 y 29.
 
 ---
 
@@ -891,6 +926,7 @@ dejaba abierto.
 | 15 | **Rate limiter de ventana fija** (versión simplificada, de prueba) · 429 · valores en `appsettings.json` | Primer freno a ráfagas de peticiones, con la configuración validada al arrancar |
 | 16 | **Health checks** (`/health` en JSON, `/health/ui` en HTML) con SQL Server y Redis | Las dependencias externas dejan de fallar en silencio |
 | 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
+| 18 | **Health checks repartidos por capa**: el registro (`AddSqlServer`, `AddRedis`, `AddCheck<HealthCheckCustome>`) baja a `Infrastructure` y `Api` se queda solo con `MapHealthChecks` y el HTML | Los paquetes de sonda salen del `.csproj` de `Api`: la capa que no sabe que existe una base de datos deja de declarar cómo se comprueba |
 
 ---
 
@@ -929,7 +965,7 @@ leyendo. Lo que sé que falta, por orden de prioridad:
 | 8 | **La frontera HTTP no tiene ni un test.** Falta un test de integración con `WebApplicationFactory` que recorra SignUp → SignIn → CRUD, y que ejecute **los mismos casos contra v1, v2, v3 y v4** para demostrar que comparten contrato —o, en el caso del 400 de v4, dónde deja de compartirlo—. |
 | 9 | **Handlers de v3 sin cubrir** (`Update`, `Delete` y las dos queries), **los de v4 sin ningún test**, y `ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR. `LoggingBehaviour` tampoco tiene tests: su clasificación por `ErrorType` es lógica pura y fácil de fijar. |
 | 29 | **La caché no tiene ni un test.** `CustomerReadRepository` es la única clase de `Infrastructure` sin cubrir, y su lógica no es trivial: acierto, fallo, guardado con las caducidades correctas y —cuando exista— desalojo después del commit. `IDistributedCache` es una interfaz, así que se dobla con NSubstitute y no hace falta levantar Redis para probarlo. |
-| 21 | **Un test en rojo**: `SignUpAsync_TraduceLaExcepcionAFalloInesperado`. Al pasar `UserAuthApplication` de `IApiLogger<T>` a `ILogger<T>`, la aserción `_logger.Received(1).LogError(...)` dejó de funcionar: en `ILogger<T>`, `LogError` es un método de extensión estático que NSubstitute no puede interceptar, y lanza `RedundantArgumentMatcherException`. Lo razonable es retirar la aserción sobre el logger —el test ya fija lo que importa, que la excepción se traduce a `Unexpected`— en lugar de comprobar la llamada a `ILogger.Log` con sus cinco argumentos. |
+| ~~21~~ | ~~**Un test en rojo**: `SignUpAsync_TraduceLaExcepcionAFalloInesperado`.~~ **Resuelto.** Se retiró la aserción `_logger.Received(1).LogError(...)`: en `ILogger<T>`, `LogError` es un método de extensión estático que NSubstitute no puede interceptar —los `Arg.Any` se quedaban sin consumir y saltaba `RedundantArgumentMatcherException`—. El test conserva lo que tenía que fijar, que la excepción se traduce a `Unexpected`, y el porqué de la aserción ausente queda escrito en el propio test, para que no vuelva a aparecer. |
 
 ### Diseño
 
@@ -962,7 +998,8 @@ valen lo mismo: los que explican el *porqué* (CORS fuera del `if`, `TryParseExa
 y los que repiten lo que el código ya dice, como `CustomerConfiguration`, donde diez comentarios describen
 lo que declaran diez llamadas a `HasMaxLength`. Los segundos envejecen mal y sobran.
 
-**Build y tests:** compila sin errores; **130 de 131 tests en verde** — el rojo es el pendiente nº 21.
+**Build y tests:** compila sin errores; **131 de 131 tests en verde** — el rojo del pendiente nº 21 está
+resuelto.
 
 ---
 
@@ -988,7 +1025,7 @@ Siguientes pasos concretos:
    que hay montado demuestra solo la mitad fácil del patrón.
 2. Cerrar el bloque B: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
    `UserAuthApplication`, `EnableSensitiveDataLogging` por entorno.
-3. Cerrar v4 y el logging: volver a verde (nº 21), unificar el contrato de error de validación (nº 20),
+3. Cerrar v4 y el logging: unificar el contrato de error de validación (nº 20),
    tests de los handlers de v3 y v4 que faltan, de `LoggingBehaviour` y de la caché (nº 29), y cablear
    `IApiLogger` en v1 y v2, que es donde el enfoque manual es el único disponible.
 4. Autenticación: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en

@@ -40,7 +40,6 @@ try
     builder.Services.AddVersioning();
     builder.Services.AddSwagger();
     builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
-    builder.Services.AddHealthCheck(builder.Configuration);
     builder.Services.AddRateLimiting(builder.Configuration);
     
     
