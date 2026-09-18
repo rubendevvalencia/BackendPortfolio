@@ -8,6 +8,7 @@ namespace Ecommerce.Api.Modules.HealthCheck
         {
             services.AddHealthChecks()
                 .AddSqlServer(configuration.GetConnectionString("EcommerceDb"), tags: new[] { "database" })
+                .AddRedis(configuration.GetConnectionString("RedisConnection"), tags: new[] {"caché"})
                 .AddCheck<HealthCheckCustome>("HealthCheckCustom", tags: new[] {"custom"});
             
             return services;
