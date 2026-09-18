@@ -23,7 +23,7 @@ namespace Ecommerce.Infrastructure
                 builder => builder
                     .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
                     .EnableRetryOnFailure()));                                                   //Reintenta automáticamente ante fallos transitorios
-            
+
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = configuration.GetConnectionString("RedisConnection");
