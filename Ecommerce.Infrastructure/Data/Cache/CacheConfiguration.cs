@@ -30,12 +30,15 @@ namespace Ecommerce.Infrastructure.Data.Cache
 
             //InvariantCulture a proposito: el valor viene de un archivo de configuracion, no del
             //usuario, y no debe depender de la cultura de la maquina donde se despliegue.
-            var absoluteOk = TimeSpan.TryParse(absoluteText, CultureInfo.InvariantCulture, out var absoluteExpiration);
+            //TryParseExact y no TryParse: TimeSpan lee un entero suelto como DIAS ("30" => 30 dias),
+            //asi que un valor mal escrito pasaria la validacion y daria una caducidad absurda.
+            //Exigiendo "hh:mm:ss" ese error se convierte en un fallo al arrancar.
+            var absoluteOk = TimeSpan.TryParseExact(absoluteText, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var absoluteExpiration);
 
             if (!absoluteOk)
                 throw new InvalidOperationException($"AbsoluteExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
 
-            var slidingOk = TimeSpan.TryParse(slidingText, CultureInfo.InvariantCulture, out var slidingExpiration);
+            var slidingOk = TimeSpan.TryParseExact(slidingText, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var slidingExpiration);
 
             if (!slidingOk)
                 throw new InvalidOperationException($"SlidingExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
