@@ -6,7 +6,6 @@ using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Api.Models.Version;
 using Ecommerce.Api.Modules.HealthCheck;
 using Ecommerce.Api.Modules.RateLimiter;
-using Ecommerce.Api.Modules.Redis;
 using Ecommerce.Application;
 using Ecommerce.Infrastructure;
 using Ecommerce.Transversal;
@@ -33,7 +32,6 @@ try
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddInfrastructureServices(builder.Configuration);
-    builder.Services.AddRedisCache(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
     builder.Services.AddAuth(builder.Configuration);                // Registra la autenticación JWT usando la configuración de Jwt.
