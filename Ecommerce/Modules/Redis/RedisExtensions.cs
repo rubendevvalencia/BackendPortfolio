@@ -7,7 +7,7 @@
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = configuration.GetConnectionString("RedisConnection");
-                options.ConfigurationOptions.AbortOnConnectFail = false;
+                //options.ConfigurationOptions.AbortOnConnectFail = false;
             });
 
             return services;
