@@ -45,10 +45,5 @@ namespace Ecommerce.Api.Controllers
             
             return Ok(response);
         }
-
-        [HttpGet("boom")]
-        [AllowAnonymous]   //Importante: el controller lleva [Authorize] a nivel de clase
-        public IActionResult Boom() => throw new InvalidOperationException("prueba del middleware");
-
     }
 }

@@ -39,10 +39,7 @@ namespace Ecommerce.Api.Models.GlobalException
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
 
-                var response = new Response<Object>()
-                {
-                    Message = ex.Message,
-                };
+                var response = Response<bool>.Fail("Unhandle exception");
 
                 await JsonSerializer.SerializeAsync(context.Response.Body, response);
             }
