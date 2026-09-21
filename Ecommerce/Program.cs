@@ -23,11 +23,7 @@ using System.Text.Json.Serialization;
 try
 {
     var builder = WebApplication.CreateBuilder(args);
-
-
-    
     // Add services to the container.
-    
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
@@ -41,8 +37,6 @@ try
     builder.Services.AddSwagger();
     builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
     builder.Services.AddRateLimiting(builder.Configuration);
-    
-    
     
     builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     

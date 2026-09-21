@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Domain.Entities.Audit;
+using Ecommerce.Domain.Interface.IAuthIdentification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
@@ -14,6 +15,11 @@ namespace Ecommerce.Infrastructure.Interceptors
         //Esto ayuda a interceptar los cambios en las entidades auditables antes de que se guarden en la base de datos.
         //Con esto se configura automáticamente la información de auditoría (como CreatedAt, CreatedBy, LastUpdatedAt, LastUpdatedBy) para las entidades que heredan de BaseAuditEntity.
 
+        private readonly ICurrentUser? _currentUser;
+
+        //Opcional a proposito: el DesignTimeFactory y los tests lo crean con new() sin usuario y deben seguir guardando "System".
+        public AuditableEntitySaveChangesInterceptor(ICurrentUser? currentUser = null) => _currentUser = currentUser;
+
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
         {
             UpdateEntities(eventData.Context);
@@ -24,6 +30,9 @@ namespace Ecommerce.Infrastructure.Interceptors
         {
             if(context == null) throw new ArgumentNullException("context");
 
+            var userName = _currentUser?.GetUserName();
+            var auditUser = userName ?? "System"; //Sin token o fuera de una peticion HTTP no hay usuario: se queda "System".
+
             foreach(var entry in context.ChangeTracker.Entries<BaseAuditEntity>()) //Recorremos todas las entidades que heredan de BaseAuditEntity que están siendo rastreadas por el contexto.
             {
                 if (entry.Entity is BaseAuditEntity auditableEntity)
@@ -32,14 +41,13 @@ namespace Ecommerce.Infrastructure.Interceptors
                     {
                         case EntityState.Added:
                             auditableEntity.CreatedAt = DateTime.UtcNow;
-                            auditableEntity.CreatedBy = "System"; // Aquí puedes establecer CreatedBy según tu lógica de autenticación.
+                            auditableEntity.CreatedBy = auditUser;
                             auditableEntity.LastUpdatedAt = DateTime.UtcNow;
-                            auditableEntity.LastUpdatedBy = "System"; // Aquí puedes establecer LastUpdatedBy según tu lógica de autenticación.
-                            // Aquí puedes establecer CreatedBy y LastUpdatedBy según tu lógica de autenticación.
+                            auditableEntity.LastUpdatedBy = auditUser;
                             break;
                         case EntityState.Modified:
                             auditableEntity.LastUpdatedAt = DateTime.UtcNow;
-                            auditableEntity.LastUpdatedBy = "System"; // Aquí puedes establecer LastUpdatedBy según tu lógica de autenticación.
+                            auditableEntity.LastUpdatedBy = auditUser;
                             break;
                     }
                 }
