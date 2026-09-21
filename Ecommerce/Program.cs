@@ -69,6 +69,8 @@ try
     
     if (app.Environment.IsDevelopment())
     {
+        var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+
         app.UseSwagger(); //Esto habilita la generación de la documentación Swagger en el entorno de desarrollo. Genera el json de la API y lo sirve en la ruta /swagger/v1/swagger.json.
         app.UseSwaggerUI(c =>
         {
@@ -76,7 +78,6 @@ try
                                                                                //Permite a los desarrolladores explorar y probar los endpoints de la API a través de una interfaz web interactiva.
                                                                                //La ruta /swagger/v0/swagger.json es donde se encuentra el archivo JSON generado por UseSwagger() que describe la API.
             
-            var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>(); //Es mejor construir con los servicios que construir de nuevo así evitas errores de reconstrucción cuando no toca
             
             foreach (var description in provider.ApiVersionDescriptions)
             {
@@ -88,9 +89,19 @@ try
             c.DisplayRequestDuration(); //Esto habilita la visualización de la duración de las solicitudes en la interfaz de usuario de Swagger. Muestra cuánto tiempo tarda cada solicitud en completarse, lo que puede ser útil para el rendimiento y la depuración.
             c.EnableDeepLinking();
             c.ShowExtensions();
+        });
+        //Por defecto solo representa la última versión de la API
+        app.UseReDoc(options =>
+        {
+            foreach (var description in provider.ApiVersionDescriptions)
+            {
+                options.DocumentTitle = "Ecommerce Services Api";
+                options.SpecUrl = $"/swagger/{description.GroupName}/swagger.json";
+            }
+        }
 
             
-        });
+            );
         //app.MapOpenApi(): No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
     }
     
