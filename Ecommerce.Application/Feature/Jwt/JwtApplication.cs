@@ -45,6 +45,7 @@ namespace Ecommerce.Application.MainService.Jwt
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, entity.FirstName),
                 new Claim(ClaimTypes.Name, entity.UserName),
                 new Claim(ClaimTypes.Email, entity.Email),
             };

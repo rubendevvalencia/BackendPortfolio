@@ -98,7 +98,11 @@ namespace Ecommerce.Api.Controllers.v4
         }
 
         [HttpGet("GetAllAsync")]
-        [SwaggerOperation(Summary = "Retrieves all customers.", Description = "Retrieves a list of all customers in the system.")]
+        [SwaggerOperation(
+            Summary = "Retrieves all customers.", 
+            Description = "Retrieves a list of all customers in the system.",
+            OperationId = "GetAll",
+            Tags = new string[] { "GetAll" })]
         [SwaggerResponse(StatusCodes.Status200OK, "Customers retrieved successfully.", typeof(Response<IEnumerable<CustomerDto>>))]
         public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
         {

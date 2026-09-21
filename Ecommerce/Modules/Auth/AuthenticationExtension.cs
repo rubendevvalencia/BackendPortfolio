@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Ecommerce.Api.Modules.Services.CurrentUser;
+using Ecommerce.Domain.Interface.IAuthIdentification;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Ecommerce.Api.Models.Auth
@@ -23,7 +25,22 @@ namespace Ecommerce.Api.Models.Auth
                         IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSettings["Key"]!)), // Usa Jwt:Key para verificar la firma HMAC del token.
                         ClockSkew = TimeSpan.Zero // No añade margen de tiempo a la caducidad del token.
                     };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnAuthenticationFailed = context =>
+                        {
+                            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                            {
+                                context.Response.Headers.Append("Token-Expired", "true");
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
+
+            services.AddHttpContextAccessor();                     // Da acceso a HttpContext.User fuera del controller.
+            services.AddScoped<ICurrentUser, CurrentUser>();       // Permite rellenar la auditoría que ya no depende de system, sino de un user para rellenar CreatedBy / LastUpdatedBy.
             return services;
         }
     }
