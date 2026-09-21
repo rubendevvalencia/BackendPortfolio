@@ -518,12 +518,16 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.Equal("User already exists", response.Message);
         }
 
-        //DEFECTO: el detalle de la excepcion sale en la respuesta HTTP (pendiente #6 del README).
-        //El Message de una excepcion de base de datos puede llevar el nombre del servidor, del usuario
-        //o de la tabla. Eso no debe cruzar el borde de la API: dentro el log, fuera un texto generico.
-        //Pasa en los dos casos de uso, asi que hay un test para cada uno.
+        //Pendiente #6 del README, ya corregido: el detalle de la excepcion no cruza el borde de la API.
+        //El Message de una excepcion de base de datos puede llevar el nombre del servidor, el del usuario
+        //o el de la tabla. Dentro el log, fuera un texto generico. Pasa en los dos casos de uso, asi que
+        //hay un test para cada uno.
+        //
+        //No se fija el texto exacto del mensaje generico a proposito: lo que tiene que cumplirse es que
+        //NO lleve el detalle interno. Atarlo a una cadena concreta convierte un cambio de redaccion, o
+        //del idioma del mensaje, en un test rojo que no avisa de ningun defecto.
         [Fact]
-        public async Task SignUpAsync_HoyDevuelveElMensajeCrudoDeLaExcepcion_DefectoDeSeguridad()
+        public async Task SignUpAsync_NoDevuelveElDetalleDeLaExcepcion()
         {
             //Arrange: una excepcion con detalle de infraestructura, del estilo de las de SQL Server.
             var detalleInterno = "Login failed for user 'sa'. Server=prod-sql-01;Database=EcommerceDb";
@@ -531,7 +535,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                            .ThrowsAsync(new InvalidOperationException(detalleInterno));
 
             //Comprobacion del Arrange: lo que se espera del doble es que reviente con ESE mensaje,
-            //que es justo el que despues se busca en la respuesta.
+            //que es justo el que despues NO tiene que aparecer en la respuesta.
             var mensajeDelDoble = string.Empty;
             try
             {
@@ -553,14 +557,89 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //Act
             var response = await _auth.SignUpAsync(signUpDto);
 
-            //Assert: comportamiento ACTUAL. Lo correcto seria un texto generico y el detalle solo en el log.
-            Assert.Equal(detalleInterno, response.Message);
+            //Assert: fallo inesperado, con un mensaje que no filtra nada de la excepcion.
+            Assert.False(response.IsSuccess);
+            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
+
+            //Un mensaje vacio taparia la fuga, pero dejaria al cliente sin nada que mostrar.
+            Assert.NotEmpty(response.Message);
+
+            //Los tres fragmentos son los que de verdad duelen: la frase entera, el nombre del servidor
+            //y el de la base de datos. Se comprueban por separado para que el fallo diga cual se escapo.
+            Assert.DoesNotContain(detalleInterno, response.Message);
+            Assert.DoesNotContain("prod-sql-01", response.Message);
+            Assert.DoesNotContain("EcommerceDb", response.Message);
+        }
+
+        //Que no salga el texto literal no basta: si el mensaje CAMBIARA segun la excepcion, seguiria
+        //siendo un canal de informacion para quien sondea la API (distinguir "no hay conexion" de
+        //"la tabla no existe" ya es saber demasiado). Este test fija que la respuesta es la misma.
+        //Ademas es la red que caza una vuelta atras a ex.Message sin depender de como este redactado
+        //el texto generico.
+        [Fact]
+        public async Task SignUpAsync_DevuelveElMismoMensajeSeaCualSeaLaExcepcion()
+        {
+            //Arrange: primera excepcion, un fallo de credenciales de base de datos.
+            _userRepository.GetByEmailAsync(Arg.Any<string>())
+                           .ThrowsAsync(new InvalidOperationException("Login failed for user 'sa'."));
+
+            //Comprobacion del Arrange.
+            var mensajeDelPrimerDoble = string.Empty;
+            try
+            {
+                await _userRepository.GetByEmailAsync("cualquiera@test.com");
+            }
+            catch (InvalidOperationException ex)
+            {
+                mensajeDelPrimerDoble = ex.Message;
+            }
+
+            if (mensajeDelPrimerDoble != "Login failed for user 'sa'.")
+            {
+                throw new InvalidOperationException(
+                    "Arrange mal montado: el repositorio deberia reventar con el fallo de credenciales.");
+            }
+
+            SignUpDto signUpDto = NewSignUpDto();
+
+            //Act: primera llamada.
+            var primeraResponse = await _auth.SignUpAsync(signUpDto);
+
+            //Arrange: se reconfigura el mismo doble con una excepcion de otro tipo y otro mensaje.
+            //La configuracion nueva sustituye a la anterior para esa llamada.
+            _userRepository.GetByEmailAsync(Arg.Any<string>())
+                           .ThrowsAsync(new TimeoutException("Timeout expired. Server=prod-sql-01"));
+
+            //Comprobacion del Arrange: ahora tiene que reventar con la segunda, no con la primera.
+            var mensajeDelSegundoDoble = string.Empty;
+            try
+            {
+                await _userRepository.GetByEmailAsync("cualquiera@test.com");
+            }
+            catch (TimeoutException ex)
+            {
+                mensajeDelSegundoDoble = ex.Message;
+            }
+
+            if (mensajeDelSegundoDoble != "Timeout expired. Server=prod-sql-01")
+            {
+                throw new InvalidOperationException(
+                    "Arrange mal montado: el repositorio deberia reventar ahora con el timeout.");
+            }
+
+            //Act: segunda llamada, mismo caso de uso.
+            var segundaResponse = await _auth.SignUpAsync(signUpDto);
+
+            //Assert: dos excepciones distintas, una sola respuesta hacia fuera.
+            Assert.Equal(primeraResponse.Message, segundaResponse.Message);
+            Assert.Equal(ErrorType.Unexpected, primeraResponse.ErrorType);
+            Assert.Equal(ErrorType.Unexpected, segundaResponse.ErrorType);
         }
 
         [Fact]
-        public async Task SingInAsync_HoyDevuelveElMensajeCrudoDeLaExcepcion_DefectoDeSeguridad()
+        public async Task SingInAsync_NoDevuelveElDetalleDeLaExcepcion()
         {
-            //Arrange
+            //Arrange: la misma excepcion con detalle de infraestructura que en el test de SignUp.
             var detalleInterno = "Login failed for user 'sa'. Server=prod-sql-01;Database=EcommerceDb";
             _userRepository.GetByEmailAsync(Arg.Any<string>())
                            .ThrowsAsync(new InvalidOperationException(detalleInterno));
@@ -587,8 +666,65 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //Act
             var response = await _auth.SingInAsync(signInDto);
 
-            //Assert: comportamiento ACTUAL.
-            Assert.Equal(detalleInterno, response.Message);
+            //Assert: el caso de uso traduce la excepcion a un fallo inesperado y no filtra el detalle.
+            //En el login importa el doble: el mensaje viaja en la respuesta que mas mira quien esta
+            //probando credenciales desde fuera.
+            Assert.False(response.IsSuccess);
+            Assert.Equal(ErrorType.Unexpected, response.ErrorType);
+            Assert.Null(response.Data);
+            Assert.NotEmpty(response.Message);
+            Assert.DoesNotContain(detalleInterno, response.Message);
+            Assert.DoesNotContain("prod-sql-01", response.Message);
+            Assert.DoesNotContain("EcommerceDb", response.Message);
+        }
+
+        //El detalle que ya no sale por la respuesta tiene que seguir estando en el log: si no, el fallo
+        //desaparece sin rastro y la correccion cambia una fuga por una ceguera. Se espia ILogger.Log,
+        //que es el metodo de la interfaz al que acaba llamando la extension LogError; por eso los cinco
+        //argumentos y el Arg.AnyType del estado, que es un tipo interno de Microsoft.Extensions.Logging.
+        //Es el unico sitio del fichero donde se comprueba el log, y se hace aqui porque escribirlo es
+        //parte de la correccion, no un detalle de implementacion.
+        [Fact]
+        public async Task SingInAsync_EscribeElDetalleDeLaExcepcionEnElLog()
+        {
+            //Arrange
+            var detalleInterno = "Login failed for user 'sa'. Server=prod-sql-01;Database=EcommerceDb";
+            var excepcion = new InvalidOperationException(detalleInterno);
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).ThrowsAsync(excepcion);
+
+            //Comprobacion del Arrange.
+            Exception? excepcionDelDoble = null;
+            try
+            {
+                await _userRepository.GetByEmailAsync("cualquiera@test.com");
+            }
+            catch (InvalidOperationException ex)
+            {
+                excepcionDelDoble = ex;
+            }
+
+            if (excepcionDelDoble != excepcion)
+            {
+                throw new InvalidOperationException(
+                    "Arrange mal montado: el repositorio deberia reventar con ESA misma excepcion.");
+            }
+
+            //Consultar el doble del repositorio no cuenta como llamada al logger, pero se limpia igual
+            //para que el Received(1) de abajo solo pueda contar lo que escriba el caso de uso.
+            _logger.ClearReceivedCalls();
+
+            SignInDto signInDto = NewSignInDto();
+
+            //Act
+            await _auth.SingInAsync(signInDto);
+
+            //Assert: una entrada de Error con la excepcion original dentro, la que lleva el detalle.
+            _logger.Received(1).Log(
+                LogLevel.Error,
+                Arg.Any<EventId>(),
+                Arg.Any<Arg.AnyType>(),
+                excepcion,
+                Arg.Any<Func<Arg.AnyType, Exception?, string>>());
         }
     }
 }

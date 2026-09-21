@@ -81,7 +81,7 @@ namespace Ecommerce.Application.Feature.Users
             catch (Exception ex)
             {
                 response.IsSuccess = false;
-                response.Message = ex.Message;
+                response.Message = "Unhandle exception";
                 response.ErrorType = ErrorType.Unexpected;
                 _logger.LogError(ex, "An error occurred while signing up user: {Email}", entity.Email);
             }
@@ -129,8 +129,9 @@ namespace Ecommerce.Application.Feature.Users
             catch (Exception ex)
             {
                 response.IsSuccess = false;
-                response.Message = ex.Message;
+                response.Message =  "Unhandle exception";
                 response.ErrorType = ErrorType.Unexpected;
+                _logger.LogError(ex, "An error occurred while signing in user: {Email}", entity.Email);
             }
 
             return response;
