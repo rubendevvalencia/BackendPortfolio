@@ -1,8 +1,16 @@
 # Backend Portfolio — API Ecommerce
 
+> [!IMPORTANT]
+> **Portfolio de aprendizaje, no un producto.** Este repositorio es un ejercicio de aprendizaje deliberado:
+> lo construyo para entender el backend en .NET a fondo, probando patrones, comparándolos y equivocándome a
+> la vista. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
+> diseño e higiene) documentadas en [*Estado actual y limitaciones conocidas*](#estado-actual-y-limitaciones-conocidas),
+> con el motivo de cada una. Si vas a evaluarlo, esa sección forma parte del proyecto tanto como el código:
+> muestra qué sé que falta y en qué orden pienso resolverlo.
+
 > **En 30 segundos**
 >
-> - **Qué es:** API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
+> - **Qué es:** portfolio de aprendizaje. API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
 > - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks registrados en `Infrastructure` y expuestos en `Api` · secretos fuera del repositorio.
@@ -15,9 +23,19 @@ API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de 
 deliberado de backend en C#.
 
 El objetivo no es la cantidad de funcionalidad, sino la **calidad de las decisiones**: por qué cada pieza
-está donde está, qué problema resuelve y qué se rompería si estuviera en otro sitio. El código lleva
-comentarios que explican el *porqué*, no el *qué* — están puestos a propósito, con fines didácticos, y en
-un proyecto de producción tendrían bastante menos densidad.
+está donde está, qué problema resuelve y qué se rompería si estuviera en otro sitio.
+
+Que sea un proyecto de aprendizaje tiene consecuencias concretas, y conviene tenerlas presentes al leerlo:
+
+- **Algunos contrastes están puestos a propósito.** v1 es el antipatrón y v4 usa una excepción para un
+  fallo esperado. Conviven con las demás versiones para poder compararlas, no por descuido.
+- **Algunas piezas son ejercicios, no soluciones.** El rate limiter y la caché con Redis son versiones
+  simplificadas para ver el patrón funcionando de punta a punta; no responden a un problema medido.
+- **Los comentarios son didácticos.** Explican el *porqué* y no el *qué*, y en un proyecto de producción
+  tendrían bastante menos densidad.
+- **Hay deuda, y está a la vista.** Todo lo que sé que falla o falta está en
+  [*Estado actual y limitaciones conocidas*](#estado-actual-y-limitaciones-conocidas), con el mecanismo de
+  cada fallo explicado, y el orden en que se va a abordar está en la [*Hoja de ruta*](#hoja-de-ruta).
 
 ---
 
@@ -932,8 +950,12 @@ dejaba abierto.
 
 ## Estado actual y limitaciones conocidas
 
-Este es un proyecto en construcción y prefiero decir dónde está el trabajo pendiente a que se descubra
-leyendo. Lo que sé que falta, por orden de prioridad:
+Este es un proyecto de aprendizaje en construcción, y prefiero decir dónde está el trabajo pendiente a que
+se descubra leyendo. Lo que sigue no son descuidos que se hayan escapado: es la lista de lo que sé que falta,
+con el motivo de cada fallo. Tenlo en cuenta al leer el código: varias piezas funcionan, pero **no están
+listas para producción**, y aquí se explica por qué.
+
+Lo que sé que falta, por orden de prioridad:
 
 ### Seguridad
 
