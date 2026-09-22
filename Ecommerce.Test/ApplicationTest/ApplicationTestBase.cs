@@ -20,6 +20,12 @@ namespace Ecommerce.Test.ApplicationTest
         //La configuracion de AutoMapper es cara y no guarda estado entre mapeos,
         //asi que se construye una sola vez para todos los tests.
         protected static readonly IMapper Mapper = BuildMapper();
+        protected static readonly IValidator<SignUpDto> SignUpValidator = new SignUpDtoValidator();
+        protected static readonly IValidator<SignInDto> SignInValidator = new SignInValidator();
+
+        //8 caracteres es el minimo que exigen los dos validadores.
+        protected const string ValidPassword = "Password123!";
+
 
         private static IMapper BuildMapper()
         {
@@ -36,14 +42,7 @@ namespace Ecommerce.Test.ApplicationTest
         }
 
         //Validador real: ejerce las reglas de CustomerDtoValidator de verdad.
-        protected static IValidator<CustomerDto> CustomerValidator
-        {
-            get
-            {
-                var validator = new CustomerDtoValidator();
-                return validator;
-            }
-        }
+        protected static readonly IValidator<CustomerDto> CustomerValidator = new CustomerDtoValidator();
 
         //Datos validos por defecto. Cada test cambia solo lo que le importa y el resto es ruido de fondo.
         protected CustomerDto NewCustomerDto(string companyName = "Test")
@@ -93,27 +92,7 @@ namespace Ecommerce.Test.ApplicationTest
             _customerGuardado = customerRecibido;
         }
 
-        protected static IValidator<SignUpDto> SignUpValidator
-        {
-            get
-            {
-                var validator = new SignUpDtoValidator();
-                return validator;
-            }
-        }
-
-        protected static IValidator<SignInDto> SignInValidator
-        {
-            get
-            {
-                var validator = new SignInValidator();
-                return validator;
-            }
-        }
-
-        //8 caracteres es el minimo que exigen los dos validadores.
-        protected const string ValidPassword = "Password123!";
-
+       
         protected SignUpDto NewSignUpDto(string email = "ruben@email.com", string userName = "ruben")
         {
             return new SignUpDto
