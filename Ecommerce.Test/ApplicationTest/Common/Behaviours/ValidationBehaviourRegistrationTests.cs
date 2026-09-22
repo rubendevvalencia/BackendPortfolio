@@ -10,16 +10,13 @@ using CreateCustomerCommandV4 = Ecommerce.Application.Feature.Customers.v4.Comma
 
 namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
 {
-    //Test de cableado: comprueba con la DI real (AddApplicationServices) a que peticiones se aplica ValidationBehaviour.
-    //Protege la restriccion "where TRequest : IValidatableRequest": si alguien la quita, el behaviour empieza a
-    //validar tambien v3, que ya valida en su handler, y cambia su respuesta de validacion sin que falle ningun test de v3.
+    //Test de cableado: comprueba con la DI real a que peticiones se aplica ValidationBehaviour (solo v4).
     public class ValidationBehaviourRegistrationTests
     {
         [Fact]
         public void AddApplicationServices_PeticionV4_IncluyeValidationBehaviour()
         {
-            //Arrange
-            //LoggingBehaviour pide ILogger<>: en produccion lo registra el host, aqui basta con el logger nulo.
+            //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
             services.AddApplicationServices();
@@ -37,8 +34,7 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         [Fact]
         public void AddApplicationServices_PeticionV3_NoIncluyeValidationBehaviour()
         {
-            //Arrange
-            //LoggingBehaviour pide ILogger<>: en produccion lo registra el host, aqui basta con el logger nulo.
+            //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
             services.AddApplicationServices();

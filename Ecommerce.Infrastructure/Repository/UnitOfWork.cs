@@ -24,6 +24,8 @@ namespace Ecommerce.Infrastructure.Repository
         //en una sola transacción, de modo que se confirman o se descartan en bloque.
         //No implementa IDisposable: el ciclo de vida del DbContext lo gestiona el contenedor de DI (scoped).
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-            => _dbContext.SaveChangesAsync(cancellationToken);
+        {
+            return _dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 }

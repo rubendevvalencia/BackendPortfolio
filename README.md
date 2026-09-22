@@ -1,26 +1,28 @@
 # Backend Portfolio — API Ecommerce
 
 > [!IMPORTANT]
-> **Portfolio de aprendizaje y demostración de conocimientos adquiridos a lo largo de mi experiencia profesional.** Este repositorio es un ejercicio de aprendizaje deliberado:
-> lo construyo para entender el backend en .NET a fondo, probando patrones, comparándolos y equivocándome a
-> la vista. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
+> **Portfolio de aprendizaje y demostración de conocimientos adquiridos a lo largo de mi experiencia profesional.**
+>
+> No es un producto. Tiene dos propósitos que conviven: **demostrar** lo que he aprendido trabajando en
+> backend con .NET, y **seguir aprendiendo** a la vista, probando patrones, comparándolos y dejando
+> documentado lo que no sale bien. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
 > diseño e higiene) documentadas en [*Estado actual y limitaciones conocidas*](#estado-actual-y-limitaciones-conocidas),
 > con el motivo de cada una. Si vas a evaluarlo, esa sección forma parte del proyecto tanto como el código:
 > muestra qué sé que falta y en qué orden pienso resolverlo.
 
 > **En 30 segundos**
 >
-> - **Qué es:** portfolio de aprendizaje. API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
+> - **Qué es:** portfolio de aprendizaje y demostración de conocimientos adquiridos en mi experiencia profesional. API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
 > - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks registrados en `Infrastructure` y expuestos en `Api` · secretos fuera del repositorio.
-> - **Tests:** 131 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
+> - **Tests:** 269 con xUnit, NSubstitute y EF Core InMemory: repositorios, handlers, validadores, behaviours y la configuración de dependencias.
 > - **Stack:** C# · ASP.NET Core · EF Core · SQL Server · Redis · MediatR · FluentValidation · AutoMapper · JWT · Serilog · Swagger · xUnit
 > - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
-> - **Trabajo pendiente, a la vista:** 29 limitaciones conocidas (de 30 anotadas, una ya resuelta) y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
+> - **Trabajo pendiente, a la vista:** 29 limitaciones conocidas (de 31 anotadas, dos ya resueltas) y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
 
-API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de portfolio y aprendizaje
-deliberado de backend en C#.
+API REST en **.NET 10** construida con **Clean Architecture**: un portfolio de aprendizaje y de
+demostración de los conocimientos de backend en C# que he adquirido a lo largo de mi experiencia profesional.
 
 El objetivo no es la cantidad de funcionalidad, sino la **calidad de las decisiones**: por qué cada pieza
 está donde está, qué problema resuelve y qué se rompería si estuviera en otro sitio.
@@ -772,7 +774,7 @@ configurar— acababa en un proceso que salía con código 0 y sin rastro en la 
 
 ## Tests
 
-**131 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
+**269 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
 
 **Repositorios (`Infrastructure`).** `DbContextEF` no expone miembros virtuales, así que **no se puede
 sustituir con un mock**. Estos tests usan el proveedor InMemory de EF Core, con una base distinta por test y
@@ -782,19 +784,23 @@ en memoria. En v2 se prueba además lo que define al patrón: **sin `SaveChanges
 varios cambios se confirman en un único `SaveChanges`.
 
 **Casos de uso y handlers (`Application`).** Organizados como el código: `Feature/v1`, `Feature/v2`,
-`Feature/v3` y `Feature/Jwt`. La decisión que importa es **qué se sustituye y qué no**: se doblan los
+`Feature/v3`, `Feature/v4` y `Feature/Jwt`, y dentro de v3 y v4 un fichero por comando y por query. La decisión que importa es **qué se sustituye y qué no**: se doblan los
 *límites* de la capa —repositorios e `IUnitOfWork`, con NSubstitute— pero el mapper y los validadores se
 usan **reales**, porque forman parte de lo que se está probando. `ApplicationTestBase` construye el mapper
 una sola vez y llama a `AssertConfigurationIsValid()`, que revienta si algún mapa deja propiedades de
 destino sin mapear ni marcar como `Ignore()`.
 
 Lo que estos tests demuestran y no se puede demostrar leyendo el código: que **el `SaveChangesAsync` se
-llama una sola vez y en el momento correcto**, y que cuando la validación falla o el cliente está duplicado
-no se llama en absoluto.
+llama una sola vez y en el momento correcto**, y que cuando la validación falla, el cliente está duplicado
+o no existe no se llama en absoluto.
 
-**Validadores (v3).** `CreateCustomerValidatorTests` recorre cada regla con `[Theory]`: campo vacío,
-longitud exactamente en el límite (válida) y un carácter por encima (inválida). Si alguien cambia una regla,
-falla su fila concreta.
+La comparación v3 → v4 también se ve en los tests: los handlers de v3 tienen un caso de validación y los de
+v4 no, porque en v4 la validación ya no vive en el handler sino en `ValidationBehaviour`.
+
+**Validadores (v3 y v4).** Los de `Create` y `Update` recorren cada regla con `[Theory]`: campo vacío,
+longitud exactamente en el límite (válida) y un carácter por encima (inválida). En v4, `Delete` y
+`GetCustomer` prueban además la regla del `Id`, que en v3 comprobaba el controller a mano. Si alguien cambia
+una regla, falla su fila concreta.
 
 **Behaviours del pipeline.** `ValidationBehaviourTests` prueba el behaviour aislado, sin MediatR: con una
 petición válida llama a `next()`, con una inválida lanza `ValidationExceptionCustom` **y no llama a
@@ -803,16 +809,16 @@ petición válida llama a `next()`, con una inválida lanza `ValidationException
 que una petición de v4 recibe el behaviour y una de v3 no. `LoggingBehaviour` todavía no tiene tests.
 
 **Tests de caracterización.** Algunos tests fijan a propósito un comportamiento **defectuoso** conocido
-(sufijo `_DefectoDeSeguridad` o `_PendienteDeCorregir`). No describen lo deseado: hacen visible la deuda y
+(sufijo `_DefectoDeSeguridad` o `_PendienteDeCorregir`, y en v3 y v4 `Handle_UpdateCustomer_SaveFail`,
+marcado con un comentario). No describen lo deseado: hacen visible la deuda y
 garantizan que, al arreglarla, el rojo diga exactamente qué ha cambiado.
 
 **Composition root.** `ConfigureServicesTest` construye el contenedor con
 `BuildServiceProvider(validateScopes: true)` y resuelve el grafo completo. Detecta la clase de error que no
 rompe la compilación ni la suite, pero sí el arranque — un `AddScoped` olvidado, o una *captive dependency*.
 
-**Lo que falta:** ningún test cruza un controller, los handlers de v3 salvo `CreateCustomer` están sin
-cubrir, los de v4 no tienen ninguno, y `LoggingBehaviour` y `CustomerReadRepository` —con toda la lógica de
-caché dentro— tampoco. Ver pendientes nº 8, 9 y 29.
+**Lo que falta:** ningún test cruza un controller, y `LoggingBehaviour` y `CustomerReadRepository` —con
+toda la lógica de caché dentro— no tienen tests. Ver pendientes nº 8, 29 y 31.
 
 ---
 
@@ -972,7 +978,7 @@ Lo que sé que falta, por orden de prioridad:
 | | Pendiente |
 |---|---|
 | 24 | **La caché no se invalida nunca.** `GetAllCustomers` se guarda en Redis con una hora de caducidad absoluta y doce minutos deslizantes, y **no hay un solo `RemoveAsync` en toda la solución**: crear, actualizar o borrar un cliente no toca la caché, así que el listado sigue devolviendo el estado anterior hasta que la entrada expira sola. Es el fallo funcional más grave que hay ahora mismo, y afecta a v3 y v4 a la vez. La invalidación va en un `SaveChangesInterceptor` sobre `SavedChangesAsync`, por lo explicado en [*Caché distribuida*](#caché-distribuida-con-redis-ejercicio-del-patrón-cache-aside). |
-| 4 | **Actualizar con los mismos datos devuelve 500** en v2 y v3: EF no escribe nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Contradice lo explicado en *Unit of Work*. |
+| 4 | **Actualizar con los mismos datos devuelve 500** en v2, v3 y v4: EF no escribe nada, `SaveChangesAsync` devuelve 0 y el caso de uso lo traduce a error. Contradice lo explicado en *Unit of Work*. Lo fijan tres tests de caracterización, uno por versión. |
 | 5 | **`CustomerDto` no expone `Id`**: el listado devuelve clientes que luego no se pueden identificar para actualizar o borrar. |
 | 6 | **`DefaultApiVersion` apunta a `1.0`, obsoleta.** Debe apuntar a la vigente. `UserAuthController` no declara la `4.0`, así que un cliente de v4 se autentica contra v3. |
 | 7 | **La validación de `Jwt:Key` es asimétrica**: se comprueba al emitir el token, no al arrancar. La comprobación debe estar en el arranque (`JwtOptions` con `ValidateOnStart()`). |
@@ -985,7 +991,8 @@ Lo que sé que falta, por orden de prioridad:
 | | Pendiente |
 |---|---|
 | 8 | **La frontera HTTP no tiene ni un test.** Falta un test de integración con `WebApplicationFactory` que recorra SignUp → SignIn → CRUD, y que ejecute **los mismos casos contra v1, v2, v3 y v4** para demostrar que comparten contrato —o, en el caso del 400 de v4, dónde deja de compartirlo—. |
-| 9 | **Handlers de v3 sin cubrir** (`Update`, `Delete` y las dos queries), **los de v4 sin ningún test**, y `ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR. `LoggingBehaviour` tampoco tiene tests: su clasificación por `ErrorType` es lógica pura y fácil de fijar. |
+| ~~9~~ | ~~**Handlers de v3 y v4 sin cubrir.**~~ **Resuelto.** |
+| 31 | **`ConfigureServicesTest` no incluye `ICustomerReadRepository` ni la resolución de los handlers de MediatR**, y `LoggingBehaviour` no tiene tests: su clasificación por `ErrorType` es lógica pura y fácil de fijar. |
 | 29 | **La caché no tiene ni un test.** `CustomerReadRepository` es la única clase de `Infrastructure` sin cubrir, y su lógica no es trivial: acierto, fallo, guardado con las caducidades correctas y —cuando exista— desalojo después del commit. `IDistributedCache` es una interfaz, así que se dobla con NSubstitute y no hace falta levantar Redis para probarlo. |
 | ~~21~~ | ~~**Un test en rojo**: `SignUpAsync_TraduceLaExcepcionAFalloInesperado`.~~ **Resuelto.** Se retiró la aserción `_logger.Received(1).LogError(...)`: en `ILogger<T>`, `LogError` es un método de extensión estático que NSubstitute no puede interceptar —los `Arg.Any` se quedaban sin consumir y saltaba `RedundantArgumentMatcherException`—. El test conserva lo que tenía que fijar, que la excepción se traduce a `Unexpected`, y el porqué de la aserción ausente queda escrito en el propio test, para que no vuelva a aparecer. |
 
@@ -1020,7 +1027,7 @@ valen lo mismo: los que explican el *porqué* (CORS fuera del `if`, `TryParseExa
 y los que repiten lo que el código ya dice, como `CustomerConfiguration`, donde diez comentarios describen
 lo que declaran diez llamadas a `HasMaxLength`. Los segundos envejecen mal y sobran.
 
-**Build y tests:** compila sin errores; **131 de 131 tests en verde** — el rojo del pendiente nº 21 está
+**Build y tests:** compila sin errores; **269 de 269 tests en verde** — el rojo del pendiente nº 21 está
 resuelto.
 
 ---
@@ -1062,4 +1069,4 @@ Siguientes pasos concretos:
 
 ## Licencia
 
-Proyecto personal de aprendizaje, sin licencia de uso definida.
+Portfolio personal de aprendizaje y demostración de conocimientos, sin licencia de uso definida.
