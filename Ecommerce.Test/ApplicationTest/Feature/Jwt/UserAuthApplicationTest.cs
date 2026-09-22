@@ -46,8 +46,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var repositorioDelUnitOfWork = _unitOfWork._user;
             if (repositorioDelUnitOfWork != _userRepository)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
+                throw new InvalidOperationException("Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
             }
 
             _auth = new UserAuthApplication(_unitOfWork, Mapper, SignUpValidator, SignInValidator, _jwt, _logger);
@@ -71,22 +70,19 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var emailEncontrado = await _userRepository.GetByEmailAsync("nuevo@test.com");
             if (emailEncontrado is not null)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el email nuevo@test.com tiene que estar libre.");
+                throw new InvalidOperationException("Arrange mal montado: el email nuevo@test.com tiene que estar libre.");
             }
 
             var userNameEncontrado = await _userRepository.GetByUserNameAsync("nuevo");
             if (userNameEncontrado is not null)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el nombre de usuario 'nuevo' tiene que estar libre.");
+                throw new InvalidOperationException("Arrange mal montado: el nombre de usuario 'nuevo' tiene que estar libre.");
             }
 
             var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
             if (filasEscritas != 1)
             {
-                throw new InvalidOperationException(
-                    $"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
+                throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
             }
 
             SignUpDto signUpDto = NewSignUpDto(email: "nuevo@test.com", userName: "nuevo");
@@ -116,8 +112,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
             if (filasEscritas != 1)
             {
-                throw new InvalidOperationException(
-                    $"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
+                throw new InvalidOperationException( $"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
             }
 
             //Necesario SOLO aqui y en el test del token: consultar el doble para comprobarlo cuenta
@@ -146,8 +141,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
             if (filasEscritas != 0)
             {
-                throw new InvalidOperationException(
-                    $"Arrange mal montado: el commit no deberia escribir ninguna fila y escribe {filasEscritas}.");
+                throw new InvalidOperationException( $"Arrange mal montado: el commit no deberia escribir ninguna fila y escribe {filasEscritas}.");
             }
 
             SignUpDto signUpDto = NewSignUpDto();
@@ -205,8 +199,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var emailEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (emailEncontrado != usuarioExistente)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
             }
 
             SignUpDto signUpDto = NewSignUpDto(email: "ruben@test.com");
@@ -234,15 +227,13 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var emailEncontrado = await _userRepository.GetByEmailAsync("otro@test.com");
             if (emailEncontrado is not null)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el email otro@test.com tiene que estar libre.");
+                throw new InvalidOperationException("Arrange mal montado: el email otro@test.com tiene que estar libre.");
             }
 
             var userNameEncontrado = await _userRepository.GetByUserNameAsync("ruben");
             if (userNameEncontrado != usuarioExistente)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el nombre de usuario 'ruben' tiene que estar cogido.");
+                throw new InvalidOperationException("Arrange mal montado: el nombre de usuario 'ruben' tiene que estar cogido.");
             }
 
             SignUpDto signUpDto = NewSignUpDto(email: "otro@test.com", userName: "ruben");
@@ -263,7 +254,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
         {
             //Arrange: el commit revienta, como haria un fallo real de base de datos.
             _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
-                       .ThrowsAsync(new InvalidOperationException("fallo de base de datos"));
+                       .ThrowsAsync(new InvalidOperationException("problem in db"));
 
             //Comprobacion del Arrange: aqui lo que se espera del doble es justamente que reviente.
             //Se captura el mensaje en una variable y se valida aparte, igual que en el resto.
@@ -277,10 +268,10 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                 mensajeDelDoble = ex.Message;
             }
 
-            if (mensajeDelDoble != "fallo de base de datos")
+            if (mensajeDelDoble != "problem in db")
             {
                 throw new InvalidOperationException(
-                    "Arrange mal montado: el commit deberia reventar con 'fallo de base de datos'.");
+                    "Arrange mal montado: el commit deberia reventar con 'problem in db'.");
             }
 
             SignUpDto signUpDto = NewSignUpDto();
@@ -300,8 +291,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //lo que el test tiene que fijar: que la excepcion se traduce a Unexpected, ya cubierto arriba.
         }
 
-        // ---------- SingInAsync ----------
-
         [Fact]
         public async Task SingInAsync_DevuelveElTokenCuandoLasCredencialesSonValidas()
         {
@@ -315,22 +304,19 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (usuarioEncontrado != usuario)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
             }
 
             var contrasenaValida = _userRepository.CheckPass(usuario, ValidPassword);
             if (!contrasenaValida)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: la contrasena del test tiene que darse por valida.");
+                throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por valida.");
             }
 
             var tokenGenerado = _jwt.GenerateToken(usuario);
             if (tokenGenerado.Item1 != "token-firmado" || tokenGenerado.Item2 != 3600)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: JwtApplication no devuelve el token de prueba.");
+                throw new InvalidOperationException( "Arrange mal montado: JwtApplication no devuelve el token de prueba.");
             }
 
             //Igual que en SignUpAsync_RegistraElAltaYConfirmaUnaSolaVez: abajo hay un
@@ -388,15 +374,13 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (usuarioEncontrado != usuario)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
             }
 
             var contrasenaValida = _userRepository.CheckPass(usuario, "OtraPassword1!");
             if (contrasenaValida)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: la contrasena del test tiene que darse por invalida.");
+                throw new InvalidOperationException( "Arrange mal montado: la contrasena del test tiene que darse por invalida.");
             }
 
             SignInDto signInDto = NewSignInDto(email: "ruben@test.com", password: "OtraPassword1!");
@@ -461,22 +445,19 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var emailInexistenteEncontrado = await _userRepository.GetByEmailAsync("fantasma@test.com");
             if (emailInexistenteEncontrado is not null)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: fantasma@test.com no deberia estar registrado.");
+                throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
             }
 
             var emailRegistradoEncontrado = await _userRepository.GetByEmailAsync("registrado@test.com");
             if (emailRegistradoEncontrado != registrado)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: registrado@test.com si deberia estar registrado.");
+                throw new InvalidOperationException("Arrange mal montado: registrado@test.com si deberia estar registrado.");
             }
 
             var contrasenaValida = _userRepository.CheckPass(registrado, ValidPassword);
             if (contrasenaValida)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: la contrasena del test tiene que darse por invalida.");
+                throw new InvalidOperationException( "Arrange mal montado: la contrasena del test tiene que darse por invalida.");
             }
 
             //Act
@@ -596,8 +577,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             if (mensajeDelPrimerDoble != "Login failed for user 'sa'.")
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia reventar con el fallo de credenciales.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia reventar con el fallo de credenciales.");
             }
 
             SignUpDto signUpDto = NewSignUpDto();
@@ -623,8 +603,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             if (mensajeDelSegundoDoble != "Timeout expired. Server=prod-sql-01")
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia reventar ahora con el timeout.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia reventar ahora con el timeout.");
             }
 
             //Act: segunda llamada, mismo caso de uso.
@@ -657,8 +636,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             if (mensajeDelDoble != detalleInterno)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia reventar con el detalle interno.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia reventar con el detalle interno.");
             }
 
             SignInDto signInDto = NewSignInDto();
@@ -705,8 +683,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             if (excepcionDelDoble != excepcion)
             {
-                throw new InvalidOperationException(
-                    "Arrange mal montado: el repositorio deberia reventar con ESA misma excepcion.");
+                throw new InvalidOperationException("Arrange mal montado: el repositorio deberia reventar con ESA misma excepcion.");
             }
 
             //Consultar el doble del repositorio no cuenta como llamada al logger, pero se limpia igual

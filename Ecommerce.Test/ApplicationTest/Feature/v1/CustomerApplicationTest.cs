@@ -7,25 +7,19 @@ using NSubstitute.ExceptionExtensions;
 
 namespace Ecommerce.Test.ApplicationTest.MainService
 {
-    //Hereda de ApplicationTestBase: de ahi salen el mapper, el validador y las factorias de datos.
+    //Tests de v1 con repositorio falso. Mapper y validador reales.
     public class CustomerApplicationTest : ApplicationTestBase
     {
-        //El repositorio es el limite de la capa: se sustituye para decidir que devuelve
-        //y para poder comprobar despues con que se le llamo.
+        //Repositorio falso: decidimos que devuelve y comprobamos como se le llama.
         private readonly ICustomerRepository _repository = Substitute.For<ICustomerRepository>();
 
         private CustomerApplication CreateCustomerApp() => new(_repository, Mapper, CustomerValidator);
-
-        //Excepcion con InnerException: el caso de uso desenvuelve la interna, que es la que trae
-        //el motivo real cuando el fallo viene del proveedor de base de datos.
-        private static Exception NewDbException() => new InvalidOperationException("wrapper", new Exception("fallo de base de datos"));
-
-        //---------------------------------------------------------------- AddAsync
+        private static Exception NewDbException() => new InvalidOperationException("wrapper", new Exception("problem in db"));
 
         [Fact]
         public async Task AddAsync_DevuelveExitoCuandoElRepositorioGuarda()
         {
-            //Arrange: el repositorio guarda el Customer que reciba, para poder mirarlo despues
+            //Arrange: guardamos el Customer que recibe el repositorio.
             Customer? customerGuardado = null;
             void GuardarCustomer(Customer customer) => customerGuardado = customer;
 
@@ -36,8 +30,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await sut.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: ademas del Response se comprueba que el caso de uso forzo el Id a null,
-            //porque lo genera la base de datos y ese detalle solo se ve aqui.
+            //Assert: el Id va a null porque lo genera la base de datos.
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.NotNull(customerGuardado);
@@ -48,9 +41,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task AddAsync_DevuelveFalloDeValidacionYNoTocaElRepositorio()
         {
-            //Arrange: DTO invalido contra las reglas reales, sin CompanyName.
-            //Al repositorio se le programa exito a proposito: si la validacion no cortase,
-            //el alta saldria bien y el unico sintoma seria el Customer capturado aqui.
+            //Arrange: DTO sin CompanyName.
             Customer? customerGuardado = null;
             void GuardarCustomer(Customer customer) => customerGuardado = customer;
 
@@ -62,7 +53,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await sut.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: sigue a null, asi que la validacion corto antes de llegar a persistencia
+            //Assert: no llega al repositorio.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.Contains("CompanyName", response.Errors);
@@ -102,8 +93,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             Assert.Equal("wrapper", exception.Message);
         }
 
-        //---------------------------------------------------------------- GetByIdAsync
-
         [Fact]
         public async Task GetByIdAsync_DevuelveElClienteMapeadoADto()
         {
@@ -115,7 +104,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await sut.GetByIdAsync(7);
 
-            //Assert: se comprueba el mapeo de verdad, porque el mapper es el real
+            //Assert: se comprueba el mapeo a DTO.
             Assert.True(response.IsSuccess);
             Assert.NotNull(response.Data);
             Assert.Equal("Northwind", response.Data.CompanyName);
@@ -125,13 +114,13 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task GetByIdAsync_DevuelveNotFoundCuandoElClienteNoExiste()
         {
-            //Arrange: el substitute sin configurar ya devuelve null
+            //Arrange: el cliente no existe.
             var sut = CreateCustomerApp();
 
             //Act
             var response = await sut.GetByIdAsync(99);
 
-            //Assert: el ErrorType es lo que traduce el controller a un 404
+            //Assert: la respuesta es NotFound.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.NotFound, response.ErrorType);
             Assert.Equal("Customer with ID 99 not found.", response.Message);
@@ -151,8 +140,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
             Assert.Equal("wrapper", exception.Message);
         }
-
-        //---------------------------------------------------------------- GetAllAsync
 
         [Fact]
         public async Task GetAllAsync_DevuelveTodosLosClientesMapeadosADto()
@@ -176,7 +163,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task GetAllAsync_DevuelveExitoConColeccionVaciaSiNoHayClientes()
         {
-            //Arrange: la coleccion vacia no es un error, es una respuesta valida
+            //Arrange: no hay clientes.
             _repository.GetAllAsync().Returns(new List<Customer>());
             var sut = CreateCustomerApp();
 
@@ -203,13 +190,10 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             Assert.Equal("wrapper", exception.Message);
         }
 
-        //---------------------------------------------------------------- UpdateAsync
-
         [Fact]
         public async Task UpdateAsync_VuelcaElDtoSobreElClienteExistente()
         {
-            //Arrange: el cliente que devuelve el repositorio es la misma instancia que se muta,
-            //asi que basta mirarlo despues del Act para ver que hizo ManualMappingCustomer
+            //Arrange
             var customerExistente = NewCustomer(id: 7, companyName: "Antiguo");
             _repository.GetByIdAsync(7).Returns(customerExistente);
             _repository.UpdateAsync(customerExistente).Returns(true);
@@ -219,7 +203,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await sut.UpdateAsync(7, customerDto, CancellationToken.None);
 
-            //Assert: el Id se conserva, porque se actualiza la entidad existente y no una nueva
+            //Assert: se modifica el cliente existente y conserva su Id.
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.Equal("Nuevo", customerExistente.CompanyName);
@@ -229,7 +213,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task UpdateAsync_DevuelveFalloDeValidacionYNoBuscaElCliente()
         {
-            //Arrange: DTO invalido contra las reglas reales, sin City
+            //Arrange: DTO sin City.
             var sut = CreateCustomerApp();
             var customerDto = NewCustomerDto();
             customerDto.City = null;
@@ -237,7 +221,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await sut.UpdateAsync(7, customerDto, CancellationToken.None);
 
-            //Assert: la validacion corta antes incluso de ir a buscar el cliente
+            //Assert: no se busca el cliente.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.Contains("City", response.Errors);
@@ -247,14 +231,14 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task UpdateAsync_DevuelveNotFoundCuandoElClienteNoExiste()
         {
-            //Arrange: el substitute sin configurar ya devuelve null
+            //Arrange: el cliente no existe.
             var sut = CreateCustomerApp();
             var customerDto = NewCustomerDto();
 
             //Act
             var response = await sut.UpdateAsync(99, customerDto, CancellationToken.None);
 
-            //Assert: no se intenta actualizar nada que no exista
+            //Assert: no se actualiza nada.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.NotFound, response.ErrorType);
             Assert.Equal("Customer with ID 99 not found.", response.Message);
@@ -296,8 +280,6 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             Assert.Equal("wrapper", exception.Message);
         }
 
-        //---------------------------------------------------------------- DeleteAsync
-
         [Fact]
         public async Task DeleteAsync_DevuelveExitoCuandoElRepositorioBorra()
         {
@@ -316,8 +298,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task DeleteAsync_DevuelveNotFoundCuandoElRepositorioNoBorra()
         {
-            //Arrange: el repositorio devuelve false cuando el cliente no existe,
-            //y el caso de uso lo traduce a NotFound en vez de a un fallo generico
+            //Arrange: el repositorio devuelve false si el cliente no existe.
             _repository.DeleteAsync(99).Returns(false);
             var sut = CreateCustomerApp();
 

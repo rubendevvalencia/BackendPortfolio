@@ -9,37 +9,31 @@ using NSubstitute.ExceptionExtensions;
 
 namespace Ecommerce.Test.ApplicationTest.MainService
 {
-    //Tests de la capa Application: se sustituyen los limites (UnitOfWork y repositorio),
-    //y el mapper y el validador se usan REALES porque forman parte del caso de uso.
+    //Tests de v2 con UnitOfWork y repositorio falsos. Mapper y validador reales.
     public class CustomerApplicationUoWTest : ApplicationTestBase
     {
         private readonly ICustomerRepositoryUoW _repository = Substitute.For<ICustomerRepositoryUoW>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly CustomerApplicationUoW _customerAppUoW;
 
-        //xUnit crea una instancia de la clase por cada [Fact], asi que los dobles
-        //nacen limpios en cada test y no hay estado compartido entre ellos.
+        //xUnit crea una instancia por test: los dobles empiezan limpios.
         public CustomerApplicationUoWTest()
         {
-            //El caso de uso llega al repositorio a traves del UnitOfWork:
-            //la propiedad tiene que devolver nuestro doble.
+            //El UnitOfWork devuelve nuestro repositorio falso.
             _unitOfWork._customersUoW.Returns(_repository);
             _customerAppUoW = new CustomerApplicationUoW(_unitOfWork, Mapper, CustomerValidator);
         }
 
-        //Simula el resultado del commit: cuantas filas dice EF que ha escrito.
-        //ReturnsForAnyArgs ignora los argumentos, asi que sobra el Arg.Any del token.
+        //Simula cuantas filas escribe el commit.
         private ConfiguredCall RegistrosInsertados(int filas)
         {
            return _unitOfWork.SaveChangesAsync().ReturnsForAnyArgs(filas);
         } 
 
-        // ---------- AddAsync ----------
-
         [Fact]
         public async Task AddAsync_DevuelveExitoCuandoElCommitEscribe()
         {
-            //Arrange: se captura el Customer que recibe el repositorio para mirarlo despues.
+            //Arrange: guardamos el Customer que recibe el repositorio.
             Customer? customerGuardado = null;
             var tarea = _repository.AddAsync(Arg.Do<Customer>(c => customerGuardado = c), Arg.Any<CancellationToken>());
             RegistrosInsertados(1);
@@ -49,8 +43,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: ademas del Response se comprueba que el caso de uso forzo el Id a null,
-            //porque lo genera la base de datos y ese detalle solo se ve aqui.
+            //Assert: el Id va a null porque lo genera la base de datos.
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.NotNull(customerGuardado);
@@ -61,13 +54,13 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task AddAsync_NoTocaLaPersistenciaCuandoElDtoNoEsValido()
         {
-            //Arrange: CompanyName vacio incumple la regla NotEmpty de CustomerDtoValidator.
+            //Arrange: CompanyName vacio.
             CustomerDto customerDto = NewCustomerDto(string.Empty);
 
             //Act
             var response = await _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: la validacion corta el caso de uso antes de llegar al repositorio.
+            //Assert: no llega al repositorio.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.True(response.Errors.ContainsKey(nameof(CustomerDto.CompanyName)));
@@ -78,20 +71,18 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task AddAsync_PropagaLaExcepcionCuandoLaPersistenciaFalla()
         {
-            //Arrange: el commit revienta, como haria un fallo real de base de datos.
+            //Arrange: falla la base de datos.
             _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
-                       .Throws(new InvalidOperationException("fallo de base de datos"));
+                       .Throws(new InvalidOperationException("problem in db"));
             CustomerDto customerDto = NewCustomerDto("Contoso");
 
             //Act
             Func<Task> work = () => _customerAppUoW.AddAsync(customerDto, CancellationToken.None);
 
-            //Assert: el caso de uso no captura la excepcion, la deja subir hasta el middleware.
+            //Assert: la excepcion no se captura.
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(work);
-            Assert.Equal("fallo de base de datos", exception.Message);
+            Assert.Equal("problem in db", exception.Message);
         }
-
-        // ---------- GetByIdAsync ----------
 
         [Fact]
         public async Task GetByIdAsync_DevuelveElDtoCuandoElClienteExiste()
@@ -103,8 +94,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.GetByIdAsync(7);
 
-            //Assert: se comprueba el mapeo real de entidad a DTO.
-            //CustomerDto no expone Id (no se puede afirmar sobre el aqui).
+            //Assert: CustomerDto no tiene Id, se comprueban sus campos.
             Assert.True(response.IsSuccess);
             Assert.NotNull(response.Data);
             Assert.Equal("Contoso", response.Data.CompanyName);
@@ -114,19 +104,17 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task GetByIdAsync_DevuelveNotFoundCuandoElClienteNoExiste()
         {
-            //Arrange: el repositorio no encuentra nada.
+            //Arrange: el cliente no existe.
             _repository.GetByIdAsync(99, Arg.Any<CancellationToken>()).Returns((Customer?)null);
 
             //Act
             var response = await _customerAppUoW.GetByIdAsync(99);
 
-            //Assert: el "no existe" es NotFound (404), no un fallo generico (500).
+            //Assert: la respuesta es NotFound.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.NotFound, response.ErrorType);
             Assert.Null(response.Data);
         }
-
-        // ---------- GetAllAsync ----------
 
         [Fact]
         public async Task GetAllAsync_MapeaTodosLosClientes()
@@ -150,7 +138,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task GetAllAsync_DevuelveListaVaciaCuandoNoHayClientes()
         {
-            //Arrange: sin clientes NO es un error, es una lista vacia.
+            //Arrange: no hay clientes.
             _repository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(new List<Customer>());
 
             //Act
@@ -161,12 +149,10 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             Assert.Empty(response.Data);
         }
 
-        // ---------- UpdateAsync ----------
-
         [Fact]
         public async Task UpdateAsync_CopiaLosCamposSobreLaEntidadExistente()
         {
-            //Arrange: la entidad viene trackeada del repositorio y se modifica en sitio.
+            //Arrange
             Customer existente = NewCustomer(id: 7, companyName: "Nombre viejo");
             _repository.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(existente);
             RegistrosInsertados(1);
@@ -176,7 +162,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.UpdateAsync(7, customerDto, CancellationToken.None);
 
-            //Assert: se actualiza la MISMA instancia (no una nueva) y se conserva el Id.
+            //Assert: se modifica el cliente existente y conserva su Id.
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.Equal("Nombre nuevo", existente.CompanyName);
@@ -194,7 +180,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.UpdateAsync(99, customerDto, CancellationToken.None);
 
-            //Assert: ni se marca la modificacion ni se confirma.
+            //Assert: no se actualiza ni se confirma.
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.NotFound, response.ErrorType);
             _repository.DidNotReceive().Update(Arg.Any<Customer>());
@@ -204,7 +190,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         [Fact]
         public async Task UpdateAsync_NoBuscaElClienteCuandoElDtoNoEsValido()
         {
-            //Arrange: se valida ANTES de ir a la base de datos.
+            //Arrange: CompanyName vacio.
             CustomerDto customerDto = NewCustomerDto(string.Empty);
 
             //Act
@@ -216,17 +202,11 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             await _repository.DidNotReceive().GetByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
         }
 
-        //TEST DE CARACTERIZACION DE UN DEFECTO: NO describe el comportamiento deseado.
-        //Este es el pendiente #2 del README: el PUT idempotente (actualizar con los mismos datos)
-        //hace que EF no escriba ninguna fila, SaveChangesAsync devuelve 0 y el caso de uso lo
-        //traduce a error -> 500. Como la existencia ya se comprueba por separado, un 0 deberia
-        //leerse como exito sin efecto y este test deberia afirmar IsSuccess == true.
-        //Se deja fijado para que la deuda sea visible: cuando se arregle el pendiente #2 este
-        //test se pondra rojo, y ese rojo es el arreglo, no una regresion. Actualizarlo entonces.
+        //Comportamiento actual, no el deseado: pendiente nº 4 del README (0 filas -> 500).
         [Fact]
         public async Task UpdateAsync_HoyDevuelveFalloConCeroFilas_PendienteDeCorregir()
         {
-            //Arrange: el cliente existe y el commit no escribe nada, como en un PUT idempotente.
+            //Arrange: el cliente existe pero el commit no escribe ninguna fila.
             _repository.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(NewCustomer(id: 7));
             RegistrosInsertados(0);
             CustomerDto customerDto = NewCustomerDto("Contoso");
@@ -234,12 +214,10 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.UpdateAsync(7, customerDto, CancellationToken.None);
 
-            //Assert: comportamiento ACTUAL, defectuoso. Lo correcto seria exito sin efecto.
+            //Assert
             Assert.False(response.IsSuccess);
             Assert.False(response.Data);
         }
-
-        // ---------- DeleteAsync ----------
 
         [Fact]
         public async Task DeleteAsync_BorraLaEntidadRecuperadaYDevuelveExito()
@@ -252,7 +230,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService
             //Act
             var response = await _customerAppUoW.DeleteAsync(7);
 
-            //Assert: se borra exactamente la entidad que devolvio el repositorio.
+            //Assert: se borra el cliente que devolvio el repositorio.
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             _repository.Received(1).Delete(existente);
