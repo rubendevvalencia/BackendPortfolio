@@ -1,19 +1,62 @@
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/117910f4-5e28-47c4-b634-20b5aaabd8f5.vsidx
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/29d86627-48bf-4029-8f35-42ccca4e7ab0.vsidx
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/8ef13939-7399-4cdc-ab2d-ab3c8d0405f3.vsidx
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/c6daf3c6-f7e2-4e4a-9b48-ebb8aa33afa8.vsidx
-/Ecommerce.Application/bin/Debug
-/Ecommerce.Application/obj/Debug
-/Ecommerce.Domain/bin/Debug
-/Ecommerce.Domain/obj/Debug
-/Ecommerce.Infrastructure/obj/Debug
-/Ecommerce.Test/bin/Debug
-/Ecommerce/bin/Debug
-/Ecommerce/obj/Debug
-/Ecommerce/obj/Debug
-/Ecommerce.Test/obj/Debug
-/Ecommerce/obj/Debug
-/Ecommerce/obj/Debug
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/117910f4-5e28-47c4-b634-20b5aaabd8f5.vsidx
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/29d86627-48bf-4029-8f35-42ccca4e7ab0.vsidx
-Ecommerce/.vs/Ecommerce.slnx/FileContentIndex/ca898387-83ea-4d43-aee9-7f2b15bf07f7.vsidx
+# ---------------------------------------------------------------
+# .gitignore para soluciones .NET / Visual Studio
+# Regla general: se versiona el codigo fuente y la configuracion,
+# nunca el resultado de compilar ni el estado local del IDE.
+# ---------------------------------------------------------------
+
+# Resultado de la compilacion
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Estado local de Visual Studio (incluye CopilotSnapshots, FileContentIndex, ProjectEvaluation)
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Rider / VS Code
+.idea/
+*.sln.iml
+.vscode/
+
+# Resultados de tests y cobertura
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.trx
+
+# Paquetes NuGet restaurados
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+
+# Secretos y configuracion local
+# appsettings.json SI se versiona: define la FORMA de la configuracion.
+# Los VALORES reales van en User Secrets (desarrollo) o variables de entorno (despliegue).
+appsettings.*.local.json
+secrets.json
+*.pubxml
+*.pubxml.user
+PublishProfiles/
+*.pfx
+*.publishsettings
+
+# Ficheros del sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Varios
+*.tmp
+*.cache
+*.dbmdl
