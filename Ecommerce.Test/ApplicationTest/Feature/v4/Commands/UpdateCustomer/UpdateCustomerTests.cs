@@ -7,8 +7,7 @@ using NSubstitute.ExceptionExtensions;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.v4.Commands.UpdateCustomer
 {
-    //Tests del handler v4 con UnitOfWork y repositorio falsos.
-    //Sin caso de validacion: en v4 valida ValidationBehaviour antes del handler.
+    //Tests del handler v4 con dobles; sin caso de validacion porque valida ValidationBehaviour.
     public class UpdateCustomerTests : ApplicationTestBase
     {
         private readonly ICustomerRepositoryUoW _repository = Substitute.For<ICustomerRepositoryUoW>();

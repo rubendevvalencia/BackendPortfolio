@@ -28,14 +28,11 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
 
         private static string NewDbName() => Guid.NewGuid().ToString();
 
-        //Antes se llamaba CreateUserAsync_ShouldReturnTrue_WhenUserIsCreatedAsync y daba por hecho que
-        //el usuario quedaba escrito al volver. Ya no: con el pendiente #1 corregido, el repositorio
-        //registra el alta y quien confirma es el UnitOfWork, igual que hace CustomerRepositoryUoW.
-        //El nombre lo dice para que nadie vuelva a meter un SaveChangesAsync aqui dentro sin enterarse.
+        //El repositorio registra el alta pero no confirma: eso lo hace el UnitOfWork (pendiente #1).
         [Fact]
         public async Task CreateUserAsync_RegistraElAltaPeroNoConfirma()
         {
-            // Arrange
+            //Arrange
             var dbName = NewDbName();
             await using var dbContext = CreateDbContext(dbName);
             var passwordHasher = new PasswordHasher<User>();
@@ -49,19 +46,16 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 PasswordHash = "Password123!"
             };
 
-            // Act: no devuelve nada, y es lo correcto. Al volver de aqui no se ha escrito nada,
-            // asi que no habria ningun resultado que devolver.
+            //Act
             await userRepository.CreateUserAsync(user);
 
-            // Assert: el alta esta registrada en el contexto, pero todavia no hay nada en la base.
-            // Una consulta solo ve lo confirmado, asi que aqui no debe encontrar al usuario.
+            //Assert: todavia no hay nada en la base.
             Assert.Empty(await dbContext.Users.ToListAsync());
 
-            // Act: confirma quien manda. En produccion es UnitOfWork.SaveChangesAsync(), que
-            // comparte esta misma instancia de DbContext porque esta registrada como Scoped.
+            //Act: se confirma, como haria UnitOfWork.SaveChangesAsync.
             await dbContext.SaveChangesAsync();
 
-            // Assert: ahora si, y con la contrasena cifrada por el repositorio.
+            //Assert: ahora si, y con la contrasena cifrada por el repositorio.
             var savedUser = await dbContext.Users.SingleAsync(u => u.Email == user.Email);
             Assert.Equal(1, savedUser.Id);
             Assert.Equal("John", savedUser.FirstName);
@@ -105,7 +99,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
         [Fact]
         public async Task GetByEmailAsync_ShouldReturnUser_WhenUserExists()
         {
-            // Arrange
+            //Arrange
             var dbName = NewDbName();
             await using var dbContext = CreateDbContext(dbName);
             var passwordHasher = new PasswordHasher<User>();
@@ -121,17 +115,17 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
             await dbContext.Users.AddAsync(user);
             await dbContext.SaveChangesAsync();
 
-            // Act
+            //Act
             var result = await userRepository.GetByEmailAsync(user.Email);
 
-            // Assert
+            //Assert
             Assert.NotNull(result);
             Assert.Equal(user.Id, result.Id);
         }
         [Fact]
         public async Task GetByUserNameAsync_ShouldReturnUser_WhenUserExists()
         {
-            // Arrange
+            //Arrange
             var dbName = NewDbName();
             await using var dbContext = CreateDbContext(dbName);
             var passwordHasher = new PasswordHasher<User>();
@@ -147,10 +141,10 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
             await dbContext.Users.AddAsync(user);
             await dbContext.SaveChangesAsync();
 
-            // Act
+            //Act
             var result = await userRepository.GetByUserNameAsync(user.UserName);
 
-            // Assert
+            //Assert
             Assert.NotNull(result);
             Assert.Equal(user.Id, result.Id);
         }

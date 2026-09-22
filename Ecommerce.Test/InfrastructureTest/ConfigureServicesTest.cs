@@ -9,14 +9,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecommerce.Test.InfrastructureTest
 {
-    //Test de cableado (composition root), no de logica: verifica que AddInfrastructureServices
-    //registra todo lo necesario y que el grafo de dependencias se puede resolver.
-    //Los tests de repositorio instancian las clases a mano, asi que nunca ejecutan este archivo:
-    //sin este test, olvidar un AddScoped no rompe la suite pero si el arranque de la aplicacion.
+    //Test de cableado: comprueba que AddInfrastructureServices registra todo y el grafo se resuelve.
     public class ConfigureServicesTest
     {
-        //La cadena de conexion puede ser falsa: UseSqlServer solo registra el proveedor y no abre
-        //ninguna conexion hasta que se ejecuta una consulta, cosa que aqui no ocurre.
+        //Cadena de conexion falsa: no se abre ninguna conexion porque no se ejecuta ninguna consulta.
         private static IConfiguration CreateConfiguration()
         {
             var settings = new Dictionary<string, string?>
@@ -37,15 +33,11 @@ namespace Ecommerce.Test.InfrastructureTest
             //Arrange
             var configuration = CreateConfiguration();
 
-            //DbContextEF pide IConfiguration por constructor y AddInfrastructureServices no la registra:
-            //en produccion la aporta WebApplicationBuilder, asi que aqui se replica ese registro para
-            //reproducir el contenedor real. Sin esta linea el grafo no resuelve.
+            //IConfiguration la registra el host en produccion; aqui se añade a mano.
             var services = new ServiceCollection()
                 .AddSingleton(configuration);
 
-            //Act
-            //validateScopes: true detecta las captive dependencies, por ejemplo un singleton
-            //que se quede con el DbContextEF scoped atrapado dentro.
+            //Act: validateScopes detecta un singleton que atrape al DbContext scoped.
             var provider = services
                 .AddInfrastructureServices(configuration)
                 .BuildServiceProvider(validateScopes: true);
@@ -77,8 +69,7 @@ namespace Ecommerce.Test.InfrastructureTest
             var services = new ServiceCollection()
                 .AddInfrastructureServices(CreateConfiguration());
 
-            //Assert: scoped es el lifetime correcto para todo lo que cuelga del DbContext,
-            //que vive lo que dura una peticion.
+            //Assert: todo lo que depende del DbContext tiene que ser scoped.
             var descriptor = Assert.Single(services, d => d.ServiceType == serviceType);
             Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
         }

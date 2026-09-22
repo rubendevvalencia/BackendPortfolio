@@ -9,18 +9,14 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
 {
     public class CustomerRepositoryTest
     {
-        //DbContextEF hereda de DbContext y no expone miembros virtuales: no se puede sustituir con NSubstitute.
-        //Se usa el proveedor InMemory de EF Core, que da un contexto real y aislado por test.
-        //El parametro dbName permite compartir el almacen entre dos contextos distintos: se escribe con uno
-        //y se lee con otro, de modo que la lectura no venga del change tracker sino del almacen.
+        //DbContext real con InMemory (no se puede sustituir). dbName permite escribir con un contexto y leer con otro.
         private static DbContextEF CreateContext(string dbName)
         {
             var options = new DbContextOptionsBuilder<DbContextEF>()
                 .UseInMemoryDatabase(dbName)
                 .Options;
 
-            //IConfiguration y el interceptor son andamiaje: el constructor de DbContextEF los exige
-            //(lee la cadena de conexion) aunque con InMemory no se usen para nada.
+            //IConfiguration y el interceptor los exige el constructor, aunque con InMemory no se usan.
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -69,8 +65,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 result = await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Assert: contexto nuevo, con el change tracker vacio. El cliente se materializa desde el
-            //almacen, asi que NotSame demuestra que hubo persistencia real y no una instancia reutilizada
+            //Assert: contexto nuevo, asi que el cliente viene del almacen y no es la misma instancia.
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -92,8 +87,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(NewCustomer());
             }
 
-            //Assert: contexto nuevo, asi que los campos de auditoria se leen del almacen y no de la
-            //entidad en memoria que el interceptor acaba de rellenar
+            //Assert: contexto nuevo, asi que la auditoria se lee del almacen.
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -113,8 +107,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: contexto nuevo, asi que el FindAsync interno no puede resolverse contra el change
-            //tracker y esta obligado a consultar el almacen
+            //Act: contexto nuevo, asi que FindAsync tiene que ir al almacen.
             await using var readContext = CreateContext(dbName);
             var found = await new CustomerRepository(readContext).GetByIdAsync(customer.Id!.Value);
 
@@ -150,8 +143,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await repository.AddAsync(NewCustomer("Dos"));
             }
 
-            //Act: contexto nuevo, asi que la consulta devuelve lo que hay en el almacen y no las
-            //instancias que quedaron trackeadas al escribir
+            //Act: contexto nuevo, asi que la consulta lee del almacen.
             await using var readContext = CreateContext(dbName);
             var result = await new CustomerRepository(readContext).GetAllAsync();
 
@@ -195,8 +187,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 result = await repository.UpdateAsync(tracked);
             }
 
-            //Assert: contexto nuevo para garantizar que el cambio se guardo de verdad y no se esta
-            //leyendo la instancia que se modifico en memoria durante el Act
+            //Assert: contexto nuevo para comprobar que el cambio se guardo de verdad.
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -216,8 +207,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: la entidad se construye fuera y el contexto es nuevo, por lo que entra como Detached
-            //y obliga a UpdateAsync a tomar la rama del Update() explicito
+            //Act: entidad creada fuera y contexto nuevo, asi que entra como Detached.
             var detached = NewCustomer("Detached");
             detached.Id = customer.Id;
 
@@ -227,8 +217,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 result = await new CustomerRepository(updateContext).UpdateAsync(detached);
             }
 
-            //Assert: contexto nuevo para garantizar que el cambio se guardo de verdad y no se esta
-            //leyendo la instancia detached que se paso al repositorio
+            //Assert: contexto nuevo para comprobar que el cambio se guardo de verdad.
             await using var readContext = CreateContext(dbName);
             var saved = Assert.Single(readContext.Customers);
 
@@ -248,8 +237,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 await new CustomerRepository(writeContext).AddAsync(customer);
             }
 
-            //Act: contexto nuevo, se recarga sin tocar ninguna propiedad, asi que SaveChangesAsync
-            //afecta a 0 filas. No se relee despues porque lo que se comprueba es el bool, no el almacen
+            //Act: contexto nuevo y sin cambios, asi que SaveChangesAsync afecta a 0 filas.
             await using var updateContext = CreateContext(dbName);
             var repository = new CustomerRepository(updateContext);
             var tracked = await repository.GetByIdAsync(customer.Id!.Value);
@@ -282,8 +270,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
                 resultFind = await repository.GetByIdAsync(customer.Id!.Value);
             }
 
-            //Assert: contexto nuevo para garantizar que de verdad se ejecuto todo el proceso y que el
-            //resultado no sale de una instancia trackeada anteriormente
+            //Assert: contexto nuevo para comprobar el resultado en el almacen.
             await using var readContext = CreateContext(dbName);
 
             Assert.True(resultAdd);

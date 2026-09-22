@@ -8,8 +8,7 @@ using NSubstitute.ExceptionExtensions;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.DeleteCustomer
 {
-    //Tests del handler v3 con UnitOfWork y repositorio falsos.
-    //Sin caso de validacion: DeleteCustomerValidator esta vacio en v3.
+    //Tests del handler v3 con dobles; sin caso de validacion porque DeleteCustomerValidator esta vacio.
     public class DeleteCustomerTests : ApplicationTestBase
     {
         private readonly ICustomerRepositoryUoW _repository = Substitute.For<ICustomerRepositoryUoW>();

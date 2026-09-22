@@ -2,8 +2,7 @@ using Ecommerce.Application.Feature.Customers.Commands.UpdateCustomer;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.UpdateCustomer
 {
-    //Tests del validador v3 por si solo, sin handler ni dobles: se le pasa un comando y se mira el resultado.
-    //Cada fila de [InlineData] es una regla de UpdateCustomerValidator: si alguien cambia una regla, falla su fila.
+    //Tests del validador v3 por si solo: cada fila de [InlineData] es una regla.
     public class UpdateCustomerValidatorTests
     {
         private readonly UpdateCustomerValidator _validator = new UpdateCustomerValidator();

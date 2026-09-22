@@ -7,8 +7,7 @@ using MediatR;
 
 namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
 {
-    //Tests del behaviour por si solo: validador REAL de v4 y un "next" hecho a mano que apunta si se le llamo.
-    //Si next se ejecuta, la peticion habria llegado al handler; si no, el pipeline se corto antes.
+    //Tests del behaviour con el validador real de v4 y un next hecho a mano que cuenta si se le llama.
     public class ValidationBehaviourTests
     {
         [Fact]
