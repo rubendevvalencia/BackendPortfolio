@@ -25,10 +25,8 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         }
 
         //Simula cuantas filas escribe el commit.
-        private ConfiguredCall RegistrosInsertados(int filas)
-        {
-           return _unitOfWork.SaveChangesAsync().ReturnsForAnyArgs(filas);
-        } 
+        private ConfiguredCall RegistrosInsertados(int filas) => _unitOfWork.SaveChangesAsync().ReturnsForAnyArgs(filas);
+        
 
         [Fact]
         public async Task AddAsync_DevuelveExitoCuandoElCommitEscribe()
