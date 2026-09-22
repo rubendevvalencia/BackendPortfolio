@@ -26,7 +26,11 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
             return new DbContextEF(options, configuration, new AuditableEntitySaveChangesInterceptor());
         }
 
-        private static string NewDbName() => Guid.NewGuid().ToString();
+        private static string NewDbName()
+        {
+            var dbName = Guid.NewGuid().ToString();
+            return dbName;
+        }
 
         //Antes se llamaba CreateUserAsync_ShouldReturnTrue_WhenUserIsCreatedAsync y daba por hecho que
         //el usuario quedaba escrito al volver. Ya no: con el pendiente #1 corregido, el repositorio

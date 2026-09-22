@@ -31,21 +31,29 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             return new DbContextEF(options, configuration, new AuditableEntitySaveChangesInterceptor());
         }
 
-        private static string NewDbName() => Guid.NewGuid().ToString();
-
-        private static Customer NewCustomer(string companyName = "Test") => new()
+        private static string NewDbName()
         {
-            CompanyName = companyName,
-            ContactName = "Test",
-            ContactTitle = "Test",
-            Address = "Test",
-            City = "Test",
-            Region = "Test",
-            PostalCode = "Test",
-            Country = "Test",
-            Phone = "Test",
-            Fax = "Test",
-        };
+            var dbName = Guid.NewGuid().ToString();
+            return dbName;
+        }
+
+        private static Customer NewCustomer(string companyName = "Test")
+        {
+            var customer = new Customer
+            {
+                CompanyName = companyName,
+                ContactName = "Test",
+                ContactTitle = "Test",
+                Address = "Test",
+                City = "Test",
+                Region = "Test",
+                PostalCode = "Test",
+                Country = "Test",
+                Phone = "Test",
+                Fax = "Test",
+            };
+            return customer;
+        }
 
         [Fact]
         public async Task AddAsync_PersisteElClienteEnElAlmacen()

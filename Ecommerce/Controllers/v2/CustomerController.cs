@@ -22,7 +22,10 @@ namespace Ecommerce.Api.Controllers.v2
     {
         private readonly ICustomerApplicationUoW _customerApplication;
 
-        public CustomerController(ICustomerApplicationUoW customerApplication) =>  _customerApplication = customerApplication;
+        public CustomerController(ICustomerApplicationUoW customerApplication)
+        {
+            _customerApplication = customerApplication;
+        }
 
         //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
         //La Api es la unica que conoce HTTP; la Application solo dice QUE ha fallado, no con que codigo.

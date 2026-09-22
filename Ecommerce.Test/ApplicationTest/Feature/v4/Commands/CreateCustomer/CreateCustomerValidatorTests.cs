@@ -65,7 +65,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v4.Commands.CreateCustomer
             };
 
             //Buscamos la propiedad por su nombre y la dejamos vacia.
-            var propiedad = typeof(CreateCustomerCommand).GetProperty(campo)!;
+            var propiedad = typeof(CreateCustomerCommand).GetProperty(campo);
             propiedad.SetValue(request, "");
 
             //Act
@@ -155,9 +155,10 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v4.Commands.CreateCustomer
 
             //Un texto con un caracter mas de la longitud maxima.
             var longitudExcedida = longitudMaxima + 1;
-            var textoDemasiadoLargo = new string('a', longitudExcedida);
-            var propiedad = typeof(CreateCustomerCommand).GetProperty(campo)!;
-            propiedad.SetValue(request, textoDemasiadoLargo);
+            string result = "";
+            for (int i = 0; i<longitudExcedida; i++) result += "a";
+            var propiedad = typeof(CreateCustomerCommand).GetProperty(campo);
+            propiedad.SetValue(request, result);
 
             //Act
             var resultado = _validator.Validate(request);

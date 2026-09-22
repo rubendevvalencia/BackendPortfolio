@@ -17,12 +17,19 @@ namespace Ecommerce.Test.InfrastructureTest
     {
         //La cadena de conexion puede ser falsa: UseSqlServer solo registra el proveedor y no abre
         //ninguna conexion hasta que se ejecuta una consulta, cosa que aqui no ocurre.
-        private static IConfiguration CreateConfiguration() => new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+        private static IConfiguration CreateConfiguration()
+        {
+            var settings = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:EcommerceDb"] = "Server=(local);Database=Fake;Trusted_Connection=True;"
-            })
-            .Build();
+            };
+
+            var builder = new ConfigurationBuilder();
+            builder.AddInMemoryCollection(settings);
+
+            var configuration = builder.Build();
+            return configuration;
+        }
 
         [Fact]
         public void AddInfrastructureServices_ResuelveElGrafoCompleto()

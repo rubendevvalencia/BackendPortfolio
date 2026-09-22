@@ -10,7 +10,10 @@ namespace Ecommerce.Api.Models.GlobalException
     {
         private ILogger<GlobalExceptionHandler> _logger;
 
-        public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) => _logger = logger;
+        public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+        {
+            _logger = logger;
+        }
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {

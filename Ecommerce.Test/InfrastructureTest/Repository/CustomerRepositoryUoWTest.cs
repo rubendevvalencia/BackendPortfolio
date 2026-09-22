@@ -34,21 +34,29 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             return new DbContextEF(options, configuration, new AuditableEntitySaveChangesInterceptor());
         }
 
-        private static string NewDbName() => Guid.NewGuid().ToString();
-
-        private static Customer NewCustomer(string companyName = "Test") => new()
+        private static string NewDbName()
         {
-            CompanyName = companyName,
-            ContactName = "Test",
-            ContactTitle = "Test",
-            Address = "Test",
-            City = "Test",
-            Region = "Test",
-            PostalCode = "Test",
-            Country = "Test",
-            Phone = "Test",
-            Fax = "Test",
-        };
+            var dbName = Guid.NewGuid().ToString();
+            return dbName;
+        }
+
+        private static Customer NewCustomer(string companyName = "Test")
+        {
+            var customer = new Customer
+            {
+                CompanyName = companyName,
+                ContactName = "Test",
+                ContactTitle = "Test",
+                Address = "Test",
+                City = "Test",
+                Region = "Test",
+                PostalCode = "Test",
+                Country = "Test",
+                Phone = "Test",
+                Fax = "Test",
+            };
+            return customer;
+        }
 
         //El repositorio y el UnitOfWork comparten la MISMA instancia de contexto, igual que hace la DI
         //en produccion con el DbContext scoped. Ese contexto compartido es lo que permite que el

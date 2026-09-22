@@ -13,15 +13,30 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         //Repositorio falso: decidimos que devuelve y comprobamos como se le llama.
         private readonly ICustomerRepository _repository = Substitute.For<ICustomerRepository>();
 
-        private CustomerApplication CreateCustomerApp() => new(_repository, Mapper, CustomerValidator);
-        private static Exception NewDbException() => new InvalidOperationException("wrapper", new Exception("problem in db"));
+        //Crea el caso de uso con el repositorio falso, el mapper y el validador.
+        private CustomerApplication CreateCustomerApp()
+        {
+            var customerApp = new CustomerApplication(_repository, Mapper, CustomerValidator);
+            return customerApp;
+        }
+
+        //Excepcion con otra dentro, como las que llegan de la base de datos.
+        private static Exception NewDbException()
+        {
+            var innerException = new Exception("problem in db");
+            var exception = new InvalidOperationException("wrapper", innerException);
+            return exception;
+        }
 
         [Fact]
         public async Task AddAsync_DevuelveExitoCuandoElRepositorioGuarda()
         {
             //Arrange: guardamos el Customer que recibe el repositorio.
             Customer? customerGuardado = null;
-            void GuardarCustomer(Customer customer) => customerGuardado = customer;
+            void GuardarCustomer(Customer customer)
+            {
+                customerGuardado = customer;
+            }
 
             _repository.AddAsync(Arg.Do<Customer>(GuardarCustomer)).Returns(true);
             var sut = CreateCustomerApp();
@@ -43,7 +58,10 @@ namespace Ecommerce.Test.ApplicationTest.MainService
         {
             //Arrange: DTO sin CompanyName.
             Customer? customerGuardado = null;
-            void GuardarCustomer(Customer customer) => customerGuardado = customer;
+            void GuardarCustomer(Customer customer)
+            {
+                customerGuardado = customer;
+            }
 
             _repository.AddAsync(Arg.Do<Customer>(GuardarCustomer)).Returns(true);
             var sut = CreateCustomerApp();

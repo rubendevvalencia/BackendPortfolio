@@ -29,7 +29,10 @@ namespace Ecommerce.Api.Controllers.v4
     {
         private readonly IMediator _mediator; //Orquesta todo
 
-        public CustomerController(IMediator mediator) => _mediator = mediator;
+        public CustomerController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
 
         //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
         //Sin rama de Validation: en v4 ese fallo no viaja en Response, sale como excepcion y lo responde el middleware.
