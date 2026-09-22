@@ -1,7 +1,7 @@
 # Backend Portfolio — API Ecommerce
 
 > [!IMPORTANT]
-> **Portfolio de aprendizaje, no un producto.** Este repositorio es un ejercicio de aprendizaje deliberado:
+> **Portfolio de aprendizaje y demostración de conocimientos adquiridos a lo largo de mi experiencia profesional.** Este repositorio es un ejercicio de aprendizaje deliberado:
 > lo construyo para entender el backend en .NET a fondo, probando patrones, comparándolos y equivocándome a
 > la vista. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
 > diseño e higiene) documentadas en [*Estado actual y limitaciones conocidas*](#estado-actual-y-limitaciones-conocidas),
