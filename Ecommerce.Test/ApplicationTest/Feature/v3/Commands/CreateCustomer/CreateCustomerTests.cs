@@ -9,8 +9,7 @@ using Ecommerce.Transversal.Common.Enums;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
 {
-    //Tests del handler v3: se sustituyen los limites (UnitOfWork y repositorio),
-    //y el mapper y el validador se usan REALES porque forman parte del caso de uso.
+    //Tests del handler v3 con UnitOfWork y repositorio falsos. Mapper y validador reales.
     public class CreateCustomerTests : ApplicationTestBase
     {
         private readonly ICustomerRepositoryUoW _repository = Substitute.For<ICustomerRepositoryUoW>();
@@ -51,12 +50,9 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
             _repository.CompareInfoInDb(mapeo, Arg.Any<CancellationToken>()).Returns(false);
 
             //Aqui guardaremos el Customer que el handler le pasa al repositorio.
-            //Empieza vacio: se rellena durante el Act, cuando el handler llama a AddAsync.
             Customer? customerGuardado = null;
 
-            //Accion que queremos ejecutar en cada llamada a AddAsync:
-            //sacar el Customer de los argumentos de la llamada y guardarlo en customerGuardado.
-            //"llamada" la rellena NSubstitute con los datos de la llamada real a AddAsync (sus argumentos).
+            //Saca el Customer de la llamada a AddAsync y lo guarda. "llamada" la rellena NSubstitute.
             void guardarCustomer(CallInfo llamada)
             {
                 var customerRecibido = llamada.Arg<Customer>();
@@ -81,8 +77,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
             Assert.Null(customerGuardado.Id);
             Assert.Equal("Test", customerGuardado.CompanyName);
 
-            //Assert: se confirmo el cambio una sola vez.
-            //ReceivedCalls devuelve todas las llamadas que recibio el doble; nos quedamos con las de SaveChangesAsync y las contamos.
+            //Assert: se confirmo una sola vez (ReceivedCalls da las llamadas que recibio el doble).
             var llamadasAlUnitOfWork = _unitOfWork.ReceivedCalls();
             var llamadasSaveChanges = llamadasAlUnitOfWork.Where(llamada => llamada.GetMethodInfo().Name == nameof(IUnitOfWork.SaveChangesAsync));
             var vecesSaveChanges = llamadasSaveChanges.Count();
@@ -120,7 +115,6 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
             Assert.Contains("Company name is required.", erroresCompanyName);
 
             //Assert: si la validacion falla, el handler no llega a tocar la base de datos.
-            //ReceivedCalls devuelve todas las llamadas que recibio el doble; filtramos por metodo y contamos.
             var llamadasAlRepositorio = _repository.ReceivedCalls();
 
             var llamadasCompareInfo = llamadasAlRepositorio.Where(llamada => llamada.GetMethodInfo().Name == nameof(ICustomerRepositoryUoW.CompareInfoInDb));
@@ -167,7 +161,6 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
             Assert.Equal("Customer is already registered", response.Message);
 
             //Assert: si ya existe, no se añade ni se confirma nada.
-            //ReceivedCalls devuelve todas las llamadas que recibio el doble; filtramos por metodo y contamos.
             var llamadasAlRepositorio = _repository.ReceivedCalls();
             var llamadasAddAsync = llamadasAlRepositorio.Where(llamada => llamada.GetMethodInfo().Name == nameof(ICustomerRepositoryUoW.AddAsync));
             var vecesAddAsync = llamadasAddAsync.Count();
@@ -213,7 +206,6 @@ namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
             Assert.Equal("Customer could not be added.", response.Message);
 
             //Assert: el handler si intento añadir y confirmar, pero el commit no escribio nada.
-            //ReceivedCalls devuelve todas las llamadas que recibio el doble; filtramos por metodo y contamos.
             var llamadasAlRepositorio = _repository.ReceivedCalls();
             var llamadasAddAsync = llamadasAlRepositorio.Where(llamada => llamada.GetMethodInfo().Name == nameof(ICustomerRepositoryUoW.AddAsync));
             var vecesAddAsync = llamadasAddAsync.Count();

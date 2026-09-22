@@ -1,8 +1,8 @@
-using Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand;
+using Ecommerce.Application.Feature.Customers.v4.Commands.CreateCustomer;
 
-namespace Ecommerce.Test.ApplicationTest.Feature.v3.Commands.CreateCustomer
+namespace Ecommerce.Test.ApplicationTest.Feature.v4.Commands.CreateCustomer
 {
-    //Tests del validador v3 por si solo: cada fila de [InlineData] es una regla.
+    //Tests del validador v4 por si solo: cada fila de [InlineData] es una regla.
     public class CreateCustomerValidatorTests
     {
         private readonly CreateCustomerValidator _validator = new CreateCustomerValidator();

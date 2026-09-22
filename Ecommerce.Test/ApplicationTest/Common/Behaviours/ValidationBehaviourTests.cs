@@ -7,8 +7,7 @@ using MediatR;
 
 namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
 {
-    //Tests del behaviour por si solo: validador REAL de v4 y un "next" hecho a mano que apunta si se le llamo.
-    //Si next se ejecuta, la peticion habria llegado al handler; si no, el pipeline se corto antes.
+    //Tests del behaviour con el validador real de v4 y un next hecho a mano que cuenta si se le llama.
     public class ValidationBehaviourTests
     {
         [Fact]
@@ -52,13 +51,16 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         public async Task Handle_PeticionInvalida_LanzaExcepcionYNoLlamaANext()
         {
             //Arrange: CompanyName vacio y City demasiado largo, dos propiedades con error.
+            string result = "";
+            for (int i = 0; i<51; i++) result += "a";
+
             var request = new CreateCustomerCommand
             {
                 CompanyName = "",
                 ContactName = "Test",
                 ContactTitle = "Test",
                 Address = "Test",
-                City = new string('a', 51),
+                City = result,
                 Region = "Test",
                 PostalCode = "Test",
                 Country = "Test",

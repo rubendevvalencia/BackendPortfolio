@@ -28,7 +28,10 @@ namespace Ecommerce.Api.Controllers.v3
     {
         private readonly IMediator _mediator; //Orquesta todo
 
-        public CustomerController(IMediator mediator) => _mediator = mediator;
+        public CustomerController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
 
         //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
         //La Api es la unica que conoce HTTP; la Application solo dice QUE ha fallado, no con que codigo.

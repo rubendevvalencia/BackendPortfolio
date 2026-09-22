@@ -20,20 +20,31 @@ namespace Ecommerce.Infrastructure.Repository
         }
 
         public async Task<Customer?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-            => await _dbContext.Customers.FindAsync(new object?[] { id }, cancellationToken);
+        {
+            var customer = await _dbContext.Customers.FindAsync(new object?[] { id }, cancellationToken);
+            return customer;
+        }
 
         public async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
-            => await _dbContext.Customers.AsNoTracking().ToListAsync(cancellationToken);
+        {
+            var customers = await _dbContext.Customers.AsNoTracking().ToListAsync(cancellationToken);
+            return customers;
+        }
 
         public async Task AddAsync(Customer entity, CancellationToken cancellationToken = default)
-            => await _dbContext.Customers.AddAsync(entity, cancellationToken);
+        {
+            await _dbContext.Customers.AddAsync(entity, cancellationToken);
+        }
 
         public void Update(Customer entity)
         {
             if (_dbContext.Entry(entity).State == EntityState.Detached) _dbContext.Customers.Update(entity);
         }
 
-        public void Delete(Customer entity) => _dbContext.Customers.Remove(entity);
+        public void Delete(Customer entity)
+        {
+            _dbContext.Customers.Remove(entity);
+        }
 
         public async Task<bool> CompareInfoInDb(Customer entity, CancellationToken cancellationToken = default)
         {

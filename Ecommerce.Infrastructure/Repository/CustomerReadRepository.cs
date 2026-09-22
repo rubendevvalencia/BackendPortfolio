@@ -22,7 +22,10 @@ namespace Ecommerce.Infrastructure.Repository
             _conf = conf;
         }
         public async Task<Customer?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-            => await _dbContext.Customers.FindAsync(new object?[] { id }, cancellationToken);
+        {
+            var customer = await _dbContext.Customers.FindAsync(new object?[] { id }, cancellationToken);
+            return customer;
+        }
 
         public async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
         {

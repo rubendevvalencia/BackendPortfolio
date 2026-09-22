@@ -18,7 +18,10 @@ namespace Ecommerce.Infrastructure.Interceptors
         private readonly ICurrentUser? _currentUser;
 
         //Opcional a proposito: el DesignTimeFactory y los tests lo crean con new() sin usuario y deben seguir guardando "System".
-        public AuditableEntitySaveChangesInterceptor(ICurrentUser? currentUser = null) => _currentUser = currentUser;
+        public AuditableEntitySaveChangesInterceptor(ICurrentUser? currentUser = null)
+        {
+            _currentUser = currentUser;
+        }
 
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
         {

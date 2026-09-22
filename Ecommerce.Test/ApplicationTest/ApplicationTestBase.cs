@@ -12,31 +12,31 @@ using NSubstitute.Core;
 
 namespace Ecommerce.Test.ApplicationTest
 {
-    //Base comun para los tests de la capa Application: el mapper, el validador y las factorias de datos.
-    //Se sustituyen los limites (repositorios, UnitOfWork), no las colaboraciones internas de la capa:
-    //el mapper y el validador se usan REALES porque forman parte de lo que se esta probando.
+    //Base de los tests de Application: mapper, validadores y factorias de datos.
     public abstract class ApplicationTestBase
     {
-        //La configuracion de AutoMapper es cara y no guarda estado entre mapeos,
-        //asi que se construye una sola vez para todos los tests.
+        //AutoMapper es caro de configurar, asi que se crea una sola vez.
         protected static readonly IMapper Mapper = BuildMapper();
+        protected static readonly IValidator<SignUpDto> SignUpValidator = new SignUpDtoValidator();
+        protected static readonly IValidator<SignInDto> SignInValidator = new SignInValidator();
+
+        //8 caracteres es el minimo que exigen los dos validadores.
+        protected const string ValidPassword = "Password123!";
+
 
         private static IMapper BuildMapper()
         {
             //El mismo perfil que registra la DI en produccion (ver ConfigureServices).
             var configuration = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance);
 
-            //Revienta si algun mapa deja propiedades de destino sin mapear ni marcar como Ignore().
-            //Es la red que caza una propiedad nueva en un DTO o en una entidad que nadie se acordo
-            //de mapear: sin esto el mapeo la deja en su valor por defecto en silencio y el fallo
-            //aparece mucho mas tarde, en un dato que llega vacio sin motivo aparente.
+            //Falla si algun mapa deja una propiedad sin mapear ni marcar con Ignore().
             configuration.AssertConfigurationIsValid();
 
             return configuration.CreateMapper();
         }
 
         //Validador real: ejerce las reglas de CustomerDtoValidator de verdad.
-        protected static IValidator<CustomerDto> CustomerValidator => new CustomerDtoValidator();
+        protected static readonly IValidator<CustomerDto> CustomerValidator = new CustomerDtoValidator();
 
         //Datos validos por defecto. Cada test cambia solo lo que le importa y el resto es ruido de fondo.
         protected CustomerDto NewCustomerDto(string companyName = "Test")
@@ -74,24 +74,17 @@ namespace Ecommerce.Test.ApplicationTest
             };
         }
 
-        //Customer que recibio el doble del repositorio. Empieza en null y lo rellena SaveCustomer durante el Act.
-        //xUnit crea una instancia nueva por cada test, asi que no se mezcla entre tests.
+        //Customer que recibe el repositorio falso. Lo rellena SaveCustomer durante el Act.
         protected Customer? _customerGuardado;
 
-        //Se usa dentro de un When(...).Do(...): "llamada" la crea NSubstitute con los datos de la llamada
-        //(por ejemplo, a AddAsync). Sacamos el Customer de sus argumentos y lo guardamos en _customerGuardado.
+        //Se usa en When(...).Do(...): saca el Customer de la llamada y lo guarda en _customerGuardado.
         protected void SaveCustomer(CallInfo llamada)
         {
             var customerRecibido = llamada.Arg<Customer>();
             _customerGuardado = customerRecibido;
         }
 
-        protected static IValidator<SignUpDto> SignUpValidator => new SignUpDtoValidator();
-        protected static IValidator<SignInDto> SignInValidator => new SignInValidator();
-
-        //8 caracteres es el minimo que exigen los dos validadores.
-        protected const string ValidPassword = "Password123!";
-
+       
         protected SignUpDto NewSignUpDto(string email = "ruben@email.com", string userName = "ruben")
         {
             return new SignUpDto

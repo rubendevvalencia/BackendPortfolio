@@ -18,27 +18,43 @@ namespace Ecommerce.Transversal.Common
         //Motivo del fallo. Permite que el controller decida el status code sin inspeccionar el Message.
         public ErrorType ErrorType { get; set; } = ErrorType.None;
 
-        public static Response<T> Success(T data) => new()
+        public static Response<T> Success(T data)
         {
-            Data = data,
-            IsSuccess = true,
-        };
+            var response = new Response<T>
+            {
+                Data = data,
+                IsSuccess = true,
+            };
+            return response;
+        }
 
-        public static Response<T> Fail(string message, ErrorType errorType = ErrorType.Unexpected) => new()
+        public static Response<T> Fail(string message, ErrorType errorType = ErrorType.Unexpected)
         {
-            IsSuccess = false,
-            Message = message,
-            ErrorType = errorType
-        };
+            var response = new Response<T>
+            {
+                IsSuccess = false,
+                Message = message,
+                ErrorType = errorType
+            };
+            return response;
+        }
 
-        public static Response<T> NotFound(string message) => Fail(message, ErrorType.NotFound);
-
-        public static Response<T> Invalid(Dictionary<string, List<string>> errors) => new()
+        public static Response<T> NotFound(string message)
         {
-            IsSuccess = false,
-            ErrorType = ErrorType.Validation,
-            Message = "One or more validation errors occurred.",
-            Errors = errors
-        };
+            var response = Fail(message, ErrorType.NotFound);
+            return response;
+        }
+
+        public static Response<T> Invalid(Dictionary<string, List<string>> errors)
+        {
+            var response = new Response<T>
+            {
+                IsSuccess = false,
+                ErrorType = ErrorType.Validation,
+                Message = "One or more validation errors occurred.",
+                Errors = errors
+            };
+            return response;
+        }
     }
 }
