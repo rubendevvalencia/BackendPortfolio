@@ -1,16 +1,18 @@
 # Backend Portfolio — API Ecommerce
 
 > [!IMPORTANT]
-> **Portfolio de aprendizaje, no un producto.** Este repositorio es un ejercicio de aprendizaje deliberado:
-> lo construyo para entender el backend en .NET a fondo, probando patrones, comparándolos y equivocándome a
-> la vista. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
+> **Portfolio de aprendizaje y demostración de conocimientos adquiridos a lo largo de mi experiencia profesional.**
+>
+> No es un producto. Tiene dos propósitos que conviven: **demostrar** lo que he aprendido trabajando en
+> backend con .NET, y **seguir aprendiendo** a la vista, probando patrones, comparándolos y dejando
+> documentado lo que no sale bien. No está pensado para producción. Tiene **29 limitaciones conocidas** (de seguridad, corrección,
 > diseño e higiene) documentadas en [*Estado actual y limitaciones conocidas*](#estado-actual-y-limitaciones-conocidas),
 > con el motivo de cada una. Si vas a evaluarlo, esa sección forma parte del proyecto tanto como el código:
 > muestra qué sé que falta y en qué orden pienso resolverlo.
 
 > **En 30 segundos**
 >
-> - **Qué es:** portfolio de aprendizaje. API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
+> - **Qué es:** portfolio de aprendizaje y demostración de conocimientos adquiridos en mi experiencia profesional. API REST en **.NET 10** con **Clean Architecture** (5 capas + tests), autenticación **JWT** y **EF Core 10** sobre SQL Server.
 > - **Qué la diferencia:** el mismo recurso implementado en **cuatro versiones de la API que conviven**: Repository → Unit of Work → **CQRS con MediatR** → validación en el pipeline. Así cada decisión se puede comparar en código que funciona.
 > - **Patrones:** CQRS con repositorios de lectura y escritura separados · Unit of Work · *pipeline behaviors* (logging y validación) · *Result pattern* (`Response<T>`) + middleware global de excepciones.
 > - **Transversal:** versionado por URL con un documento Swagger por versión · Serilog a consola, fichero y SQL Server según el nivel · auditoría con un interceptor de EF Core · rate limiting con ventana fija y caché distribuida con Redis (ambos, versión simplificada de prueba) · health checks registrados en `Infrastructure` y expuestos en `Api` · secretos fuera del repositorio.
@@ -19,8 +21,8 @@
 > - **Por dónde empezar:** [`Controllers/v1`](Ecommerce/Controllers/v1/CustomerController.cs) → [`v4`](Ecommerce/Controllers/v4/CustomerController.cs) y la tabla de [*Cómo leer este repositorio*](#cómo-leer-este-repositorio).
 > - **Trabajo pendiente, a la vista:** 29 limitaciones conocidas (de 31 anotadas, dos ya resueltas) y [hoja de ruta](#hoja-de-ruta) (invalidación de la caché, tests de integración, Docker/CI, dominio rico) documentadas al final, con el mecanismo de cada fallo explicado.
 
-API REST en **.NET 10** construida con **Clean Architecture**, como proyecto de portfolio y aprendizaje
-deliberado de backend en C#.
+API REST en **.NET 10** construida con **Clean Architecture**: un portfolio de aprendizaje y de
+demostración de los conocimientos de backend en C# que he adquirido a lo largo de mi experiencia profesional.
 
 El objetivo no es la cantidad de funcionalidad, sino la **calidad de las decisiones**: por qué cada pieza
 está donde está, qué problema resuelve y qué se rompería si estuviera en otro sitio.
@@ -1067,4 +1069,4 @@ Siguientes pasos concretos:
 
 ## Licencia
 
-Proyecto personal de aprendizaje, sin licencia de uso definida.
+Portfolio personal de aprendizaje y demostración de conocimientos, sin licencia de uso definida.
