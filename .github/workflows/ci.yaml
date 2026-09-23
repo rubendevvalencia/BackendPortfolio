@@ -1,4 +1,4 @@
-ame: CI-Actions
+name: CI-Actions
 
 on:
   push:
