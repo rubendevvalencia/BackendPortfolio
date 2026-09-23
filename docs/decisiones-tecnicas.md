@@ -138,303 +138,186 @@ compiten entre sí.
 **`LoggingBehaviour<TRequest,TResponse>` — cobertura automática.** Un `IPipelineBehavior` de MediatR que
 envuelve la ejecución del handler y deja rastro de entrada y salida sin que el handler sepa que existe.
 Cero código por caso de uso, a cambio de ver solo el borde: request y response, nunca el interior de la
-decisión. Y cubre únicamente lo que pasa por MediatR como `IRequest` — hoy eso es **v3 y v4**.
+decisión. Cubre lo que pasa por MediatR como `IRequest` — hoy, v3 y v4.
 
-Aquí el diseño de `Response<T>` paga un dividendo que no estaba buscado: como los fallos esperados viajan
-*dentro* de la respuesta en lugar de lanzarse como excepción, el behaviour puede leer el motivo del fallo y
-**elegir el nivel del log según el `ErrorType`**. Sabe que un alta se rechazó por duplicada sin que nadie se
-lo cuente. En un diseño que devolviera un DTO pelado, solo vería un `null`.
-
-El obstáculo técnico es que dentro del behaviour la respuesta es un `TResponse` genérico, y no se puede
-preguntar si es un `Response<T>` sin conocer el `T` concreto. Lo resuelve `IResponse`, una cara no genérica
-de `Response<T>` que expone `IsSuccess`, `Message` y `ErrorType`, y que vive en `Transversal` junto a él
-porque ese proyecto no puede referenciar `Application`. Con eso, cada petición deja una única línea con el
-nivel que le corresponde:
+Aquí el diseño de `Response<T>` paga un dividendo que no se buscaba: como los fallos esperados viajan
+*dentro* de la respuesta en lugar de lanzarse, el behaviour puede leer el motivo y **elegir el nivel del log
+según el `ErrorType`**. En un diseño que devolviera un DTO pelado, solo vería un `null`. El obstáculo
+técnico —dentro del behaviour la respuesta es un `TResponse` genérico— lo resuelve `IResponse`, una cara no
+genérica de `Response<T>` que expone `IsSuccess`, `Message` y `ErrorType`.
 
 | Resultado | Nivel | Por qué |
 |---|---|---|
-| Éxito | `Information` | La traza normal |
-| `Validation` | `Information` | Error del cliente; los detalles ya viajan en el body |
-| `NotFound` | `Information` | Tráfico normal; un escaneo llenaría la tabla SQL |
+| Éxito · `Validation` · `NotFound` | `Information` | Tráfico normal; los detalles ya viajan en el body y un escaneo llenaría la tabla SQL |
 | `Duplicated` | `Warning` | Conflicto de negocio que interesa conservar |
 | `Unexpected` | `Warning` | Hoy es `SaveChangesAsync` devolviendo 0 — ver [pendiente nº 4](limitaciones.md#corrección) |
 
 El nivel decide el destino: desde `Warning` la entrada también llega a la tabla SQL. `Unexpected` no sube a
-`Error` a propósito, porque las excepciones reales ya las registra `GlobalExceptionHandler` como `Error`, y
-así "no se guardó nada" no se confunde con "se cayó la base de datos".
-
-```
-[Information] CreateCustomerCommand -> None:
-[Warning]     CreateCustomerCommand -> Duplicated: Customer is already registered
-[Information] GetCustomerQuery -> NotFound: Customer with ID 7 not found.
-```
-
-El behaviour **observa, pero no altera**: devuelve exactamente la respuesta que obtuvo de `next()`. Registrar
-es un efecto secundario; si la sustituyera, el controller recibiría otra cosa distinta de lo que produjo el
-handler.
+`Error` a propósito, porque las excepciones reales ya las registra `GlobalExceptionHandler`, y así "no se
+guardó nada" no se confunde con "se cayó la base de datos". El behaviour **observa, pero no altera**:
+devuelve exactamente la respuesta que obtuvo de `next()`.
 
 **Por qué no se registra el payload.** La primera versión volcaba request y response completos con
-`JsonSerializer.Serialize`, y es tentador para depurar. Se retiró, y conviene dejar claro el motivo porque es
-fácil equivocarse con él: **la fuga no viene del formato JSON, sino del contenido.** Al serializar el objeto
-entero se escriben todos sus campos, y un `SignUpDto` lleva la contraseña y un `TokenDto` el JWT.
+`JsonSerializer.Serialize`. Se retiró porque **la fuga no viene del formato, sino del contenido**: al
+serializar el objeto entero se escriben todos sus campos, y un `SignUpDto` lleva la contraseña y un
+`TokenDto` el JWT. Las dos salidas aparentes no lo arreglan — pasar el objeto con `{@Payload}` solo cambia
+el formato, porque `Password` es una propiedad más, y bajarlo a `Debug` deja la fuga lista para reaparecer
+el día que alguien active `Debug` para investigar un fallo. Hoy no se filtra nada porque solo `Customer`
+pasa por MediatR; el riesgo se materializa cuando auth migre a commands, y entonces habrá que decidir **qué
+campos no se escriben nunca** —una marca como `ISensitiveRequest`, o `[NotLogged]` sobre la propiedad con
+`Destructurama`—, no solo en qué nivel.
 
-De ahí salen dos trampas:
-
-- **Pasar el objeto con `{@Payload}` no lo arregla.** El operador `@` hace que Serilog descomponga el objeto
-  en propiedades, y `Password` es una más. Cambia el formato, no lo que se escribe.
-- **Bajarlo a `Debug` tampoco.** Reduce la exposición, porque con el nivel mínimo actual no se escribe, pero
-  la fuga reaparece el día que alguien active `Debug` para investigar un fallo.
-
-Hoy no se filtra nada: solo Customer pasa por MediatR y sus requests no llevan secretos. El riesgo es de
-diseño y se materializa el día que auth migre a commands. Si entonces hace falta el payload, hay que decidir
-qué campos no se escriben nunca, no solo en qué nivel:
-
-- **Excluir los requests sensibles**: una interfaz vacía (`ISensitiveRequest`) que implementan los commands
-  de auth, y el behaviour registra solo el nombre cuando la encuentra. Explícito y fácil de revisar.
-- **Ocultar campos concretos**: con `Destructurama.Attributed`, `[NotLogged]` o `[LogMasked]` en la
-  propiedad del DTO. La protección viaja con el dato y funciona desde cualquier sitio que lo registre.
-
-Las dos exigen pasar el **objeto** a Serilog con `@`. Si se serializa antes a mano, Serilog recibe un string
-ya cerrado y los atributos no se aplican.
-
-**Por qué solo sale en v3 y v4: es MediatR, no CQRS.** Es fácil atribuirlo al patrón porque aquí van juntos, pero
-CQRS solo separa lecturas de escrituras y no ejecuta nada. Lo que activa el behaviour es *cómo llama el
-controller*:
-
-```csharp
-// v2 — llamada directa a un método: no hay ningún intermediario donde engancharse
-var response = await _customerApplication.AddAsync(customerDto, cancellationToken);
-
-// v3 y v4 — Send busca el handler y, antes de invocarlo, lo envuelve con los IPipelineBehavior registrados
-var response = await _mediator.Send(command, cancellationToken);
-```
-
-Por eso el behaviour se registra *dentro* de `AddMediatR(cfg => ...)`: es configuración de MediatR, y el
-resto del contenedor no sabe que existe. Las combinaciones cruzadas lo confirman: CQRS con los handlers
-llamados a mano no sacaría el log, y MediatR con un único request que lee y escribe sí. Y por lo mismo
-`UserAuthController` no lo saca aunque declare la `3.0`: la versión cambia la ruta, no el mecanismo.
+**Por qué solo sale en v3 y v4: es MediatR, no CQRS.** Lo que activa el behaviour es *cómo llama el
+controller*, no el patrón: `_mediator.Send(...)` busca el handler y lo envuelve con los `IPipelineBehavior`
+registrados, mientras que `_customerApplication.AddAsync(...)` es una llamada directa sin intermediario
+donde engancharse. Por eso el behaviour se registra *dentro* de `AddMediatR(cfg => ...)`, y por eso
+`UserAuthController` no saca traza aunque declare la `3.0`: la versión cambia la ruta, no el mecanismo.
 
 Dicho con precisión, **tiene traza todo `Send` de un request con respuesta, siempre que nada por debajo
-lance**. Tres matices; los dos primeros hoy no afectan a ningún caso, el tercero ya afecta a v4:
+lance**. De ahí tres huecos, el último ya activo:
 
-- **`Publish` no pasa por el pipeline.** Las notificaciones de MediatR (`INotification`) no atraviesan
-  `IPipelineBehavior`; el día que se publique un evento de dominio, no tendrá traza automática.
-- **Un request sin respuesta se salta el behaviour en silencio.** La restricción
-  `where TRequest : IRequest<TResponse>` no la cumple un command declarado como `IRequest` a secas, y el
-  contenedor simplemente no lo aplica —sin error ni aviso—. Los diez requests actuales (cinco en v3, cinco
-  en v4) devuelven `Response<T>`; si aparece uno sin retorno, basta con quitar la restricción, de la que
-  nada más depende.
-- **Si algo por debajo lanza, el behaviour no registra nada visible.** `await next()` no está dentro de un
-  `try`, así que la excepción sube sin pasar por la clasificación; solo queda la línea de entrada, que va
-  a `Debug` y con el nivel mínimo actual no se escribe. Para un error inesperado no se pierde nada —lo
-  registra `GlobalExceptionHandler` como `Error`—, pero el behaviour no lo ve. Es el hueco que cubriría un
+- **`Publish` no pasa por el pipeline**: el día que se publique un evento de dominio, no tendrá traza.
+- **Un request sin respuesta se salta el behaviour en silencio**, porque no cumple
+  `where TRequest : IRequest<TResponse>`. Los diez actuales devuelven `Response<T>`.
+- **Si algo por debajo lanza, no se registra nada visible**: `await next()` no está dentro de un `try`.
+  **En v4 esto incluye la validación**, porque `ValidationBehaviour` va *dentro* y lanza; el middleware
+  responde el 400 sin registrarlo, así que el único rastro es la línea de `UseSerilogRequestLogging()`. Es
+  una diferencia real con v3, donde sí queda una línea `Information`. Lo cubriría un
   `UnhandledExceptionBehaviour` (pendiente nº 10).
 
-  **En v4 esto incluye la validación.** `ValidationBehaviour` va *dentro* de `LoggingBehaviour` y lanza
-  `ValidationExceptionCustom`, así que un fallo de validación de v4 nunca llega a clasificarse como
-  `Validation`. Y el `catch` de esa excepción en el middleware responde el 400 **sin registrarla**. El único
-  rastro es la línea de `UseSerilogRequestLogging()` con el status. Encaja con la regla de reparto —un fallo
-  de validación es tráfico del cliente y el status ya lo dice—, pero es una diferencia real con v3, donde
-  sí queda una línea `Information` con el caso de uso.
+**`IApiLogger<T>` — logs con intención.** Se inyecta y se llama a mano, en el punto donde se sabe qué regla
+se ha incumplido: es lo que el interceptor no puede dar —un código de estado no dice *por qué*— y **el
+único enfoque posible fuera de MediatR**, que es donde viven v1, v2 y `UserAuthApplication`.
 
-**`IApiLogger<T>` — logs con intención.** Se inyecta en la clase y se llama a mano, en el punto donde se
-sabe qué regla se ha incumplido. Es lo que el interceptor no puede darte —un código de estado no dice
-*por qué*— y, sobre todo, **es el único enfoque posible fuera de MediatR**: v1, v2 y `UserAuthApplication`
-no pasan por `Send`, así que no entran al pipeline.
+La regla de reparto, para que los dos no produzcan ruido duplicado: **a mano se registra solo lo que el
+código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo cada petición deja ya una entrada con
+su status, así que repetir un 404 desde `Application` no aporta nada; sí lo aportan el 409 —el status no
+dice con qué dato chocó— y el `SaveChangesAsync` que devuelve 0, que es el caso más opaco del diseño.
 
-La regla de reparto que se sigue aquí, para que los dos no produzcan ruido duplicado: **a mano se registra
-solo lo que el código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo, cada petición deja
-ya una entrada con su status, así que repetir un 404 desde `Application` no aporta nada.
-
-| Rama del caso de uso | v3 y v4 (behaviour) | v1 y v2 (a mano) |
-|---|---|---|
-| Validación falla | v3: `Information`, automático · v4: sin entrada, solo el status del request log | No — los errores ya viajan en el body |
-| `NotFound` | `Information`, automático | No — tráfico normal |
-| `Duplicated` → 409 | `Warning`, automático | **Sí**, `Warning` — el status no dice con qué dato chocó |
-| `SaveChangesAsync` devuelve 0 | `Warning`, automático | **Sí**, `Warning` — el caso más opaco del diseño |
-
-Lo único que el behaviour no da es el *sujeto*: registra que el alta chocó, no con qué email, porque para
-eso tendría que volcar el request. Si hace falta, se inyecta logger en ese handler concreto.
-
-**Estado actual:** el behaviour está registrado y activo para v3 y v4. `IApiLogger` y su implementación
-`AppLogger<T>` se conservan **sin registrar**, como ejemplo del enfoque manual, y `UserAuthApplication` usa
-hoy `ILogger<T>` directo. Cablear `IApiLogger` en v1 y v2 es el siguiente paso: cuando esté, el mismo
-recurso en cuatro versiones también servirá para contrastar las dos formas de loguear.
+**Estado actual:** el behaviour está registrado y activo para v3 y v4. `IApiLogger` y `AppLogger<T>` se
+conservan **sin registrar**, como ejemplo del enfoque manual, y `UserAuthApplication` usa hoy `ILogger<T>`
+directo. Cablearlo en v1 y v2 es el siguiente paso.
 
 ### Rate limiting: versión simplificada, a modo de prueba
 
-> **Aviso:** lo que hay montado es una **versión simplificada, a modo de prueba**. Sirve para ver cómo se
-> registra y se aplica el rate limiter nativo de ASP.NET Core (`Microsoft.AspNetCore.RateLimiting`), no
-> como protección lista para producción. Sus límites están descritos al final de esta sección y en el
+> **Aviso:** sirve para ver cómo se registra y se aplica el rate limiter nativo de ASP.NET Core
+> (`Microsoft.AspNetCore.RateLimiting`), no como protección lista para producción — ver
 > [pendiente nº 23](limitaciones.md#seguridad).
 
-Una única política de **ventana fija** (`fixedWindow`), registrada en
+Una única política de **ventana fija**, en
 [`Modules/RateLimiter/RateLimiterExtensions.cs`](../Ecommerce/Modules/RateLimiter/RateLimiterExtensions.cs):
-
-| Pieza | Dónde | Qué hace |
-|---|---|---|
-| `AddRateLimiting(configuration)` | `Program.cs`, al registrar servicios | Lee la sección `RateLimiting` y registra la política |
-| `app.UseRateLimiter()` | `Program.cs`, después de `UseCors()` y antes de `UseAuthentication()` | Aplica el limitador en el pipeline |
-| `[EnableRateLimiting("fixedWindow")]` | `UserAuthController` y los cuatro `CustomerController` | Decide a qué endpoints afecta la política |
-
-Los valores salen de la configuración, no del código:
+`AddRateLimiting(configuration)` la registra leyendo la sección `RateLimiting`, `app.UseRateLimiter()` la
+aplica —después de `UseCors()` y antes de `UseAuthentication()`— y `[EnableRateLimiting("fixedWindow")]`
+decide a qué controllers afecta. `/health` se mapea fuera de los controllers, así que no está limitado.
 
 ```json
-"RateLimiting": {
-  "PermitLimit": 4,          // peticiones permitidas por ventana
-  "Window": "00:00:30",      // duración de la ventana, en formato "hh:mm:ss"
-  "QueueLimit": 2            // peticiones que esperan a la siguiente ventana cuando no quedan permisos
-}
+"RateLimiting": { "PermitLimit": 4, "Window": "00:00:30", "QueueLimit": 2 }
 ```
 
-La ventana se escribe **`"00:00:30"`, no `30`**, y no es cosmético: `RateLimiterConfiguration` la lee con
-`TimeSpan.TryParseExact` y no con `TryParse` justo por eso — `TimeSpan` interpreta un entero suelto como
-**días**, así que un `30` pensado como segundos daría una ventana de 30 días y el limitador no frenaría
-nunca. Exigir el formato convierte ese error silencioso en un fallo al arrancar.
+- **La ventana se escribe `"00:00:30"`, no `30`**, y se lee con `TimeSpan.TryParseExact`: `TimeSpan`
+  interpreta un entero suelto como **días**, así que un `30` pensado como segundos daría una ventana de 30
+  días y el limitador no frenaría nunca. Exigir el formato convierte un error silencioso en uno al arrancar.
+- **Configuración inválida, arranque fallido.** Si un valor falta, no parsea o queda fuera de rango,
+  `AddRateLimiting` lanza al arrancar nombrando la clave concreta. Mejor no arrancar que arrancar con un
+  limitador que bloquea todo o no bloquea nada. *(Es el criterio que la caché todavía no sigue: nº 25.)*
+- **429 en lugar de 503.** Por defecto el middleware responde `503`, que dice "el servidor está caído"
+  cuando lo que pasa es que el cliente se ha pasado; `RejectionStatusCode` lo corrige.
+- **Delante de la autenticación**, para rechazar sin gastar en validar el JWT y cubrir `SignIn` aunque sea
+  `[AllowAnonymous]`. Cuando se agotan los permisos, hasta `QueueLimit` peticiones esperan en cola FIFO.
 
-- **Cola FIFO** (`QueueProcessingOrder.OldestFirst`): cuando se agotan los permisos, hasta `QueueLimit`
-  peticiones esperan sin respuesta a que se abra la siguiente ventana; se atienden de la más antigua a la
-  más nueva.
-- **429 en lugar de 503.** Por defecto el middleware rechaza con `503 Service Unavailable`, que dice "el
-  servidor está caído" cuando lo que pasa es que el cliente se ha pasado. `RejectionStatusCode` lo cambia a
-  **`429 Too Many Requests`**.
-- **Configuración inválida, arranque fallido.** Si alguno de los tres valores falta, no tiene el formato
-  esperado o queda fuera de rango, `AddRateLimiting` lanza `InvalidOperationException` **al arrancar**, con
-  un mensaje que nombra la clave concreta, y el `try/catch` de `Program.cs` lo hace visible (ver *Arranque
-  que falla de forma visible*). Mejor no arrancar que arrancar con un limitador que bloquea todo o no
-  bloquea nada. *(Este criterio es el que todavía no sigue la caché: ver pendiente nº 25.)*
-- **Delante de la autenticación.** Al ir antes de `UseAuthentication()`, una petición que sobra se rechaza
-  sin gastar en validar el JWT, y `SignIn` queda cubierto aunque sea `[AllowAnonymous]`.
-- **`/health` no está limitado**: se mapea con `MapHealthChecks`, fuera de los controllers, y no lleva la
-  política.
-
-**Lo que la simplificación deja fuera.** El limitador **no está particionado**: no hay un contador por
-cliente, sino **un único contador compartido por toda la API**. Con los valores actuales, entre todos los
-usuarios y todos los endpoints marcados caben 4 peticiones cada 30 segundos, así que un solo cliente
-insistente agota el cupo de los demás. Para una prueba local es justo lo que se quiere —se provoca el 429 en
-cuatro clics—, pero en un despliegue real convierte el limitador en una forma sencilla de tumbar el servicio.
-
-La versión completa pasaría por `RateLimitPartition.GetFixedWindowLimiter` con una clave por cliente —el
-usuario del JWT si está autenticado, la IP si no, teniendo en cuenta `UseForwardedHeaders()` detrás de un
-balanceador—, una política más estricta y separada para `SignIn`/`SignUp` contra fuerza bruta, y la cabecera
-`Retry-After` en el 429.
+**Lo que la simplificación deja fuera.** No está particionado: hay **un único contador para toda la API**,
+así que entre todos los usuarios caben 4 peticiones cada 30 segundos y un solo cliente insistente agota el
+cupo de los demás. Para provocar el 429 en cuatro clics es justo lo que se quiere; en un despliegue real es
+una forma sencilla de tumbar el servicio. La versión completa pasaría por
+`RateLimitPartition.GetFixedWindowLimiter` con clave por usuario o IP, una política más estricta para
+`SignIn`/`SignUp` y la cabecera `Retry-After` en el 429.
 
 ### Caché distribuida con Redis: ejercicio del patrón *cache-aside*
 
-> **Aviso:** igual que el rate limiter, esto está montado **a modo de ejercicio del patrón**, no como
-> respuesta a un problema de rendimiento medido. No hay carga, ni métricas, ni paginación: el endpoint
-> cacheado devuelve hoy un puñado de filas. La decisión de si compensa de verdad está aplazada a propósito.
-> Lo que sigue explica qué hay, dónde vive, por qué vive ahí y qué le falta al ejemplo para estar completo.
+> **Aviso:** montado **a modo de ejercicio del patrón**, no como respuesta a un problema medido. No hay
+> carga, ni métricas, ni paginación: el endpoint cacheado devuelve hoy un puñado de filas.
 
-**Qué hay montado.** Una caché *cache-aside* —mirar la caché; si no está, ir a la base de datos y
-guardar— sobre una sola consulta, `GetAllCustomers`:
-
-| Pieza | Dónde | Qué hace |
-|---|---|---|
-| `AddStackExchangeRedisCache` | [`Infrastructure/ConfigureServices.cs`](../Ecommerce.Infrastructure/ConfigureServices.cs) | Registra `IDistributedCache` contra Redis |
-| `CustomerReadRepository.GetAllAsync` | [`Infrastructure/Repository`](../Ecommerce.Infrastructure/Repository/CustomerReadRepository.cs) | Lee de Redis; si no hay acierto, consulta con EF y guarda |
-| `CacheConfiguration` | [`Infrastructure/Data/Cache`](../Ecommerce.Infrastructure/Data/Cache/CacheConfiguration.cs) | Traduce las caducidades de `appsettings.json` a `TimeSpan` |
-| `eCacheKey` | [`Infrastructure/Data/Cache`](../Ecommerce.Infrastructure/Data/Cache/eCacheKey.cs) | Las claves como `enum`, para que no viajen como *string* suelto |
-| `.AddRedis(...)` | [`Infrastructure/ConfigureServices.cs`](../Ecommerce.Infrastructure/ConfigureServices.cs) | Mete Redis en `/health` con la etiqueta `caché`, junto al resto de health checks |
-
-Las caducidades salen de la configuración, por política y no del código:
+*Cache-aside* —mirar la caché; si no está, ir a la base de datos y guardar— sobre una sola consulta,
+`GetAllCustomers`. Todo vive en `Infrastructure`: `AddStackExchangeRedisCache` registra `IDistributedCache`,
+[`CustomerReadRepository.GetAllAsync`](../Ecommerce.Infrastructure/Repository/CustomerReadRepository.cs)
+implementa el patrón, [`CacheConfiguration`](../Ecommerce.Infrastructure/Data/Cache/CacheConfiguration.cs)
+traduce las caducidades de `appsettings.json`, `eCacheKey` guarda las claves como `enum` para que no viajen
+como *string* suelto, y `.AddRedis(...)` mete Redis en `/health`.
 
 ```json
 "Cache": {
   "Default":  { "AbsoluteExpiration": "02:00:00", "SlidingExpiration": "01:00:00" },
-  "Policies": {
-    "GetAllCustomers": { "AbsoluteExpiration": "01:00:00", "SlidingExpiration": "00:12:00" }
-  }
+  "Policies": { "GetAllCustomers": { "AbsoluteExpiration": "01:00:00", "SlidingExpiration": "00:12:00" } }
 }
 ```
 
-Mismo criterio de formato que en el rate limiter, y por el mismo motivo: `TimeSpan.TryParseExact` con
-`"hh:mm:ss"` en lugar de `TryParse`, porque un entero suelto se leería como días.
+Mismo formato `"hh:mm:ss"` con `TryParseExact` que el rate limiter, y por el mismo motivo.
 
 **Solo se cachea el listado, y es deliberado.** `GetByIdAsync` va contra la clave primaria: SQL Server lo
-resuelve con un *seek* sobre el índice agrupado, y el salto de red hasta Redis puede costar más que la
-consulta que ahorra. A cambio multiplicaría la superficie de invalidación —una clave por cliente en lugar
-de una sola— por una ganancia dudosa. El criterio para decidir qué se cachea no es "devuelve muchas filas",
-sino la **proporción lectura/escritura**, la **concurrencia sobre la misma clave** y la **tolerancia a datos
-viejos**. El patrón de persistencia no entra en la ecuación: tener Unit of Work y confirmar una sola vez por
-caso de uso no hace que una lectura se beneficie más o menos de una caché.
+resuelve con un *seek* y el salto de red hasta Redis puede costar más que la consulta que ahorra, a cambio
+de multiplicar la superficie de invalidación. El criterio no es "devuelve muchas filas", sino la
+**proporción lectura/escritura**, la **concurrencia sobre la misma clave** y la **tolerancia a datos
+viejos**.
 
-**Y "devuelve muchas filas" es, en realidad, el síntoma de otra cosa.** `GetAll` no está paginado
-(pendiente nº 18). Con la tabla pequeña el blob cabe de sobra en Redis; con 100.000 clientes, cada acierto
-significa traer varios MB por red, deserializarlos enteros y mapearlos enteros con AutoMapper —el mapeo se
-paga igual, se acierte o no—, lo que puede salir **más caro** que la consulta paginada que debería existir.
-La caché no arregla un `SELECT` sin límite: lo encarece a medida que la tabla crece. El orden sensato es
-**paginar primero y volver a hacerse la pregunta después**, porque una vez paginado el problema cambia de
-forma: se cachearía por página, y entonces un alta invalida todas las páginas, no una.
+**Y "devuelve muchas filas" es el síntoma de otra cosa:** `GetAll` no está paginado (nº 18). Con 100.000
+clientes cada acierto traería varios MB por red para deserializarlos y mapearlos enteros —el mapeo se paga
+igual, se acierte o no—, lo que puede salir **más caro** que la consulta paginada que debería existir. El
+orden sensato es **paginar primero y volver a hacerse la pregunta después**, porque entonces se cachearía
+por página y un alta invalidaría todas, no una.
 
-**Por qué la caché vive en `Infrastructure` y no detrás de un puerto en `Application`.** La alternativa
-considerada era un `ICacheService` declarado en `Application` con el adaptador de Redis en
-`Infrastructure` —el mismo patrón que pide el pendiente nº 13 para el JWT—. Tiene dos ventajas reales:
-cachearía el DTO, que es el contrato ya estabilizado por el versionado, y ahorraría el mapeo en cada
-acierto. Se ha descartado a propósito: **Redis es un almacén de datos, y aquí la regla es que ningún
-almacén asome por encima de `Infrastructure`**, ni siquiera detrás de una interfaz. Elegir la caché
-transparente tiene una contrapartida que conviene decir en voz alta: leyendo `DeleteCustomerCommandHandle`
-no hay **ninguna** pista de que exista una caché.
+**Por qué la caché vive en `Infrastructure`.** La alternativa era un `ICacheService` declarado en
+`Application` con el adaptador en `Infrastructure` —el patrón que pide el pendiente nº 13 para el JWT—, que
+cachearía el DTO y ahorraría el mapeo en los aciertos. Se descartó a propósito: **Redis es un almacén de
+datos, y aquí ningún almacén asoma por encima de `Infrastructure`**, ni siquiera detrás de una interfaz. La
+contrapartida conviene decirla en voz alta: leyendo `DeleteCustomerCommandHandle` no hay **ninguna** pista
+de que exista una caché.
 
-**Dónde tiene que ir la invalidación.** De esa decisión sale un problema que no es evidente: **el
-repositorio no puede invalidar.** `CustomerRepositoryUoW` no confirma —esa es justamente la regla que
-define el Unit of Work aquí—, así que cuando ejecuta `Delete(customer)` todavía no ha pasado nada en la
-base de datos. Desalojar ahí y que el `SaveChangesAsync` falle después tiraría una caché válida; desalojar
-antes del commit abre una ventana en la que otra petición puede repoblarla con el estado viejo. La
-invalidación tiene que ocurrir **después de un commit con éxito**, y quien confirma es el caso de uso.
-
-Manteniendo la caché fuera de `Application`, la salida es un segundo `SaveChangesInterceptor` —hermano del
-de auditoría— que en `SavedChangesAsync` mire si entre los cambios confirmados había alguna entidad
-`Customer` y, en ese caso, desaloje la clave. Dos detalles lo hacen menos trivial que el de auditoría: el
-que corre *después* del commit es `SavedChangesAsync` y no `SavingChangesAsync`, y para entonces el
-`ChangeTracker` ya ha dejado las entidades en `Unchanged` — así que el estado hay que capturarlo antes y
+**Dónde tiene que ir la invalidación.** De ahí sale un problema que no es evidente: **el repositorio no
+puede invalidar.** `CustomerRepositoryUoW` no confirma, así que cuando ejecuta `Delete(customer)` todavía no
+ha pasado nada en la base de datos; desalojar ahí y que el `SaveChangesAsync` falle después tiraría una
+caché válida, y desalojar antes del commit abre una ventana para que otra petición la repueble con el estado
+viejo. La invalidación tiene que ocurrir **después de un commit con éxito**. Manteniendo la caché fuera de
+`Application`, la salida es un segundo `SaveChangesInterceptor` —hermano del de auditoría— que en
+`SavedChangesAsync` mire si entre los cambios confirmados había alguna entidad `Customer`. Con un matiz: para
+entonces el `ChangeTracker` ya las ha dejado en `Unchanged`, así que el estado hay que capturarlo antes y
 consumirlo después.
 
-**Lo que le falta al ejemplo para estar completo.** Un *cache-aside* sin invalidación demuestra la mitad
-fácil del patrón; la invalidación es la parte difícil, y es la que no está. Por orden:
+**Lo que le falta al ejemplo.** Un *cache-aside* sin invalidación demuestra la mitad fácil del patrón:
 
 | | Falta | Por qué importa |
 |---|---|---|
-| 1 | **Invalidar tras el commit** (nº 24) | Hoy un alta, una edición o un borrado no tocan la caché: el listado devuelve el estado anterior hasta que la entrada caduca |
-| 2 | **Un modelo de caché propio** (nº 27) | Ahora se serializa la entidad `Customer` entera, auditoría incluida: el modelo de dominio acaba siendo el contrato de Redis |
-| 3 | **Clave versionada** (`customers:v1:all`) | Convierte un cambio de forma en un *miss* limpio, en lugar de una deserialización a medias sin error visible |
-| 4 | **Validar la configuración al arrancar** (nº 25) | Hoy `CacheConfiguration` lanza en el primer *miss*, dentro de una petición: lo contrario del criterio aplicado en el rate limiter |
+| 1 | **Invalidar tras el commit** (nº 24) | Hoy un alta, una edición o un borrado no tocan la caché: el listado devuelve el estado anterior hasta que caduca |
+| 2 | **Un modelo de caché propio** (nº 27) | Ahora se serializa la entidad `Customer` entera, auditoría incluida: el dominio acaba siendo el contrato de Redis |
+| 3 | **Clave versionada** (`customers:v1:all`) | Convierte un cambio de forma en un *miss* limpio, no en una deserialización a medias sin error visible |
+| 4 | **Validar la configuración al arrancar** (nº 25) | Hoy lanza en el primer *miss*, dentro de una petición: lo contrario del criterio del rate limiter |
 | 5 | **Degradar si Redis cae** (nº 26) | Una caché es *best-effort*: si el almacén no responde se va a la base de datos, no se responde 500 |
 
 ### Health checks: el registro baja a `Infrastructure`, la exposición se queda en `Api`
 
-Los health checks nacieron enteros en la capa de API: un `Modules/HealthCheck/HealthCheckExtensions.cs`
-con `AddHealthCheck(configuration)` que leía las cadenas de conexión de SQL Server y de Redis y registraba
-las sondas. Funcionaba, pero colocaba la decisión en el sitio equivocado y se notaba en el `.csproj`:
-`Ecommerce.Api` tenía que referenciar **`AspNetCore.HealthChecks.SqlServer` y `AspNetCore.HealthChecks.Redis`**
-—dos paquetes que hablan de almacenes de datos— solo para poder registrarlos, justo lo que la regla *ningún
-almacén de datos asoma por encima de `Infrastructure`* dice que no debe pasar. La capa que ni siquiera sabe
-que existe una base de datos estaba declarando cómo se comprueba que esa base de datos responde.
+Los health checks nacieron enteros en `Api`, con un `AddHealthCheck(configuration)` que leía las cadenas de
+conexión de SQL Server y de Redis. Funcionaba, pero obligaba a `Ecommerce.Api.csproj` a referenciar
+**`AspNetCore.HealthChecks.SqlServer` y `.Redis`** —dos paquetes que hablan de almacenes de datos—, justo lo
+que la regla *ningún almacén asoma por encima de `Infrastructure`* dice que no debe pasar: la capa que ni
+siquiera sabe que existe una base de datos declaraba cómo se comprueba que responde.
 
 El reparto ahora sigue la misma línea que el resto de la solución: **quien abre la conexión, la vigila.**
 
 | Pieza | Dónde vive | Por qué ahí |
 |---|---|---|
-| `AddHealthChecks()` con `.AddSqlServer(...)`, `.AddRedis(...)` y `.AddCheck<HealthCheckCustome>(...)` | [`Infrastructure/ConfigureServices.cs`](../Ecommerce.Infrastructure/ConfigureServices.cs) | Las sondas comprueban las dos dependencias que **esta misma capa** registra tres líneas más arriba (`AddDbContext` y `AddStackExchangeRedisCache`), leyendo las mismas cadenas de conexión |
-| `HealthCheckCustome` | [`Infrastructure/HealthCheck`](../Ecommerce.Infrastructure/HealthCheck/HealthCheckCustome.cs) | Un `IHealthCheck` propio, con la etiqueta `custom` |
-| `MapHealthChecks("/health")` y `MapHealthChecks("/health/ui")` | [`Program.cs`](../Ecommerce/Program.cs) | Las rutas y los códigos HTTP son HTTP: eso es de `Api` |
+| `AddHealthChecks()` con `.AddSqlServer(...)`, `.AddRedis(...)` y `.AddCheck<HealthCheckCustome>(...)` | [`Infrastructure/ConfigureServices.cs`](../Ecommerce.Infrastructure/ConfigureServices.cs) | Las sondas comprueban las dos dependencias que **esta misma capa** registra tres líneas más arriba, con las mismas cadenas de conexión |
+| `MapHealthChecks("/health")` y `/health/ui` | [`Program.cs`](../Ecommerce/Program.cs) | Las rutas y los códigos HTTP son cosa de `Api` |
 | `HealthHtmlUi` | [`Modules/HealthCheck`](../Ecommerce/Modules/HealthCheck/HealthHtmlUi.cs) | Presentación pura: convierte el `HealthReport` en una tabla HTML |
 
-El resultado se lee en los `.csproj`, que es donde estas cosas se demuestran: los dos paquetes de sonda se
-han movido a `Ecommerce.Infrastructure.csproj` —junto con
-`Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions`, que es solo el contrato `IHealthCheck`— y de
-`Ecommerce.Api.csproj` ha desaparecido cualquier referencia a SQL Server o Redis por esta vía. En `Api`
-queda `AspNetCore.HealthChecks.UI.Client`, que no sonda nada: solo serializa el informe en el JSON que
-esperan servicios como Azure. Con el registro dentro de `AddInfrastructureServices`, `Program.cs` pierde
-también su línea `AddHealthCheck(...)`: añadir mañana una sonda nueva a un almacén nuevo no obliga a tocar
-la capa de API.
+Se lee en los `.csproj`, que es donde estas cosas se demuestran: los paquetes de sonda están ahora en
+`Ecommerce.Infrastructure.csproj` y de `Ecommerce.Api.csproj` ha desaparecido cualquier referencia a SQL
+Server o Redis por esta vía —queda `AspNetCore.HealthChecks.UI.Client`, que no sonda nada: solo serializa el
+informe—. Y `Program.cs` pierde su línea `AddHealthCheck(...)`: añadir mañana una sonda a un almacén nuevo
+no obliga a tocar la capa de API.
 
-**Sobre `HealthCheckCustome`.** Es el hueco donde enchufar una comprobación propia —un servicio externo,
-una cola, una API de terceros—, y hoy está relleno con un `Random` que devuelve `Healthy`, `Degraded` o
-`Unhealthy` según un número entre 1 y 300 ms. Está así **a propósito**: es la única forma de ver los tres
-estados en `/health/ui` sin tirar de verdad una dependencia. No es una comprobación real y no debe
-confundirse con una; el día que haya un servicio externo que vigilar, la lógica sustituye al `Random` sin
-tocar nada más. *(Le sobra un campo `_htmlFormat` sin usar, residuo de cuando la clase vivía junto al HTML.)*
+**Sobre `HealthCheckCustome`.** Es el hueco donde enchufar una comprobación propia, y hoy está relleno con
+un `Random` que devuelve `Healthy`, `Degraded` o `Unhealthy`. Está así **a propósito**: es la única forma de
+ver los tres estados en `/health/ui` sin tirar de verdad una dependencia. No es una comprobación real y no
+debe confundirse con una.
 
 ### Arranque que falla de forma visible
 
