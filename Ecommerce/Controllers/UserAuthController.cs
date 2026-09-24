@@ -29,6 +29,7 @@ namespace Ecommerce.Api.Controllers
             _authApplication = authApplication;
         }
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignUp necesita el limite mas estricto, no el general.
         [HttpPost("SignUp")]
         [SwaggerOperation(Summary = "Registra un nuevo usuario en el sistema.")]
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto entity)
@@ -38,6 +39,7 @@ namespace Ecommerce.Api.Controllers
             return Ok(response);
         }
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignIn necesita el limite mas estricto, no el general.
         [HttpPost("SignIn")]
         [SwaggerOperation(Summary = "Inicia sesión con un usuario existente.")]
         [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]

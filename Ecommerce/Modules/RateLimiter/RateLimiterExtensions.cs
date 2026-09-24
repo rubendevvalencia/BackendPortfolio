@@ -14,6 +14,7 @@ namespace Ecommerce.Api.Modules.RateLimiter
 
             //Se lee una sola vez: cada llamada a Configuration vuelve a parsear las tres claves.
             RateLimiterSettings settings = RateLimiterConfiguration.Configuration(configuration);
+            RateLimiterSettings signInSettings = SignInRateLimiterConfiguration.Configuration(configuration);
 
             services.AddRateLimiter(configureOptions =>
             {
@@ -28,6 +29,21 @@ namespace Ecommerce.Api.Modules.RateLimiter
                         QueueLimit = settings.QueueLimit                                                       //Nº de peticiones que esperan en la cola (sin respuesta) a la siguiente ventana cuando no quedan permisos
                     });
                 });
+
+                //Politica propia de SignIn/SignUp: mas estricta, y sin cola porque en fuerza bruta
+                //interesa rechazar rapido, no retener la conexion esperando a la siguiente ventana.
+                configureOptions.AddPolicy("auth-limited", httpContext =>
+                {
+                    string clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    return RateLimitPartition.GetFixedWindowLimiter(clientIp, options => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = signInSettings.PermitLimit,
+                        Window = signInSettings.Window,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = signInSettings.QueueLimit
+                    });
+                });
+
                 configureOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests; //Responde 429 con demasiadas request
             });
 
