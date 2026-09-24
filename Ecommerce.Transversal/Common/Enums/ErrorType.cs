@@ -9,6 +9,8 @@ namespace Ecommerce.Transversal.Common.Enums
         Validation = 2,  //El DTO recibido no cumple las reglas -> 400 Bad Request.
         NotFound = 3,    //El recurso solicitado no existe -> 404 Not Found.
         Unexpected = 4,   //Excepcion no controlada -> 500 Internal Server Error.
-        Duplicated = 5    //Información duplicada  
+        Duplicated = 5,    //Información duplicada  
+        TimeOut = 6
+
     }
 }

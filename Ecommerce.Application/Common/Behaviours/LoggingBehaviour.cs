@@ -48,6 +48,7 @@ namespace Ecommerce.Application.Common.Behaviours
                 ErrorType.NotFound => LogLevel.Information,   //Tráfico normal; un escaneo llenaría la tabla SQL
                 ErrorType.Duplicated => LogLevel.Warning,     //Conflicto de negocio que interesa conservar
                 ErrorType.Unexpected => LogLevel.Warning,     //Hoy es SaveChangesAsync devolviendo 0 (pendiente nº 4)
+                ErrorType.TimeOut => LogLevel.Warning,
                 _ => LogLevel.Warning                         //Un fallo sin ErrorType no debería existir: mejor que se note
             };
             return level;
