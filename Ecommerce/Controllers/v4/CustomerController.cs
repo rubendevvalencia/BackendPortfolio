@@ -21,7 +21,7 @@ namespace Ecommerce.Api.Controllers.v4
     //El controller ya no comprueba ids ni datos: delega todo y, si la peticion no es valida,
     //ValidationBehaviour lanza ValidationExceptionCustom y GlobalExceptionHandler responde el 400.
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido.
-    [EnableRateLimiting("fixedWindow")]
+    [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [ApiVersion("4.0")]

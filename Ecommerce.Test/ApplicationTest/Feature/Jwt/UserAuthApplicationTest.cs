@@ -380,11 +380,9 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             _jwt.DidNotReceive().GenerateToken(Arg.Any<User>());
         }
 
-        //Los cuatro tests siguientes fijan defectos de seguridad actuales, no el comportamiento deseado.
-
-        //Defecto: email inexistente da 404 y contrasena mal da 400, asi se sabe que emails tienen cuenta.
+        //Pendiente #3 corregido: SignIn ya no distingue email inexistente de contrasena incorrecta.
         [Fact]
-        public async Task SingInAsync_HoyDistingueEmailInexistenteDeContrasenaIncorrecta_DefectoDeSeguridad()
+        public async Task SingInAsync_YaNoDistingueEmailInexistenteDeContrasenaIncorrecta()
         {
             //Arrange: dos intentos fallidos que solo se diferencian en si el email existe o no.
             User registrado = NewUser(email: "registrado@test.com");
@@ -415,15 +413,15 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             var emailInexistente = await _auth.SingInAsync(NewSignInDto(email: "fantasma@test.com"));
             var contrasenaIncorrecta = await _auth.SingInAsync(NewSignInDto(email: "registrado@test.com"));
 
-            //Assert: comportamiento ACTUAL. Los dos fallan, pero de forma distinguible desde fuera.
+            //Assert: los dos fallan igual, sin ninguna pista de cual de las dos cosas fallo.
             Assert.False(emailInexistente.IsSuccess);
             Assert.False(contrasenaIncorrecta.IsSuccess);
-            Assert.Equal(ErrorType.NotFound, emailInexistente.ErrorType);
-            Assert.Equal(ErrorType.Validation, contrasenaIncorrecta.ErrorType);
-            Assert.NotEqual(emailInexistente.Message, contrasenaIncorrecta.Message);
+            Assert.Equal(ErrorType.Unauthorized, emailInexistente.ErrorType);
+            Assert.Equal(ErrorType.Unauthorized, contrasenaIncorrecta.ErrorType);
+            Assert.Equal(emailInexistente.Message, contrasenaIncorrecta.Message);
         }
 
-        //Defecto: "User already exists" confirma que un email tiene cuenta.
+        //Defecto de seguridad pendiente, sin corregir todavia: "User already exists" confirma que un email tiene cuenta.
         [Fact]
         public async Task SignUpAsync_HoyConfirmaQueUnEmailYaEstaRegistrado_DefectoDeSeguridad()
         {

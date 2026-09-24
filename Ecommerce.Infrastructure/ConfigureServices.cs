@@ -11,12 +11,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 namespace Ecommerce.Infrastructure
 {
     public static class ConfigureServices
     {
-        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
             // Register your infrastructure services here
             // Example: services.AddScoped<ICustomerRepository, CustomerRepository>();
@@ -24,7 +25,8 @@ namespace Ecommerce.Infrastructure
                 options.UseSqlServer(configuration.GetConnectionString("EcommerceDb"),          //Cadena de conexión a la base de datos
                 builder => builder
                     .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
-                    .EnableRetryOnFailure()));                                                   //Reintenta automáticamente ante fallos transitorios
+                    .EnableRetryOnFailure())
+                    .EnableSensitiveDataLogging(environment.IsDevelopment()));                                                   //Reintenta automáticamente ante fallos transitorios
 
             services.AddStackExchangeRedisCache(options =>
             {

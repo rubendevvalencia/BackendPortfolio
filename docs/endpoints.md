@@ -44,7 +44,10 @@ Todos los endpoints —acierto o fallo— devuelven la misma envoltura, definida
 
 A esos se suma el **429** del rate limiter, que responde sin cuerpo cuando se supera el cupo
 (ver [*Rate limiting*](decisiones-tecnicas.md#rate-limiting-versión-simplificada-a-modo-de-prueba)), y el
-**401** cuando falta el token o no es válido.
+**401** cuando falta el token o no es válido. `UserAuthController` no usa esta tabla —resuelve sus propios
+códigos a mano— y `ErrorType` incluye además `Unauthorized` (valor 7), que también traduce a **401**: es lo
+que devuelve `SignIn` con credenciales incorrectas, con el mismo mensaje tanto si el email no existe como si
+la contraseña falla.
 
 ## `UserAuth` — `api/v{1|2|3}/UserAuth`
 
@@ -68,8 +71,8 @@ así que un cliente de v4 se autentica contra v3 (pendiente nº 6).
 { "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600 }
 ```
 
-> Un email inexistente y una contraseña incorrecta dan hoy respuestas distinguibles, así que `SignIn`
-> permite enumerar usuarios. Es el pendiente nº 3.
+> Un email inexistente y una contraseña incorrecta dan hoy el mismo mensaje ("Invalid credentials") y el
+> mismo **401**, así que `SignIn` ya no permite enumerar usuarios (pendiente nº 3, resuelto).
 
 ## `Customer` — las cuatro versiones
 

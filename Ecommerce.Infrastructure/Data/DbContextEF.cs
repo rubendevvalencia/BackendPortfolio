@@ -10,6 +10,8 @@ using System.Data;
 using System.Reflection;
 using System.Text;
 
+using Microsoft.Extensions.Hosting;
+
 namespace Ecommerce.Infrastructure.Data
 {
     public class DbContextEF : DbContext
@@ -44,7 +46,9 @@ namespace Ecommerce.Infrastructure.Data
                 optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
             }
             optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
-            optionsBuilder.EnableSensitiveDataLogging(); //Esto permite ver en consola las consultas SQL generadas por EF Core, útil para depuración.
+
+            
+           
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

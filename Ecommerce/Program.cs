@@ -28,7 +28,7 @@ try
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
-    builder.Services.AddInfrastructureServices(builder.Configuration);
+    builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
     builder.Services.AddApplicationServices();
     builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
     builder.Services.AddAuth(builder.Configuration);                // Registra la autenticación JWT usando la configuración de Jwt.

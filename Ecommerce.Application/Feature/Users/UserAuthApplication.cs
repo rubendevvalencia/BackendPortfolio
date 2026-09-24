@@ -98,20 +98,23 @@ namespace Ecommerce.Application.Feature.Users
                 if (!validationResult.IsValid) return validationResult.ToFailedResponse<TokenDto>();
 
                 var user = await _unitOfWork._user.GetByEmailAsync(entity.Email);
+
+                //Mismo Message y mismo ErrorType tanto si el email no existe como si la contraseña es incorrecta:
+                //distinguirlos permite enumerar emails registrados probando contraseñas al azar.
                 if (user == null)
                 {
                     response.IsSuccess = false;
-                    response.Message = "User not found, email may be incorrect or not registered";
-                    response.ErrorType = ErrorType.NotFound;
+                    response.Message = "Invalid credentials";
+                    response.ErrorType = ErrorType.Unauthorized;
                     return response;
                 }
-                
+
                 var validPass = _unitOfWork._user.CheckPass(user, entity.Password);
-                if(!validPass)
+                if (!validPass)
                 {
                     response.IsSuccess = false;
-                    response.Message = "Invalid password";
-                    response.ErrorType = ErrorType.Validation;
+                    response.Message = "Invalid credentials";
+                    response.ErrorType = ErrorType.Unauthorized;
                     return response;
                 }
 
