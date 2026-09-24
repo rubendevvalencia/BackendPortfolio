@@ -9,6 +9,7 @@ using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
@@ -44,11 +45,13 @@ namespace Ecommerce.Api.Controllers.v4
             {
                 ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
                 ErrorType.Duplicated => Conflict(response),                                          //409: duplicado.
+                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
                 _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
             };
         }
 
         [HttpPost("Create")]
+        [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<object>))]
@@ -60,6 +63,7 @@ namespace Ecommerce.Api.Controllers.v4
         }
 
         [HttpPost("UpdateAsyncPost")]
+        [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Updates an existing customer using POST.", Description = "Updates the details of an existing customer in the system using a POST request.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<object>))]
@@ -71,6 +75,7 @@ namespace Ecommerce.Api.Controllers.v4
         }
 
         [HttpDelete("DeleteAsync/{id}")]
+        [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Deletes an existing customer.", Description = "Deletes an existing customer from the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer deleted successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The id is invalid.", typeof(Response<object>))]
@@ -86,6 +91,7 @@ namespace Ecommerce.Api.Controllers.v4
         }
 
         [HttpGet("GetByIdAsync/{id}")]
+        [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The id is invalid.", typeof(Response<object>))]
@@ -110,8 +116,20 @@ namespace Ecommerce.Api.Controllers.v4
         public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
         {
             GetAllCustomerQuery query = new GetAllCustomerQuery();
-            var response = await _mediator.Send(query, cancellationToken);
+            var response = await _mediator.Send(query, cancellationToken); //TimeOut para cancelación
             return ToActionResult(response);
+        }
+
+        //Endpoint de diagnostico: espera mas tiempo que "CustomPolicy" (2000ms) para forzar el corte de
+        //RequestTimeoutsMiddleware y poder ver en el front el 504 con Response<T>/ErrorType.TimeOut de verdad.
+        [HttpGet("TestTimeout")]
+        [RequestTimeout("CustomPolicy")]
+        [SwaggerOperation(Summary = "Forces a timeout.", Description = "Diagnostic endpoint: always exceeds CustomPolicy so RequestTimeoutsMiddleware cuts the request.")]
+        [SwaggerResponse(StatusCodes.Status504GatewayTimeout, "The request exceeded the time limit.", typeof(Response<object>))]
+        public async Task<IActionResult> TestTimeout(CancellationToken cancellationToken)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            return Ok(); //No se llega aqui: el middleware corta la peticion antes de los 5 segundos.
         }
     }
 }
