@@ -1,6 +1,8 @@
 ﻿using Asp.Versioning;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
+using Ecommerce.Transversal.Common;
+using Ecommerce.Transversal.Common.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,11 +40,19 @@ namespace Ecommerce.Api.Controllers
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [HttpPost("SignIn")]
         [SwaggerOperation(Summary = "Inicia sesión con un usuario existente.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
         public async Task<IActionResult> SignInAsync([FromBody] SignInDto entity)
         {
             var response = await _authApplication.SingInAsync(entity);
-            if (!response.IsSuccess) return Unauthorized(response);
-            
+            if (!response.IsSuccess)
+            {
+                if (response.ErrorType == ErrorType.Validation) return BadRequest(response);
+                if (response.ErrorType == ErrorType.Unexpected) return StatusCode(StatusCodes.Status500InternalServerError, response);
+                return Unauthorized(response);
+            }
             return Ok(response);
         }
     }
