@@ -204,33 +204,42 @@ directo. Cablearlo en v1 y v2 es el siguiente paso.
 > (`Microsoft.AspNetCore.RateLimiting`), no como protección lista para producción — ver
 > [pendiente nº 23](limitaciones.md#seguridad).
 
-Una única política de **ventana fija**, en
+Dos políticas de **ventana fija**, ambas particionadas por IP, en
 [`Modules/RateLimiter/RateLimiterExtensions.cs`](../Ecommerce/Modules/RateLimiter/RateLimiterExtensions.cs):
-`AddRateLimiting(configuration)` la registra leyendo la sección `RateLimiting`, `app.UseRateLimiter()` la
-aplica —después de `UseCors()` y antes de `UseAuthentication()`— y `[EnableRateLimiting("fixedWindow")]`
-decide a qué controllers afecta. `/health` se mapea fuera de los controllers, así que no está limitado.
+`AddRateLimiting(configuration)` las registra, `app.UseRateLimiter()` las aplica —después de `UseCors()` y
+antes de `UseAuthentication()`— y cada controller o acción decide cuál le afecta con `[EnableRateLimiting]`.
+`/health` se mapea fuera de los controllers, así que no está limitado.
+
+- **`user-limited`** — la política general, en todos los controllers de `Customer` y por defecto en
+  `UserAuthController`. Lee la sección `RateLimiting` de `appsettings.json`.
+- **`auth-limited`** — más estricta y **sin cola** (`QueueLimit` 0: en fuerza bruta interesa rechazar rápido,
+  no retener la conexión esperando a la siguiente ventana). Pisa a `user-limited` en `SignIn` y `SignUp` vía
+  `[EnableRateLimiting("auth-limited")]` a nivel de acción. Lee `SignInRateLimiting`, con su propia clase de
+  validación (`SignInRateLimiterConfiguration`), separada a propósito de la de la política general.
 
 ```json
-"RateLimiting": { "PermitLimit": 4, "Window": "00:00:30", "QueueLimit": 2 }
+"RateLimiting":        { "PermitLimit": 4, "Window": "00:00:30", "QueueLimit": 2 },
+"SignInRateLimiting":  { "PermitLimit": 3, "Window": "00:01:00", "QueueLimit": 0 }
 ```
+
+En ambas, `RateLimitPartition.GetFixedWindowLimiter` usa `httpContext.Connection.RemoteIpAddress` como
+clave: cada IP tiene su propio contador, así que un cliente insistente ya no agota el cupo de los demás.
 
 - **La ventana se escribe `"00:00:30"`, no `30`**, y se lee con `TimeSpan.TryParseExact`: `TimeSpan`
   interpreta un entero suelto como **días**, así que un `30` pensado como segundos daría una ventana de 30
   días y el limitador no frenaría nunca. Exigir el formato convierte un error silencioso en uno al arrancar.
 - **Configuración inválida, arranque fallido.** Si un valor falta, no parsea o queda fuera de rango,
-  `AddRateLimiting` lanza al arrancar nombrando la clave concreta. Mejor no arrancar que arrancar con un
-  limitador que bloquea todo o no bloquea nada. *(Es el criterio que la caché todavía no sigue: nº 25.)*
+  `AddRateLimiting` lanza al arrancar nombrando la clave concreta, para las dos políticas. Mejor no arrancar
+  que arrancar con un limitador que bloquea todo o no bloquea nada. *(Es el criterio que la caché todavía no
+  sigue: nº 25.)*
 - **429 en lugar de 503.** Por defecto el middleware responde `503`, que dice "el servidor está caído"
   cuando lo que pasa es que el cliente se ha pasado; `RejectionStatusCode` lo corrige.
 - **Delante de la autenticación**, para rechazar sin gastar en validar el JWT y cubrir `SignIn` aunque sea
-  `[AllowAnonymous]`. Cuando se agotan los permisos, hasta `QueueLimit` peticiones esperan en cola FIFO.
+  `[AllowAnonymous]`. Cuando se agotan los permisos, hasta `QueueLimit` peticiones esperan en cola FIFO
+  —salvo en `auth-limited`, que rechaza directamente.
 
-**Lo que la simplificación deja fuera.** No está particionado: hay **un único contador para toda la API**,
-así que entre todos los usuarios caben 4 peticiones cada 30 segundos y un solo cliente insistente agota el
-cupo de los demás. Para provocar el 429 en cuatro clics es justo lo que se quiere; en un despliegue real es
-una forma sencilla de tumbar el servicio. La versión completa pasaría por
-`RateLimitPartition.GetFixedWindowLimiter` con clave por usuario o IP, una política más estricta para
-`SignIn`/`SignUp` y la cabecera `Retry-After` en el 429.
+**Lo que la simplificación deja fuera.** El 429 no lleva la cabecera `Retry-After`: el cliente sabe que se ha
+pasado, pero no cuánto tiene que esperar para reintentar.
 
 ### Caché distribuida con Redis: ejercicio del patrón *cache-aside*
 
