@@ -6,6 +6,8 @@ using Ecommerce.Infrastructure.Interceptors;
 using Ecommerce.Infrastructure.Repository;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NSubstitute;
 
 namespace Ecommerce.Test.InfrastructureTest
 {
@@ -27,6 +29,14 @@ namespace Ecommerce.Test.InfrastructureTest
             return configuration;
         }
 
+        //El entorno no es lo que fijan estos tests de cableado; Development basta para todos.
+        private static IHostEnvironment CreateEnvironment()
+        {
+            var environment = Substitute.For<IHostEnvironment>();
+            environment.EnvironmentName.Returns("Development");
+            return environment;
+        }
+
         [Fact]
         public void AddInfrastructureServices_ResuelveElGrafoCompleto()
         {
@@ -39,7 +49,7 @@ namespace Ecommerce.Test.InfrastructureTest
 
             //Act: validateScopes detecta un singleton que atrape al DbContext scoped.
             var provider = services
-                .AddInfrastructureServices(configuration)
+                .AddInfrastructureServices(configuration, CreateEnvironment())
                 .BuildServiceProvider(validateScopes: true);
 
             //Assert
@@ -67,7 +77,7 @@ namespace Ecommerce.Test.InfrastructureTest
         {
             //Arrange & Act
             var services = new ServiceCollection()
-                .AddInfrastructureServices(CreateConfiguration());
+                .AddInfrastructureServices(CreateConfiguration(), CreateEnvironment());
 
             //Assert: todo lo que depende del DbContext tiene que ser scoped.
             var descriptor = Assert.Single(services, d => d.ServiceType == serviceType);
@@ -81,7 +91,7 @@ namespace Ecommerce.Test.InfrastructureTest
             var services = new ServiceCollection();
 
             //Act
-            var result = services.AddInfrastructureServices(CreateConfiguration());
+            var result = services.AddInfrastructureServices(CreateConfiguration(), CreateEnvironment());
 
             //Assert
             Assert.Same(services, result);
