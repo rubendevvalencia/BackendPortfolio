@@ -19,7 +19,7 @@ using System.Net.NetworkInformation;
 namespace Ecommerce.Api.Controllers.v3
 {
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
-    [EnableRateLimiting("fixedWindow")]
+    [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [ApiVersion("3.0")]
