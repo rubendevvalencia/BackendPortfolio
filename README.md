@@ -16,7 +16,7 @@ Así cada decisión se compara en código que funciona, no en un párrafo.
 >   esperado. Conviven con el resto para poder compararlos.
 > - **Hay piezas que son ejercicios, no soluciones.** El rate limiter y la caché con Redis son versiones
 >   simplificadas para ver el patrón de punta a punta; no responden a un problema medido.
-> - **Hay deuda, y está a la vista.** Las **29 limitaciones conocidas** están en
+> - **Hay deuda, y está a la vista.** Las **26 limitaciones conocidas** están en
 >   [*limitaciones conocidas*](docs/limitaciones.md) con el mecanismo de cada fallo, y el orden en que se
 >   van a abordar, en la [hoja de ruta](#hoja-de-ruta). Si vas a evaluar el proyecto, esa lista forma parte
 >   de él tanto como el código.
@@ -64,9 +64,9 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 | [Decisiones técnicas](docs/decisiones-tecnicas.md) | `Response<T>`, Unit of Work, logging, rate limiting, caché con Redis, health checks |
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
-| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 269 tests que no se ve leyendo el código |
+| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 271 tests que no se ve leyendo el código |
 | [Integración continua](docs/integracion-continua.md) | Los dos jobs de GitHub Actions y lo que la CI todavía no hace |
-| [Limitaciones conocidas](docs/limitaciones.md) | Las 29 limitaciones, por prioridad y con el mecanismo de cada fallo |
+| [Limitaciones conocidas](docs/limitaciones.md) | Las 26 limitaciones, por prioridad y con el mecanismo de cada fallo |
 
 ---
 
@@ -212,13 +212,13 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 
 ## Estado actual
 
-Compila sin errores y **269 de 269 tests en verde**, en local y en la CI. Hay **29 limitaciones conocidas**
-(de 31 anotadas, dos ya resueltas), cada una con su mecanismo explicado en
+Compila sin errores y **271 de 271 tests en verde**, en local y en la CI. Hay **26 limitaciones conocidas**
+(de 31 anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
 [*limitaciones conocidas*](docs/limitaciones.md).
 
 | Área | Pendientes | Las que más pesan |
 |---|---|---|
-| Seguridad | 5 | El middleware de excepciones está al final del pipeline y devuelve `ex.Message` (nº 1) · `EnableSensitiveDataLogging` activo en todos los entornos (nº 2) |
+| Seguridad | 2 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) |
 | Corrección | 8 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) |
 | Tests | 3 | La frontera HTTP no tiene ni un test de integración (nº 8) · la caché tampoco tiene ninguno (nº 29) |
 | Diseño | 8 | El dominio es anémico (nº 12) · se cachea la entidad con una clave sin versionar (nº 27) |
@@ -227,7 +227,7 @@ Compila sin errores y **269 de 269 tests en verde**, en local y en la CI. Hay **
 No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en qué orden pienso resolverlo.
 
 <details>
-<summary>Historial de cambios — los 19 hitos, en el orden en que se construyeron</summary>
+<summary>Historial de cambios — los 20 hitos, en el orden en que se construyeron</summary>
 
 | # | Cambio | Qué resolvió |
 |---|---|---|
@@ -250,6 +250,7 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
 | 18 | **Health checks repartidos por capa**: el registro baja a `Infrastructure` y `Api` se queda solo con `MapHealthChecks` y el HTML | Los paquetes de sonda salen del `.csproj` de `Api`: la capa que no sabe que existe una base de datos deja de declarar cómo se comprueba |
 | 19 | **Integración continua con GitHub Actions**: `build-and-test` y `secret-scan` con gitleaks, en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, y una credencial nueva no entra sin avisar |
+| 20 | **Cuatro correcciones de seguridad**: middleware de excepciones movido al principio del pipeline con mensaje genérico (nº 1) · `EnableSensitiveDataLogging` solo en desarrollo (nº 2) · `SignIn` responde siempre el mismo 401 (nº 3) · rate limiter particionado por IP, con política propia y más estricta para `SignIn`/`SignUp` (nº 23, sin cerrar del todo: falta `Retry-After`) | Cierra la fuga de la excepción cruda, la de los valores de `PasswordHash` en el log de EF, la enumeración de usuarios por `SignIn` y el contador de rate limit compartido por todos los clientes |
 
 </details>
 
@@ -263,11 +264,11 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 | Bloque | Contenido | Estado |
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
-| **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟡 Unit of Work cerrado; middleware montado pero por corregir (nº 1) |
+| **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
 | **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application` y los behaviours; faltan los de `LoggingBehaviour` e integración |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI montada; faltan Dockerfile y despliegue |
-| **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al limitador el particionado (nº 23) |
+| **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
 
 Siguientes pasos, por orden:
 
@@ -275,17 +276,15 @@ Siguientes pasos, por orden:
    `SaveChangesInterceptor` (nº 24), modelo de caché propio y clave versionada (nº 27), validación al
    arrancar (nº 25) y degradación si Redis no responde (nº 26). Sin la invalidación, lo que hay montado
    demuestra solo la mitad fácil del patrón.
-2. **Cerrar el bloque B**: middleware al principio del pipeline con respuesta genérica, `try/catch` fuera de
-   `UserAuthApplication`, `EnableSensitiveDataLogging` por entorno.
-3. **Cerrar v4 y el logging**: unificar el contrato de error de validación (nº 20), los tests que faltan de
+2. **Cerrar v4 y el logging**: unificar el contrato de error de validación (nº 20), los tests que faltan de
    `LoggingBehaviour` y de la caché (nº 29), y cablear `IApiLogger` en v1 y v2, que es donde el enfoque
    manual es el único disponible.
-4. **Autenticación**: 401 único en `SignIn`, `JwtOptions` validadas al arrancar, `ITokenService` en
-   `Infrastructure`.
-5. **Tests de integración** con `WebApplicationFactory` recorriendo las cuatro versiones.
-6. **Paginar `GetAll`** (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
+3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
+   en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.
+4. **Tests de integración** con `WebApplicationFactory` recorriendo las cuatro versiones.
+5. **Paginar `GetAll`** (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
    respuesta puede ser perfectamente que ninguna.
-7. **Bloque D**: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que
+6. **Bloque D**: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que
    confirmar de forma atómica.
 
 ---

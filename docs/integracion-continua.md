@@ -10,7 +10,7 @@ Dos jobs, independientes y en paralelo porque ninguno necesita la salida del otr
 
 | Job | Qué hace | Qué protege |
 |---|---|---|
-| `build-and-test` | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, siempre sobre `Ecommerce.slnx` | Que la solución compile fuera de Visual Studio y que los 269 tests sigan en verde |
+| `build-and-test` | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, siempre sobre `Ecommerce.slnx` | Que la solución compile fuera de Visual Studio y que los 271 tests sigan en verde |
 | `secret-scan` | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Que no entre al repositorio una credencial nueva |
 
 **Se construye en `Release`, que es la configuración con la que se publicaría.** Compilar en `Debug` y

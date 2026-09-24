@@ -6,6 +6,7 @@ using Ecommerce.Api.Models.Swagger;
 using Ecommerce.Api.Models.Version;
 using Ecommerce.Api.Modules.HealthCheck;
 using Ecommerce.Api.Modules.RateLimiter;
+using Ecommerce.Api.Modules.TimeOut;
 using Ecommerce.Application;
 using Ecommerce.Infrastructure;
 using Ecommerce.Transversal;
@@ -27,7 +28,7 @@ try
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
-    builder.Services.AddInfrastructureServices(builder.Configuration);
+    builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
     builder.Services.AddApplicationServices();
     builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
     builder.Services.AddAuth(builder.Configuration);                // Registra la autenticación JWT usando la configuración de Jwt.
@@ -37,6 +38,7 @@ try
     builder.Services.AddSwagger();
     builder.Services.AddMiddleWareService();                        //Registra el servicio de los middleware a través de las inyección de dependencias
     builder.Services.AddRateLimiting(builder.Configuration);
+    builder.Services.AddTimeOut(builder.Configuration);
     
     builder.Host.UseSerilog();                                      //Remplaza el logger por defecto de .NET por Serilog, que ya se ha configurado en AddTransversalServices().
     
@@ -119,6 +121,8 @@ try
     app.UseCors(CorsExtension.myPolicy);
     
     app.UseRateLimiter();
+
+    app.UseRequestTimeouts();
 
     app.UseAuthentication(); // Valida el token JWT y procesa el usuario autenticado antes de que llegue a los controladores.
                              // Siempre debe ir antes de UseAuthorization() para que la autorización tenga un usuario válido.

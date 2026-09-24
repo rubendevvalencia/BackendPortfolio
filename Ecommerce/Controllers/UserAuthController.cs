@@ -1,6 +1,8 @@
 ﻿using Asp.Versioning;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
+using Ecommerce.Transversal.Common;
+using Ecommerce.Transversal.Common.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +12,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Ecommerce.Api.Controllers
 {
     [Authorize] //Todos los métodos de la clase necesitan un jwt válido para ser ejecutados, excepto los que tengan [AllowAnonymous].
-    [EnableRateLimiting("fixedWindow")]
+    [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [ApiVersion("1.0", Deprecated = true)]
@@ -27,6 +29,7 @@ namespace Ecommerce.Api.Controllers
             _authApplication = authApplication;
         }
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignUp necesita el limite mas estricto, no el general.
         [HttpPost("SignUp")]
         [SwaggerOperation(Summary = "Registra un nuevo usuario en el sistema.")]
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto entity)
@@ -36,13 +39,22 @@ namespace Ecommerce.Api.Controllers
             return Ok(response);
         }
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignIn necesita el limite mas estricto, no el general.
         [HttpPost("SignIn")]
         [SwaggerOperation(Summary = "Inicia sesión con un usuario existente.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
         public async Task<IActionResult> SignInAsync([FromBody] SignInDto entity)
         {
             var response = await _authApplication.SingInAsync(entity);
-            if (!response.IsSuccess) return Unauthorized(response);
-            
+            if (!response.IsSuccess)
+            {
+                if (response.ErrorType == ErrorType.Validation) return BadRequest(response);
+                if (response.ErrorType == ErrorType.Unexpected) return StatusCode(StatusCodes.Status500InternalServerError, response);
+                return Unauthorized(response);
+            }
             return Ok(response);
         }
     }

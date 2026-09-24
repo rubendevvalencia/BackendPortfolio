@@ -13,7 +13,7 @@ using System.Net;
 namespace Ecommerce.Api.Controllers.v2
 {
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
-    [EnableRateLimiting("fixedWindow")]
+    [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [ApiVersion("2.0", Deprecated = true)]
@@ -37,7 +37,8 @@ namespace Ecommerce.Api.Controllers.v2
             {
                 ErrorType.Validation => BadRequest(response),                                        //400: el cliente envio datos incorrectos.
                 ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
-                 ErrorType.Duplicated => Conflict(response),                                         // 409. Duplicado      
+                 ErrorType.Duplicated => Conflict(response),                                         // 409. Duplicado
+                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
                 _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
             };
         }
