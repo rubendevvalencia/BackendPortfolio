@@ -3,6 +3,7 @@
   <Project Path="Ecommerce.Application/Ecommerce.Application.csproj" />
   <Project Path="Ecommerce.Domain/Ecommerce.Domain.csproj" />
   <Project Path="Ecommerce.Infrastructure/Ecommerce.Infrastructure.csproj" />
+  <Project Path="Ecommerce.IntegrationTest/Ecommerce.IntegrationTest.csproj" Id="99851b41-f144-4abf-89e6-2e8f9716fd9b" />
   <Project Path="Ecommerce.Test/Ecommerce.Test.csproj" />
   <Project Path="Ecommerce.Transversal/Ecommerce.Transversal.csproj" Id="bb6536c3-fecb-4642-89b0-f97a9da66b01" />
   <Project Path="Ecommerce/Ecommerce.Api.csproj" />

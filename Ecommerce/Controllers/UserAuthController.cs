@@ -32,6 +32,10 @@ namespace Ecommerce.Api.Controllers
         [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignUp necesita el limite mas estricto, no el general.
         [HttpPost("SignUp")]
         [SwaggerOperation(Summary = "Registra un nuevo usuario en el sistema.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
+
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto entity)
         {
             var response = await _authApplication.SignUpAsync(entity);

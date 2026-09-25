@@ -144,7 +144,7 @@ Common/
 | **Patrones** | MediatR (CQRS en v3 y v4, con *pipeline behaviors*) · FluentValidation · AutoMapper |
 | **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
 | **Resiliencia** | Redis vía `IDistributedCache` (*cache-aside*) · rate limiter nativo de ventana fija · AspNetCore.HealthChecks (`/health` y `/health/ui`) — las tres, en versión simplificada |
-| **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · GitHub Actions con gitleaks |
+| **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks |
 
 ---
 
@@ -191,6 +191,11 @@ dotnet run --project Ecommerce
 Swagger queda en `https://localhost:7051/swagger`, con el desplegable de versiones arriba a la derecha. Los
 tests, con `dotnet test`.
 
+`Ecommerce.slnx` incluye también `Ecommerce.IntegrationTest`, así que `dotnet test` sobre la solución
+completa arrastra sus tests: necesitan la misma SQL Server real de arriba (los aplica con
+`dbContext.Database.Migrate()` al vuelo) y los mismos *user secrets*. Para correr solo la suite unitaria,
+sin esa dependencia, `dotnet test Ecommerce.Test/Ecommerce.Test.csproj`.
+
 ---
 
 ## Endpoints
@@ -212,8 +217,13 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 
 ## Estado actual
 
-Compila sin errores y **271 de 271 tests en verde**, en local y en la CI. Hay **26 limitaciones conocidas**
-(de 31 anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
+Compila sin errores y **271 de 271 tests en verde**, en local y en la CI. A eso se suma
+`Ecommerce.IntegrationTest`, un proyecto aparte con un primer test de integración —`SignUp → SignIn`,
+resolviendo el controller real desde el contenedor de DI contra una base de datos SQL Server real, sin
+dobles— que hoy **solo corre en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
+runner no tiene ni SQL Server ni los *user secrets* que necesita (detalle en
+[*Integración continua*](docs/integracion-continua.md)). Hay **26 limitaciones conocidas** (de 31
+anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
 [*limitaciones conocidas*](docs/limitaciones.md).
 
 | Área | Pendientes | Las que más pesan |
@@ -265,7 +275,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application` y los behaviours; faltan los de `LoggingBehaviour` e integración |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y un primer test de integración (`SignUp → SignIn`); faltan los de `LoggingBehaviour`, el resto de la frontera HTTP y meterlos en la CI |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI montada; faltan Dockerfile y despliegue |
 | **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
@@ -281,7 +291,9 @@ Siguientes pasos, por orden:
    manual es el único disponible.
 3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
    en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.
-4. **Tests de integración** con `WebApplicationFactory` recorriendo las cuatro versiones.
+4. **Tests de integración**: ya hay un primer caso (`SignUp → SignIn`) contra una base de datos real,
+   resolviendo el controller desde el contenedor de DI en vez de con `WebApplicationFactory`; falta
+   extenderlos al CRUD de `Customer` en las cuatro versiones y decidir cómo entran en la CI.
 5. **Paginar `GetAll`** (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
    respuesta puede ser perfectamente que ninguna.
 6. **Bloque D**: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que
