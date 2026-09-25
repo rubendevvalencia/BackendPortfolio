@@ -1,5 +1,7 @@
 ﻿using Ecommerce.Api.Controllers;
 using Ecommerce.Application.Dto.Jwt;
+using Ecommerce.Transversal.Common;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -37,7 +39,10 @@ namespace Ecommerce.IntegrationTest.UserAuthTest
                 SignUpDto data = CreateEntity();
                 var signDeparment = serviceProvider.GetRequiredService<UserAuthController>();
                 var result = await signDeparment.SignUpAsync(data);
-                Assert.NotNull(result);
+
+                var okResult = Assert.IsType<OkObjectResult>(result);
+                var response = Assert.IsType<Response<bool>>(okResult.Value);
+                Assert.True(response.IsSuccess);
             }
         }
     }
