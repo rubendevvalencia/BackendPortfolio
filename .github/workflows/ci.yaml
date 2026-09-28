@@ -23,16 +23,16 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore Project
-        run: dotnet restore Ecommerce.slnx
+        run: dotnet restore Monolito/Ecommerce.slnx
 
       - name: Build Project
-        run: dotnet build Ecommerce.slnx --configuration Release
+        run: dotnet build Monolito/Ecommerce.slnx --configuration Release
 
       - name: Test Project
         # Ecommerce.IntegrationTest queda fuera: necesita una DB SQL Server real y secretos
         # que este runner no tiene. Se corre solo local/manualmente hasta que el pipeline
         # levante un contenedor de SQL Server para él.
-        run: dotnet test Ecommerce.Test/Ecommerce.Test.csproj --configuration Release
+        run: dotnet test Monolito/Ecommerce.Test/Ecommerce.Test.csproj --configuration Release
 
   secret-scan:
     runs-on: ubuntu-latest
