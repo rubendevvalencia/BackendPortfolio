@@ -5,7 +5,7 @@ con su propio README.
 
 | Carpeta | Qué es |
 |---|---|
-| [`BackendPortfolio/`](BackendPortfolio/README.md) | API Ecommerce en .NET, Clean Architecture, laboratorio de aprendizaje con cuatro versiones del mismo recurso conviviendo |
-| [`Identity/`](Identity/README.md) | Microservicio de identidad, pendiente de construir |
+| [`Monolito/`](Monolito/README.md) | API Ecommerce en .NET, Clean Architecture, laboratorio de aprendizaje con cuatro versiones del mismo recurso conviviendo |
+| [`Microservicios/`](Microservicios/) | Arquitectura de destino: cada subcarpeta es un microservicio independiente, empezando por [`Identity/`](Microservicios/Identity/README.md) |
 
 `.github/workflows/` es compartido y vive en la raíz, no dentro de cada carpeta de proyecto.

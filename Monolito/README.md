@@ -156,11 +156,11 @@ Redis en local, lo más rápido es `docker run -p 6379:6379 redis`. Sin Redis la
 
 ```bash
 git clone https://github.com/rubendevvalencia/BackendPortfolio.git
-cd BackendPortfolio/BackendPortfolio
+cd BackendPortfolio/Monolito
 ```
 
-El repositorio es un monorepo: esta carpeta (`BackendPortfolio/`) contiene la API Ecommerce; el resto de
-servicios vive en sus propias carpetas en la raíz.
+El repositorio es un monorepo: esta carpeta (`Monolito/`) contiene la API Ecommerce, el laboratorio de
+aprendizaje; la arquitectura de destino vive en `Microservicios/`, en la raíz.
 
 **1. Configura los secretos.** `appsettings.json` declara las claves pero las deja vacías a propósito: el
 archivo define la *forma* de la configuración, no sus valores.
