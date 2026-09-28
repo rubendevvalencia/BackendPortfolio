@@ -3,7 +3,7 @@
 [← Volver al README](../README.md)
 
 El proyecto compila y pasa sus tests en una máquina que no es la mía. Es lo que separa *en mi equipo
-funciona* de una afirmación comprobable: [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) se dispara
+funciona* de una afirmación comprobable: [`.github/workflows/ci.yaml`](../../.github/workflows/ci.yaml) se dispara
 en cada `push` y en cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de .NET 10.
 
 Dos jobs, independientes y en paralelo porque ninguno necesita la salida del otro:
