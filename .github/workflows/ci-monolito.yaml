@@ -1,10 +1,16 @@
-name: CI-Actions
+name: CI-Monolito
 
 on:
   push:
     branches: [dev, main]
+    paths:
+      - "Monolito/**"
+      - ".github/workflows/ci-monolito.yaml"
   pull_request:
     branches: [dev, main]
+    paths:
+      - "Monolito/**"
+      - ".github/workflows/ci-monolito.yaml"
 
 permissions:
   contents: read
@@ -23,30 +29,13 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore Project
-        run: dotnet restore Ecommerce.slnx
+        run: dotnet restore Monolito/Ecommerce.slnx
 
       - name: Build Project
-        run: dotnet build Ecommerce.slnx --configuration Release
+        run: dotnet build Monolito/Ecommerce.slnx --configuration Release
 
       - name: Test Project
         # Ecommerce.IntegrationTest queda fuera: necesita una DB SQL Server real y secretos
         # que este runner no tiene. Se corre solo local/manualmente hasta que el pipeline
         # levante un contenedor de SQL Server para él.
-        run: dotnet test Ecommerce.Test/Ecommerce.Test.csproj --configuration Release
-
-  secret-scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet test Monolito/Ecommerce.Test/Ecommerce.Test.csproj --configuration Release

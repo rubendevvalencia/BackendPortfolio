@@ -3,23 +3,29 @@
 [← Volver al README](../README.md)
 
 El proyecto compila y pasa sus tests en una máquina que no es la mía. Es lo que separa *en mi equipo
-funciona* de una afirmación comprobable: [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) se dispara
-en cada `push` y en cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de .NET 10.
+funciona* de una afirmación comprobable: dos workflows independientes se disparan en cada `push` y en
+cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de .NET 10.
 
-Dos jobs, independientes y en paralelo porque ninguno necesita la salida del otro:
+| Workflow | Qué hace | Cuándo se dispara | Qué protege |
+|---|---|---|---|
+| [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 271 tests sigan en verde |
+| [`secret-scan.yaml`](../../.github/workflows/secret-scan.yaml) | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Siempre, cambie lo que cambie | Que no entre al repositorio una credencial nueva |
 
-| Job | Qué hace | Qué protege |
-|---|---|---|
-| `build-and-test` | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, siempre sobre `Ecommerce.slnx` | Que la solución compile fuera de Visual Studio y que los 271 tests sigan en verde |
-| `secret-scan` | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Que no entre al repositorio una credencial nueva |
+**Por qué están en ficheros separados y no en dos jobs del mismo workflow.** El repositorio es un
+monorepo (`Monolito/` hoy, `Microservicios/` mañana): filtrar por `paths` es una propiedad del
+*workflow*, no del *job*, así que un único fichero no puede hacer que `build-and-test` solo corra para
+`Monolito/` mientras `secret-scan` sigue corriendo siempre. Separarlos en dos ficheros consigue justo
+eso, y de paso deja el patrón listo: cuando `Microservicios/Identity` tenga código, su propio
+`ci-identity.yaml` se añade igual, con su `paths` propio, sin tocar el de `Monolito` ni el de
+`secret-scan`.
 
 **Se construye en `Release`, que es la configuración con la que se publicaría.** Compilar en `Debug` y
 desplegar en `Release` deja fuera de la verificación justo las diferencias que importan —símbolos de
 compilación, optimizaciones, aserciones—, y son las que aparecen en el despliegue y no antes.
 
-**El punto de entrada es la solución, no cada proyecto.** `Ecommerce.slnx` es el único fichero de solución
-del repositorio y vive en la raíz; los tres pasos lo reciben como argumento, de modo que añadir un proyecto
-nuevo mañana no obliga a tocar el workflow.
+**El punto de entrada es la solución, no cada proyecto.** `Monolito/Ecommerce.slnx` es el único fichero
+de solución de este proyecto, y los tres pasos lo reciben como argumento, de modo que añadir un
+proyecto nuevo dentro de `Monolito/` mañana no obliga a tocar el workflow.
 
 **Los tests corren sin dependencias externas, y eso no es casualidad.** Los de `Infrastructure` usan el
 proveedor InMemory de EF Core y los de `Application` doblan los límites de la capa con NSubstitute: el
@@ -28,11 +34,11 @@ gratis y que dejará de salirlo con los tests de integración con `WebApplicatio
 (pendiente nº 8): o levantan sus dependencias como *services* del job —contenedores de SQL Server y de
 Redis— o el job deja de ser autosuficiente. Conviene decidirlo entonces, y no descubrirlo.
 
-**Permisos mínimos, y elevados solo donde hacen falta.** El workflow declara `permissions: contents: read`,
-así que el `GITHUB_TOKEN` de cualquier job nace sin poder escribir en el repositorio aunque una acción de
-terceros lo intente. `secret-scan` es el único que sube ese mínimo —`pull-requests: write`— porque gitleaks
-publica el hallazgo como comentario en el *pull request*. El permiso está declarado en el job, no en el
-workflow: `build-and-test` no lo hereda.
+**Permisos mínimos, y elevados solo donde hacen falta.** Los dos workflows declaran
+`permissions: contents: read` a nivel raíz, así que el `GITHUB_TOKEN` de cualquier job nace sin poder
+escribir en el repositorio aunque una acción de terceros lo intente. El job `secret-scan` es el único
+que sube ese mínimo —`pull-requests: write`— porque gitleaks publica el hallazgo como comentario en el
+*pull request*, y ese permiso está declarado en el propio job, no heredado del workflow.
 
 **Sobre el escaneo de secretos.** No hay `.gitleaks.toml`: se usan las reglas por defecto. En `push` y en
 `pull_request` la acción revisa los commits de ese evento —que es exactamente lo que se quiere, impedir que
