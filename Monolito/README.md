@@ -65,7 +65,7 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
 | [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 271 tests que no se ve leyendo el código |
-| [Integración continua](docs/integracion-continua.md) | Los dos jobs de GitHub Actions y lo que la CI todavía no hace |
+| [Integración continua](docs/integracion-continua.md) | Los tres workflows de GitHub Actions y lo que la CI todavía no hace |
 | [Limitaciones conocidas](docs/limitaciones.md) | Las 26 limitaciones, por prioridad y con el mecanismo de cada fallo |
 
 ---
@@ -144,7 +144,8 @@ Common/
 | **Patrones** | MediatR (CQRS en v3 y v4, con *pipeline behaviors*) · FluentValidation · AutoMapper |
 | **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
 | **Resiliencia** | Redis vía `IDistributedCache` (*cache-aside*) · rate limiter nativo de ventana fija · AspNetCore.HealthChecks (`/health` y `/health/ui`) — las tres, en versión simplificada |
-| **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks |
+| **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks y comprobación del build de la imagen Docker |
+| **Contenedores** | Dockerfile *multi-stage* (imagen `aspnet` sin privilegios) · `docker-compose` con API, SQL Server y Redis, con los secretos montados como archivos |
 
 ---
 
@@ -262,7 +263,8 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 16 | **Health checks** (`/health` en JSON, `/health/ui` en HTML) con SQL Server y Redis | Las dependencias externas dejan de fallar en silencio |
 | 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
 | 18 | **Health checks repartidos por capa**: el registro baja a `Infrastructure` y `Api` se queda solo con `MapHealthChecks` y el HTML | Los paquetes de sonda salen del `.csproj` de `Api`: la capa que no sabe que existe una base de datos deja de declarar cómo se comprueba |
-| 19 | **Integración continua con GitHub Actions**: `build-and-test` y `secret-scan` con gitleaks, en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, y una credencial nueva no entra sin avisar |
+| 19 | **Integración continua con GitHub Actions**: `ci-monolito` (build y tests), `secret-scan` con gitleaks y `docker-monolito` (build de la imagen), en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, una credencial nueva no entra sin avisar, y el Dockerfile no se rompe sin que nadie lo note |
+| 21 | **Dockerfile y `docker-compose`**: imagen *multi-stage* con el `restore` en su propia capa y usuario sin privilegios, y un compose local con API, SQL Server y Redis | El monolito se levanta con un solo comando y la misma imagen es la que se desplegará |
 | 20 | **Cuatro correcciones de seguridad**: middleware de excepciones movido al principio del pipeline con mensaje genérico (nº 1) · `EnableSensitiveDataLogging` solo en desarrollo (nº 2) · `SignIn` responde siempre el mismo 401 (nº 3) · rate limiter particionado por IP, con política propia y más estricta para `SignIn`/`SignUp` (nº 23, sin cerrar del todo: falta `Retry-After`) | Cierra la fuga de la excepción cruda, la de los valores de `PasswordHash` en el log de EF, la enumeración de usuarios por `SignIn` y el contador de rate limit compartido por todos los clientes |
 
 </details>
