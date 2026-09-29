@@ -8,8 +8,12 @@ una carpeta más, no como repo aparte.
 - **Estructura:** `View/Themes/` (ventana y estilos), `ViewModel/MainViewModel.cs` y `Properties/`.
 - **Pantalla actual:** formulario de registro (nombre, email, contraseña y repeticiones de 1 a 100) con
   validación en cliente y botones Registrar y Cancelar.
-- **Pendiente:** [`MainViewModel.cs`](ViewModel/MainViewModel.cs) simula la llamada con un `Task.Delay`.
-  Ahí irá la petición real a la API con `HttpClient`.
+- **Consumo de la API:** [`MainViewModel.cs`](ViewModel/MainViewModel.cs) envía el registro con
+  `HttpClient` (`POST` JSON a `/api/v4/UserAuth/SignUp`, por defecto en `http://localhost:5102`) a través de
+  [`Connection`](Services/Connection.cs), y deserializa la respuesta con Newtonsoft.Json. Los DTOs están en
+  `Model/Request` y `Model/Response`.
+- **Pendiente:** la URL está fijada en [`MainWindow.xaml.cs`](View/Themes/MainWindow.xaml.cs) y debería salir
+  de configuración; el manejo de errores del `ViewModel` es básico.
 
 ## Ejecutar
 
