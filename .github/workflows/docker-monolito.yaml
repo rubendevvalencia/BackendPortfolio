@@ -1,0 +1,30 @@
+name: Docker-Monolito
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "Monolito/**"
+      - ".github/workflows/docker-monolito.yaml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "Monolito/**"
+      - ".github/workflows/docker-monolito.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Comprueba que el Dockerfile construye. No publica la imagen en ningun registro.
+      # El contexto es Monolito/ (igual que en docker-compose.yml), porque el Dockerfile copia
+      # rutas relativas a esa carpeta (Ecommerce/, Ecommerce.Application/...).
+      - name: Build Docker image
+        run: docker build --file Monolito/Docker/Dockerfile --tag ecommerce-api:ci Monolito
