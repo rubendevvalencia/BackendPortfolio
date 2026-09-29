@@ -2,7 +2,6 @@
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +29,9 @@ namespace RegistroPerf.ViewModels
                 return;
             }
 
-            int runs = Math.Clamp(Repetitions, 1, 100);
+            // Math.Clamp no existe en .NET Framework 4.8.
+            int atLeastOne = Math.Max(Repetitions, 1);
+            int runs = Math.Min(atLeastOne, 100);
             try
             {
                 for (int i = 1; i <= runs; i++)
@@ -49,8 +50,12 @@ namespace RegistroPerf.ViewModels
         private string? Validate()
         {
             if (string.IsNullOrWhiteSpace(FullName)) return "El nombre es obligatorio.";
-            if (!Email.Contains('@')) return "El email no es válido.";
-            if (Password.Length < 8 || !Password.Any(char.IsDigit) || !Password.Any(char.IsLetter))
+            // string.Contains(char) no existe en .NET Framework 4.8: se usa la sobrecarga de string.
+            if (!Email.Contains("@")) return "El email no es válido.";
+
+            bool hasDigit = Password.Any(char.IsDigit);
+            bool hasLetter = Password.Any(char.IsLetter);
+            if (Password.Length < 8 || !hasDigit || !hasLetter)
                 return "La contraseña necesita 8 caracteres con letras y números.";
             return null;
         }
