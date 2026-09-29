@@ -74,7 +74,7 @@ namespace Ecommerce.Api.Controllers.v4
             return ToActionResult(response);
         }
 
-        [HttpDelete("DeleteAsync/{id}")]
+        [HttpDelete("DeleteAsync/{id:int}")]
         [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Deletes an existing customer.", Description = "Deletes an existing customer from the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer deleted successfully.", typeof(Response<bool>))]
@@ -90,7 +90,7 @@ namespace Ecommerce.Api.Controllers.v4
             return ToActionResult(response);
         }
 
-        [HttpGet("GetByIdAsync/{id}")]
+        [HttpGet("GetByIdAsync/{id:int}")]
         [RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
