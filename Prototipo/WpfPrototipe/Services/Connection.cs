@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace RegistroPerf.Services
 {
-    public abstract class Connection : IConnection
+    public class Connection : IConnection
     {
         public HttpClient CreateClient(string url)
         {

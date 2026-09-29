@@ -1,7 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using RegistroPerf.Converters;
+using RegistroPerf.Services;
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +14,7 @@ namespace RegistroPerf.ViewModels
 {
     public partial class MainViewModel
     {
+        private readonly string _url; 
         private string _fullName = "Ana Prueba";
         private string _email = "ana.prueba@example.com";
         private int _repetitions = 1;
@@ -16,13 +22,38 @@ namespace RegistroPerf.ViewModels
 
         public string Password { get; set; } = "";
 
-        public bool RegisterService()
+        public MainViewModel(string url)
+        {
+            _url = url;
+        }
+
+        public async Task<bool> RegisterService()
         {
             if (_fullName.Length <= 0) return false;
             if(_email.Length <= 0 || !_email.Contains('@')) return false;
             if(Password.Length <= 0) return false;
 
 
+            ResponseConverter resultCorrect;
+            var manager = new Connection();
+            HttpClient client = manager.CreateClient(_url);
+            HttpResponseMessage responseMessage = client.GetAsync(_url).Result;
+
+            if (!responseMessage.IsSuccessStatusCode)
+            {
+                new SystemException("Error response client");
+                return false;
+            }
+            else
+            {
+                // Leer el contenido como string
+                string jsonResponse = await responseMessage.Content.ReadAsStringAsync();
+
+                // Deserializar el JSON al objeto de tipo T
+                var conversion = JsonConvert.DeserializeObject<ResponseConverter>(jsonResponse);
+
+                return true;
+            }
 
 
             return true;
