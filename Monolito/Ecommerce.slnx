@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Core/" />
+  <Project Path="../Prototipo/WpfPrototipe/RegistroPerf.csproj" />
   <Project Path="Ecommerce.Application/Ecommerce.Application.csproj" />
   <Project Path="Ecommerce.Domain/Ecommerce.Domain.csproj" />
   <Project Path="Ecommerce.Infrastructure/Ecommerce.Infrastructure.csproj" />

@@ -8,6 +8,7 @@ reescritura de golpe.
 |---|---|---|
 | [`Monolito/`](Monolito/README.md) | API Ecommerce en .NET, Clean Architecture. El laboratorio de aprendizaje original: cuatro versiones del mismo recurso conviviendo. | Vigente, es la referencia mientras dura la migración |
 | [`Microservicios/`](Microservicios/) | La arquitectura de destino. Cada subcarpeta es un microservicio independiente. | Empezando por [`Identity/`](Microservicios/Identity/README.md), pendiente de construir |
+| [`Prototipo/WpfPrototipe/`](Prototipo/WpfPrototipe/README.md) | Cliente de escritorio WPF para consumir la API. | Prototipo, la llamada real a la API está pendiente |
 
 ## Cómo se construye
 
