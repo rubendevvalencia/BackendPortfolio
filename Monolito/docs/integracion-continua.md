@@ -59,6 +59,7 @@ ocurre en ejecuciones manuales o programadas, que hoy no están configuradas.
   un SHA no.
 - **Un workflow en rojo informa, pero no bloquea.** Convertirlo en requisito para mezclar es configuración
   de *branch protection* en GitHub, no YAML — el repositorio todavía no la tiene.
+- **No se levanta el `docker-compose`** en la CI: en un runner efímero no aportaría nada.
 - **No cachea las capas de Docker** en `docker-monolito.yaml`, y **la imagen no se publica** en ningún
   registro: solo se comprueba que construye.
 - **Falta la otra mitad del bloque E** de la [hoja de ruta](../README.md#hoja-de-ruta): el despliegue en Azure.
