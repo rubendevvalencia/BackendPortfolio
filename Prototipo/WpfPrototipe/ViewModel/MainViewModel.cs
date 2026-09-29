@@ -2,11 +2,13 @@
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using RegistroPerf.Converters;
+using RegistroPerf.Model;
 using RegistroPerf.Services;
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.Serialization.Json;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +22,7 @@ namespace RegistroPerf.ViewModels
         private int _repetitions = 1;
         private string _message = "";
 
-        public string Password { get; set; } = "";
+        public string _password { get; set; } = "";
 
         public MainViewModel(string url)
         {
@@ -31,13 +33,23 @@ namespace RegistroPerf.ViewModels
         {
             if (_fullName.Length <= 0) return false;
             if(_email.Length <= 0 || !_email.Contains('@')) return false;
-            if(Password.Length <= 0) return false;
+            if(_password.Length <= 0) return false;
 
-
+            var request = new SingUpDto()
+            {
+                FirstName = _fullName,
+                LastName = _fullName,
+                Email = _email,
+                UserName = _fullName,
+                Password = _password
+            };
+            
+            var json = JsonConvert.SerializeObject(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
             ResponseConverter resultCorrect;
             var manager = new Connection();
             HttpClient client = manager.CreateClient(_url);
-            HttpResponseMessage responseMessage = client.GetAsync(_url).Result;
+            HttpResponseMessage responseMessage = await client.PostAsync(_url, content);
 
             if (!responseMessage.IsSuccessStatusCode)
             {

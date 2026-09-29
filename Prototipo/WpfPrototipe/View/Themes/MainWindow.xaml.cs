@@ -20,7 +20,7 @@ namespace RegistroPerf
         private void OnPasswordChanged(object sender, RoutedEventArgs e)
         {
             string password = PasswordInput.Password;
-            _viewModel.Password = password;
+            _viewModel._password = password;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) => _viewModel.RegisterService();
