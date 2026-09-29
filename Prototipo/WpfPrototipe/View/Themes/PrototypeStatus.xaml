@@ -1,37 +1,15 @@
-﻿<Window x:Class="RegistroPerf.MainWindow"
+<Window x:Class="RegistroPerf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Registro" Width="380" SizeToContent="Height"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
-        Background="#F6F7F9" FontFamily="Segoe UI" FontSize="13">
+        Background="{StaticResource Surface}"
+        FontFamily="{StaticResource FontSans}" FontSize="13">
 
-    <Window.Resources>
-        <!-- Etiqueta encima de cada campo -->
-        <Style x:Key="Label" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#5A6573" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-        </Style>
-
-        <!-- Campos: mismo aspecto para TextBox y PasswordBox -->
-        <Style x:Key="Field" TargetType="Control">
-            <Setter Property="Padding" Value="8,6" />
-            <Setter Property="BorderBrush" Value="#D9DEE5" />
-            <Setter Property="Margin" Value="0,0,0,12" />
-        </Style>
-        <Style TargetType="TextBox" BasedOn="{StaticResource Field}" />
-        <Style TargetType="PasswordBox" BasedOn="{StaticResource Field}" />
-
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="14,8" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-    </Window.Resources>
-
-    <Border Margin="24" Padding="16" Background="White"
-            BorderBrush="#D9DEE5" BorderThickness="1" CornerRadius="8">
+    <!-- Los estilos (Card, Section, Label, campos y botones) vienen de Themes/Controls.xaml vía App.xaml. -->
+    <Border Margin="24" Style="{StaticResource Card}">
         <StackPanel>
-            <TextBlock Text="Datos de registro" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="Datos de registro" Style="{StaticResource Section}" />
 
             <TextBlock Text="Nombre completo" Style="{StaticResource Label}" />
             <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" />
@@ -54,13 +32,14 @@
                 </Grid.ColumnDefinitions>
 
                 <Button Content="Registrar" Command="{Binding RegisterCommand}" IsDefault="True"
-                        Background="#0F6CBD" Foreground="White" BorderBrush="#0F6CBD" />
-                <Button Grid.Column="2" Content="Cancelar" Command="{Binding RegisterCancelCommand}" />
+                        Style="{StaticResource PrimaryButton}" />
+                <Button Grid.Column="2" Content="Cancelar" Command="{Binding RegisterCancelCommand}"
+                        Style="{StaticResource SecondaryButton}" />
             </Grid>
 
             <!-- Resultado: de momento solo un texto -->
             <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,12,0,0"
-                       Foreground="#5A6573" />
+                       Foreground="{StaticResource InkMuted}" />
         </StackPanel>
     </Border>
 </Window>
