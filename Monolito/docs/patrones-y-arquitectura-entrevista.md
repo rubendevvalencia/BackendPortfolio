@@ -249,9 +249,9 @@ detección. Además `ApplicationTestBase` llama a `AssertConfigurationIsValid()`
 - **Swagger por versión sin código a mano**: `ConfigureSwaggerOptions` recorre `IApiVersionDescriptionProvider`;
   v3 y v4 se añadieron sin tocar la configuración de Swagger.
 - Cuando el contrato **no** cambia no se duplica nada: se declaran varias versiones sobre la misma clase
-  (`UserAuthController` con `[ApiVersion("1.0", Deprecated = true)]`, `2.0`, `3.0`). Las versiones obsoletas
+  (`UserAuthController` con `[ApiVersion("1.0", Deprecated = true)]`, `2.0`, `3.0`, `4.0`). Las versiones obsoletas
   viajan a Swagger y a la cabecera `api-deprecated-versions`.
-- **Deuda:** `DefaultApiVersion` apunta a 1.0 (obsoleta) y `UserAuthController` no declara la 4.0 (nº 6).
+- **Deuda:** `DefaultApiVersion` apunta a 1.0 (obsoleta) (nº 6).
 
 ---
 
