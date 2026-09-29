@@ -10,7 +10,6 @@
     <Border Margin="24" Style="{StaticResource Card}">
         <StackPanel>
             <TextBlock Text="Datos de registro" Style="{StaticResource Section}" />
-
             <TextBlock Text="Nombre completo" Style="{StaticResource Label}" />
             <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -32,7 +31,7 @@
                 </Grid.ColumnDefinitions>
 
                 <Button Content="Registrar" Command="{Binding RegisterCommand}" IsDefault="True"
-                        Style="{StaticResource PrimaryButton}" />
+                        Style="{StaticResource PrimaryButton}" Click="Button_Click" />
                 <Button Grid.Column="2" Content="Cancelar" Command="{Binding RegisterCancelCommand}"
                         Style="{StaticResource SecondaryButton}" />
             </Grid>

@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using RegistroPerf.ViewModels;
 
@@ -20,5 +21,8 @@ namespace RegistroPerf
             string password = PasswordInput.Password;
             _viewModel.Password = password;
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e) => _viewModel.RegisterService();
+        
     }
 }
