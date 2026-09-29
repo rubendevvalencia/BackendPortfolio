@@ -193,8 +193,34 @@ dotnet ef database update --project Ecommerce.Infrastructure --startup-project E
 dotnet run --project Ecommerce
 ```
 
-Swagger queda en `https://localhost:7051/swagger`, con el desplegable de versiones arriba a la derecha. Los
-tests, con `dotnet test`.
+Swagger queda en `https://localhost:7051/swagger`, con el desplegable de versiones arriba a la derecha. La
+misma documentación, en formato de lectura con ReDoc, está en `https://localhost:7051/api-docs` (solo
+muestra la última versión, la v4). Los tests, con `dotnet test`.
+
+**Con Docker en vez de local.** [`Docker/docker-compose.yml`](../Docker/docker-compose.yml) levanta la API,
+SQL Server y Redis. Los secretos se montan como archivos desde una carpeta tuya, fuera del repo:
+
+```bash
+# SECRETS_DIR debe contener secrets.json ({ "Jwt:Key": "...", "ConnectionStrings:EcommerceDb": "..." })
+# y sa_password (la contraseña de sa en texto plano, la misma que en la cadena de conexión)
+SECRETS_DIR=<ruta> docker compose -f ../Docker/docker-compose.yml up --build
+```
+
+La API queda en `http://localhost:8080`.
+
+> [!NOTE]
+> **Tres comportamientos que son decisión, no fallo**, para que no parezca que algo no funciona:
+>
+> - **El rate limiter es muy estricto a propósito:** 4 peticiones cada 30 s por IP (cola de 2) en los
+>   controllers de `Customer`, y 3 por minuto en `SignIn`/`SignUp`. Es un ejercicio para ver el 429 con
+>   pocas peticiones. Para probar con holgura, sube `RateLimiting:PermitLimit` en `appsettings.json`.
+> - **`/health` responde 503 de forma intermitente:** incluye `HealthCheckCustome`, una comprobación de
+>   demostración con `Random` que devuelve Healthy, Degraded o Unhealthy para poder ver los tres estados en
+>   `/health/ui`. SQL Server y Redis se comprueban de verdad; ese check concreto no. Detalle en
+>   [*Decisiones técnicas*](docs/decisiones-tecnicas.md).
+> - **Con Docker no hay Swagger ni ReDoc:** el contenedor corre en `Production` y ambos solo se activan en
+>   `Development`. Para explorar la API, usa `dotnet run` (Swagger en `/swagger`, ReDoc en `/api-docs`) o las rutas de
+>   [*Endpoints*](docs/endpoints.md).
 
 `Ecommerce.slnx` incluye también `Ecommerce.IntegrationTest`, así que `dotnet test` sobre la solución
 completa arrastra sus tests: necesitan la misma SQL Server real de arriba (los aplica con
@@ -210,7 +236,7 @@ envoltura `Response<T>`, cuyo `ErrorType` es lo que el controller traduce a 200,
 
 | Recurso | Rutas |
 |---|---|
-| `api/v{1\|2\|3}/UserAuth` | `POST /SignUp` · `POST /SignIn` |
+| `api/v{1\|2\|3\|4}/UserAuth` | `POST /SignUp` · `POST /SignIn` |
 | `api/v{1\|2}/Customer` | `GET /GetAllAsync` · `GET /GetByIdAsync/{id}` · `POST /AddAsync` · `PUT /UpdateAsync{id}` · `POST /UpdateAsyncPost/{id}` · `DELETE /DeleteAsync/{id}` |
 | `api/v{3\|4}/Customer` | Lo mismo, con `AddAsync` renombrado a `Create` y sin `PUT`: la actualización va por `POST /UpdateAsyncPost` con el `Id` en el cuerpo |
 
@@ -242,7 +268,7 @@ anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
 No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en qué orden pienso resolverlo.
 
 <details>
-<summary>Historial de cambios — los 20 hitos, en el orden en que se construyeron</summary>
+<summary>Historial de cambios — los 21 hitos, en el orden en que se construyeron</summary>
 
 | # | Cambio | Qué resolvió |
 |---|---|---|
@@ -265,8 +291,8 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
 | 18 | **Health checks repartidos por capa**: el registro baja a `Infrastructure` y `Api` se queda solo con `MapHealthChecks` y el HTML | Los paquetes de sonda salen del `.csproj` de `Api`: la capa que no sabe que existe una base de datos deja de declarar cómo se comprueba |
 | 19 | **Integración continua con GitHub Actions**: `ci-monolito` (build y tests), `secret-scan` con gitleaks y `docker-monolito` (build de la imagen), en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, una credencial nueva no entra sin avisar, y el Dockerfile no se rompe sin que nadie lo note |
-| 21 | **Dockerfile y `docker-compose`**: imagen *multi-stage* con el `restore` en su propia capa y usuario sin privilegios, y un compose local con API, SQL Server y Redis | El monolito se levanta con un solo comando y la misma imagen es la que se desplegará |
 | 20 | **Cuatro correcciones de seguridad**: middleware de excepciones movido al principio del pipeline con mensaje genérico (nº 1) · `EnableSensitiveDataLogging` solo en desarrollo (nº 2) · `SignIn` responde siempre el mismo 401 (nº 3) · rate limiter particionado por IP, con política propia y más estricta para `SignIn`/`SignUp` (nº 23, sin cerrar del todo: falta `Retry-After`) | Cierra la fuga de la excepción cruda, la de los valores de `PasswordHash` en el log de EF, la enumeración de usuarios por `SignIn` y el contador de rate limit compartido por todos los clientes |
+| 21 | **Dockerfile y `docker-compose`**: imagen *multi-stage* con el `restore` en su propia capa y usuario sin privilegios, y un compose local con API, SQL Server y Redis | El monolito se levanta con un solo comando y la misma imagen es la que se desplegará |
 
 </details>
 
