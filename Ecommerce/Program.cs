@@ -8,11 +8,13 @@ using Ecommerce.Api.Modules.HealthCheck;
 using Ecommerce.Api.Modules.RateLimiter;
 using Ecommerce.Application;
 using Ecommerce.Infrastructure;
+using Ecommerce.Infrastructure.Data;
 using Ecommerce.Transversal;
 using HealthChecks.UI.Client; //Necesario para ForwardedHeadersOptions / ForwardedHeaders.
 using HealthChecks.UI.Core;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
 using Serilog;
 using System.Net;
@@ -23,12 +25,25 @@ using System.Text.Json.Serialization;
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // Carga el secret montado por docker-compose.yml (ConnectionStrings:EcommerceDb, Jwt:Key).
+    // Debe ir antes de AddInfrastructureServices(), que ya lee la connection string.
+    builder.Configuration.AddJsonFile("/run/secrets/secrets.json", optional: true);
+
     // Add services to the container.
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddInfrastructureServices(builder.Configuration);
     builder.Services.AddApplicationServices();
+
+    // Aplica las migraciones pendientes antes de AddTransversalServices(): ese metodo configura
+    // el sink de Serilog en SQL Server, que necesita que la base de datos ya exista.
+    using (var provider = builder.Services.BuildServiceProvider())
+    {
+        provider.GetRequiredService<DbContextEF>().Database.Migrate();
+    }
+
     builder.Services.AddTransversalServices(builder.Configuration); //Registra los servicios transversal
     builder.Services.AddAuth(builder.Configuration);                // Registra la autenticación JWT usando la configuración de Jwt.
     builder.Services.AddCorsPolicy(builder.Configuration);          //Registra (define) la politica CORS leyendo los origenes de "Config:OrinCors".
