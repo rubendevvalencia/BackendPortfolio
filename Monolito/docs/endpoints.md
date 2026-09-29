@@ -49,10 +49,10 @@ códigos a mano— y `ErrorType` incluye además `Unauthorized` (valor 7), que t
 que devuelve `SignIn` con credenciales incorrectas, con el mismo mensaje tanto si el email no existe como si
 la contraseña falla.
 
-## `UserAuth` — `api/v{1|2|3}/UserAuth`
+## `UserAuth` — `api/v{1|2|3|4}/UserAuth`
 
-Un único controller sirve las tres versiones; v1 y v2 están marcadas `Deprecated`. **No declara la `4.0`**,
-así que un cliente de v4 se autentica contra v3 (pendiente nº 6).
+Un único controller sirve las cuatro versiones (el contrato no cambia, así que no se duplica); v1 y v2 están
+marcadas `Deprecated`. Un cliente de v4 se autentica contra `api/v4/UserAuth`.
 
 | Verbo | Ruta | Cuerpo | Devuelve |
 |---|---|---|---|
