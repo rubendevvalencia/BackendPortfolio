@@ -280,7 +280,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
 | **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y un primer test de integración (`SignUp → SignIn`); faltan los de `LoggingBehaviour`, el resto de la frontera HTTP y meterlos en la CI |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
-| **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI montada; faltan Dockerfile y despliegue |
+| **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI y Dockerfile hechos (la CI comprueba que la imagen construye); falta el despliegue |
 | **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
 
 Siguientes pasos, por orden:

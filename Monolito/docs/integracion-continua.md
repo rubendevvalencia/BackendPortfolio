@@ -3,15 +3,16 @@
 [← Volver al README](../README.md)
 
 El proyecto compila y pasa sus tests en una máquina que no es la mía. Es lo que separa *en mi equipo
-funciona* de una afirmación comprobable: dos workflows independientes se disparan en cada `push` y en
+funciona* de una afirmación comprobable: tres workflows independientes se disparan en cada `push` y en
 cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de .NET 10.
 
 | Workflow | Qué hace | Cuándo se dispara | Qué protege |
 |---|---|---|---|
 | [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 271 tests sigan en verde |
+| [`docker-monolito.yaml`](../../.github/workflows/docker-monolito.yaml) | `docker build` de [`Monolito/Docker/Dockerfile`](../Docker/Dockerfile) con contexto `Monolito/`, sin publicar la imagen | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que el Dockerfile sigue construyendo: rutas de `COPY` y `restore`/`publish` dentro del contenedor |
 | [`secret-scan.yaml`](../../.github/workflows/secret-scan.yaml) | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Siempre, cambie lo que cambie | Que no entre al repositorio una credencial nueva |
 
-**Por qué están en ficheros separados y no en dos jobs del mismo workflow.** El repositorio es un
+**Por qué están en ficheros separados y no en jobs del mismo workflow.** El repositorio es un
 monorepo (`Monolito/` hoy, `Microservicios/` mañana): filtrar por `paths` es una propiedad del
 *workflow*, no del *job*, así que un único fichero no puede hacer que `build-and-test` solo corra para
 `Monolito/` mientras `secret-scan` sigue corriendo siempre. Separarlos en dos ficheros consigue justo
@@ -34,7 +35,7 @@ gratis y que dejará de salirlo con los tests de integración con `WebApplicatio
 (pendiente nº 8): o levantan sus dependencias como *services* del job —contenedores de SQL Server y de
 Redis— o el job deja de ser autosuficiente. Conviene decidirlo entonces, y no descubrirlo.
 
-**Permisos mínimos, y elevados solo donde hacen falta.** Los dos workflows declaran
+**Permisos mínimos, y elevados solo donde hacen falta.** Los tres workflows declaran
 `permissions: contents: read` a nivel raíz, así que el `GITHUB_TOKEN` de cualquier job nace sin poder
 escribir en el repositorio aunque una acción de terceros lo intente. El job `secret-scan` es el único
 que sube ese mínimo —`pull-requests: write`— porque gitleaks publica el hallazgo como comentario en el
@@ -58,4 +59,6 @@ ocurre en ejecuciones manuales o programadas, que hoy no están configuradas.
   un SHA no.
 - **Un workflow en rojo informa, pero no bloquea.** Convertirlo en requisito para mezclar es configuración
   de *branch protection* en GitHub, no YAML — el repositorio todavía no la tiene.
-- **Falta la otra mitad del bloque E** de la [hoja de ruta](../README.md#hoja-de-ruta): `Dockerfile` y despliegue.
+- **No cachea las capas de Docker** en `docker-monolito.yaml`, y **la imagen no se publica** en ningún
+  registro: solo se comprueba que construye.
+- **Falta la otra mitad del bloque E** de la [hoja de ruta](../README.md#hoja-de-ruta): el despliegue en Azure.
