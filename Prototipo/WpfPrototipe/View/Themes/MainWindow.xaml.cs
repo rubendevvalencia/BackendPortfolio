@@ -11,7 +11,7 @@ namespace RegistroPerf
         public MainWindow()
         {
             InitializeComponent();
-            string url = "http://localhost:5102/swagger/index.html?urls.primaryName=V4#/UserAuth/post_api_v4_UserAuth_SignUp";//Appsettings
+            string url = "http://localhost:5102/api/v4/UserAuth/SignUp";//Appsettings
             _viewModel = new MainViewModel(url);
             DataContext = _viewModel;
         }

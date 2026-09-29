@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using RegistroPerf.Converters;
 using RegistroPerf.Model;
+using RegistroPerf.Model.Response;
 using RegistroPerf.Services;
 using System;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace RegistroPerf.ViewModels
 {
@@ -46,7 +48,7 @@ namespace RegistroPerf.ViewModels
             
             var json = JsonConvert.SerializeObject(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            ResponseConverter resultCorrect;
+            ResponseConverter<bool> resultCorrect;
             var manager = new Connection();
             HttpClient client = manager.CreateClient(_url);
             HttpResponseMessage responseMessage = await client.PostAsync(_url, content);
@@ -62,7 +64,9 @@ namespace RegistroPerf.ViewModels
                 string jsonResponse = await responseMessage.Content.ReadAsStringAsync();
 
                 // Deserializar el JSON al objeto de tipo T
-                var conversion = JsonConvert.DeserializeObject<ResponseConverter>(jsonResponse);
+                var conversion = JsonConvert.DeserializeObject<ResponseConverter<bool>>(jsonResponse);
+                if (conversion.IsSuccess) MessageBox.Show("Correct Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                else MessageBox.Show("Incorrect Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
 
                 return true;
             }
