@@ -146,6 +146,7 @@ Common/
 | **Resiliencia** | Redis vía `IDistributedCache` (*cache-aside*) · rate limiter nativo de ventana fija · AspNetCore.HealthChecks (`/health` y `/health/ui`) — las tres, en versión simplificada |
 | **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks y comprobación del build de la imagen Docker |
 | **Contenedores** | Dockerfile *multi-stage* (imagen `aspnet` sin privilegios) · `docker-compose` con API, SQL Server y Redis, con los secretos montados como archivos |
+| **Uso de IA** | Copilot · Claude Code, como apoyo para revisar código, detectar fallos y contrastar alternativas. El criterio de arquitectura y de código lo aplica el desarrollador; el porqué de cada decisión está en `docs/` |
 
 ---
 
