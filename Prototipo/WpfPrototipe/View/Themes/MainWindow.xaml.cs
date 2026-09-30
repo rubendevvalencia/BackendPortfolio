@@ -1,7 +1,9 @@
+using RegistroPerf.Configuration.Models;
+using RegistroPerf.Configuration.Services;
+using RegistroPerf.ViewModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using RegistroPerf.ViewModel;
 
 namespace RegistroPerf
 {
@@ -12,10 +14,8 @@ namespace RegistroPerf
         public MainWindow()
         {
             InitializeComponent();
-            string baseUrl = App.ApiConf.BaseUrl.TrimEnd('/');
-            string path = App.ApiConf.SignUpPath.TrimStart('/');
-            string url = $"{baseUrl}/{path}";
-            _viewModel = new MainViewModel(url);
+            EndPointsService endPointsService = new EndPointsService(); //Hay que buscar la inyección de dependencias, esto es una locura
+            _viewModel = new MainViewModel(endPointsService.ReadUrlAppSettings());
             DataContext = _viewModel;
         }
 
@@ -23,27 +23,47 @@ namespace RegistroPerf
         private void OnPasswordChanged(object sender, RoutedEventArgs e)
         {
             string password = PasswordInput.Password;
-            _viewModel._password = password;
+            _viewModel._singUp.Password = password;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) => _viewModel.RegisterService();
+        private void Button_Click(object sender, RoutedEventArgs e) => _viewModel.SignUpService();
 
         private void EmailInput_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             string email = EmailInput.Text;
-            _viewModel._email = email;
+            _viewModel._singUp.Email = email;
         }
 
         private void tbFullName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             string name = tbFullName.Text;
-            _viewModel._fullName = name;
+            _viewModel._singUp.FirstName = name;
+            _viewModel._singUp.LastName = name;
         }
 
         private void tbUserName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             string userName = tbUserName.Text;
-            _viewModel._userName = userName;
+            _viewModel._singUp.UserName = userName;
+        }
+
+        private void tbSignInUserName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            string userName = tbSignInUserName.Text;
+            _viewModel._signIn.Email = userName;
+        }
+
+        private void SignInPasswordInput_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            string password = SignInPasswordInput.Password;
+            _viewModel._signIn.Password = password;
+        }
+
+        // async void es obligatorio en un manejador de eventos; con async Task WPF no lo encuentra.
+        private async void button_signIn_Click(object sender, RoutedEventArgs e)
+        {
+            string? result = await _viewModel.SignInService();
+            tbToken.Text = result ?? string.Empty;
         }
     }
 }

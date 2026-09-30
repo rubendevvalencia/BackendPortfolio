@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
+using RegistroPerf.Configuration.Models;
 using RegistroPerf.Converters;
 using RegistroPerf.Model;
+using RegistroPerf.Model.Request;
 using RegistroPerf.Model.Response;
 using RegistroPerf.Services;
 using System;
@@ -19,49 +21,35 @@ namespace RegistroPerf.ViewModel
 {
     public partial class MainViewModel 
     {
-        private readonly string _url;
-
-        public string _password { get; set; } = "";
-        public string _fullName { get; set; } = "";
-        public string _email { get; set; } = "";
-        public string _userName { get; set; } = "";
+        private readonly EndPointsDefinition _endPoints;
+        public readonly SingUpDto _singUp = new SingUpDto();
+        public readonly SignInDto _signIn = new SignInDto();
        
-        public MainViewModel(string url)
-        {
-            _url = url;
-        }
+        public MainViewModel(EndPointsDefinition endPoints) => _endPoints = endPoints;
 
-        public async Task<bool> RegisterService()
+        public async Task<bool> SignUpService()
         {
             //GuardClauses para evitar llamdas cuando sabemos que es incorrecto, 1era barrera
-            if (string.IsNullOrWhiteSpace(_userName)) return EmptyInformation();
-            if (string.IsNullOrWhiteSpace(_fullName)) return EmptyInformation();
-            if (string.IsNullOrWhiteSpace(_email)) return EmptyInformation();
-            if (!_email.Contains('@')) return IncorrectInformation("Email without @");
-            if (string.IsNullOrEmpty(_password)) return EmptyInformation();
-            if (_password.Length < 8) return IncorrectInformation("Min 8 characters");
+            if (string.IsNullOrWhiteSpace(_singUp.UserName)) return EmptyInformation();
+            if (string.IsNullOrWhiteSpace(_singUp.FirstName)) return EmptyInformation();
+            if (string.IsNullOrWhiteSpace(_singUp.Email)) return EmptyInformation();
+            if (!_singUp.Email.Contains('@')) return IncorrectInformation("Email without @");
+            if (string.IsNullOrEmpty(_singUp.Password)) return EmptyInformation();
+            if (_singUp.Password.Length < 8) return IncorrectInformation("Min 8 characters");
             // El resto de reglas (formato completo de email, longitudes) las valida SignUpValidator en la API.
 
-            var request = new SingUpDto()
-            {
-                FirstName = _fullName,
-                LastName = _fullName,
-                Email = _email,
-                UserName = _userName,
-                Password = _password
-            };
-            
-            var json = JsonConvert.SerializeObject(request);
+           
+            var json = JsonConvert.SerializeObject(_singUp);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var manager = new Connection();
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             CancellationToken cancellation = cts.Token;
-            HttpClient client = manager.CreateClient(_url);
+            HttpClient client = manager.CreateClient(_endPoints.SignUpUrl);
 
             try
             {
-                HttpResponseMessage responseMessage = await client.PostAsync(_url, content, cancellation);
+                HttpResponseMessage responseMessage = await client.PostAsync(_endPoints.SignUpUrl, content, cancellation);
                 // Leer el contenido como string
                 string jsonResponse = await responseMessage.Content.ReadAsStringAsync();
 
@@ -113,6 +101,51 @@ namespace RegistroPerf.ViewModel
 
             MessageBox.Show(text, "Sign Up", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
+        }
+
+        public async Task<string?> SignInService()
+        {
+            //GuardClauses para evitar llamdas cuando sabemos que es incorrecto, 1era barrera
+            if (string.IsNullOrWhiteSpace(_signIn.Email)) return EmptyInformationString();
+            if (!_signIn.Email.Contains('@')) return IncorrectInformationString("Email without @");
+            if (string.IsNullOrEmpty(_signIn.Password)) return EmptyInformationString();
+            if (_signIn.Password.Length < 8) return IncorrectInformationString("Min 8 characters");
+
+            var json = JsonConvert.SerializeObject(_signIn);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var manager = new Connection();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            CancellationToken cancellation = cts.Token;
+            HttpClient client = manager.CreateClient(_endPoints.SignInUrl);
+
+            try
+            {
+                HttpResponseMessage responseMessage = await client.PostAsync(_endPoints.SignInUrl, content, cancellation);
+                // Leer el contenido como string
+                string jsonResponse = await responseMessage.Content.ReadAsStringAsync();
+
+                if (!responseMessage.IsSuccessStatusCode)
+                {
+                    ShowApiError(jsonResponse, (int)responseMessage.StatusCode);
+                    return null;
+                }
+
+                // Deserializar el JSON al objeto de tipo T
+                var conversion = JsonConvert.DeserializeObject<ResponseConverter<TokenDto>>(jsonResponse);
+                if (conversion.IsSuccess) MessageBox.Show("Correct Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                else
+                {
+                    MessageBox.Show("Incorrect Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return null;
+                }
+                return conversion.Data.AccessToken;
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("Service dosen't resolve", "Timeout", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return null;
+            }
         }
     }
 }

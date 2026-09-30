@@ -30,16 +30,18 @@ Orden de carga (el último gana):
 
 ```json
 {
-  "Api": {
+  "ApiConf": {
     "BaseUrl": "http://localhost:5102",
-    "SignUpPath": "/api/v4/UserAuth/SignUp"
+    "SignUpPath": "/api/v4/UserAuth/SignUp",
+    "SignInPath": "/api/v4/UserAuth/SignIn"
   }
 }
 ```
 
-- Cada clave se enlaza por nombre con una propiedad de [`ApiOptions`](Model/ApiOptions.cs). Si falta `BaseUrl` o
-  `SignUpPath`, la app avisa y se cierra.
-- Para apuntar a otra API sin tocar el archivo: `Api__BaseUrl=http://otro-host:5102`.
+- Cada clave se enlaza por nombre con una propiedad de [`ApiOptions`](Model/ApiOptions.cs). Si falta `BaseUrl`,
+  `SignUpPath` o `SignInPath`, la app avisa y se cierra.
+- `ApiOptions` expone además `SignUpUrl` y `SignInUrl` (base + ruta ya unidas) para no concatenar en cada ventana.
+- Para apuntar a otra API sin tocar el archivo: `ApiConf__BaseUrl=http://otro-host:5102`.
 - El archivo se copia junto al `.exe` en cada compilación (`CopyToOutputDirectory` en el csproj); si se mueve el
   `.exe` a otra carpeta hay que llevarse el JSON con él.
 - No hay secretos en el cliente. Si los hubiera, se declararían vacíos en el JSON y sus valores irían por
