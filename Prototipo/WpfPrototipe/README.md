@@ -5,15 +5,28 @@ una carpeta más, no como repo aparte.
 
 - **Stack:** WPF sobre .NET Framework 4.8 y MVVM con
   [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4.0.
-- **Estructura:** `View/Themes/` (ventana, estilos y `App.xaml.cs`), `ViewModel/MainViewModel.cs`,
-  `Services/`, `Model/` y `Properties/`.
-- **Pantalla actual:** formulario de registro (usuario, nombre completo, email y contraseña) con validación en
-  cliente y botones Register y Cancelar.
-- **Consumo de la API:** [`MainViewModel.cs`](ViewModel/MainViewModel.cs) envía el registro con
-  `HttpClient` (`POST` JSON al endpoint de SignUp de la API) a través de
-  [`Connection`](Services/Connection.cs), y deserializa la respuesta con Newtonsoft.Json. Los DTOs están en
-  `Model/Request` y `Model/Response`.
-- **Pendiente:** el manejo de errores del `ViewModel` es básico.
+- **Estructura:** `View/Themes/` (ventana, estilos y `App.xaml.cs`), `ViewModel/` (`MainViewModel` y sus
+  servicios de mensajes), `Configuration/` (URLs de los endpoints), `Services/`, `Converters/`, `Model/` y
+  `Properties/`.
+- **Pantalla actual:** una sola ventana con dos tarjetas lado a lado.
+  - **Sign Up:** usuario, nombre completo, email y contraseña, con validación en cliente y botones Register y
+    Cancelar.
+  - **Sign In:** email y contraseña. Si la API responde bien, el `AccessToken` se muestra en una caja de solo
+    lectura (monoespaciada, con fondo tintado) para poder copiarlo.
+- **Consumo de la API:** [`MainViewModel`](ViewModel/MainViewModel.cs) expone `SignUpService()` y
+  `SignInService()`. Cada uno valida en cliente (guard clauses), envía un `POST` JSON con `HttpClient`
+  (timeout de 30 s) a través de [`Connection`](Services/Connection.cs) y deserializa la respuesta con
+  Newtonsoft.Json en un `ResponseConverter<T>`. `SignInService()` devuelve el token (o `null` si falla).
+- **Modelos:** los DTOs están en `Model/Request` (`SingUpDto`, `SignInDto`) y `Model/Response` (`UserDto`,
+  `TokenDto`). El `ViewModel` guarda un DTO de cada tipo y el code-behind de la ventana lo rellena con los
+  eventos de los campos (los `PasswordBox` no admiten `Binding`).
+- **Endpoints:** [`EndPointsService`](Configuration/Services/EndPointsService.cs) lee las URLs ya resueltas de
+  `App.ApiConf` y las entrega al `ViewModel` en un [`EndPointsDefinition`](Configuration/Models/EndPointsDefinition.cs)
+  (`SignUpUrl`, `SignInUrl`).
+- **Estilos:** los colores y la tipografía están en `View/Themes/ColorsStyle.xaml` y los estilos de controles
+  en `Controls.xaml` (`Card`, `Section`, `Label`, campos, botones `Primary`/`Secondary` y `TokenBox`).
+- **Pendiente:** el manejo de errores del `ViewModel` es básico, el token solo se muestra (aún no se usa en
+  llamadas autenticadas) y no hay inyección de dependencias: la ventana crea `EndPointsService` a mano.
 
 ## Configuración
 
@@ -30,16 +43,18 @@ Orden de carga (el último gana):
 
 ```json
 {
-  "Api": {
+  "ApiConf": {
     "BaseUrl": "http://localhost:5102",
-    "SignUpPath": "/api/v4/UserAuth/SignUp"
+    "SignUpPath": "/api/v4/UserAuth/SignUp",
+    "SignInPath": "/api/v4/UserAuth/SignIn"
   }
 }
 ```
 
-- Cada clave se enlaza por nombre con una propiedad de [`ApiOptions`](Model/ApiOptions.cs). Si falta `BaseUrl` o
-  `SignUpPath`, la app avisa y se cierra.
-- Para apuntar a otra API sin tocar el archivo: `Api__BaseUrl=http://otro-host:5102`.
+- Cada clave se enlaza por nombre con una propiedad de [`ApiOptions`](Model/ApiOptions.cs). Si falta `BaseUrl`,
+  `SignUpPath` o `SignInPath`, la app avisa y se cierra.
+- `ApiOptions` expone además `SignUpUrl` y `SignInUrl` (base + ruta ya unidas) para no concatenar en cada ventana.
+- Para apuntar a otra API sin tocar el archivo: `ApiConf__BaseUrl=http://otro-host:5102`.
 - El archivo se copia junto al `.exe` en cada compilación (`CopyToOutputDirectory` en el csproj); si se mueve el
   `.exe` a otra carpeta hay que llevarse el JSON con él.
 - No hay secretos en el cliente. Si los hubiera, se declararían vacíos en el JSON y sus valores irían por

@@ -15,11 +15,20 @@ namespace RegistroPerf.ViewModel
             MessageBox.Show("Empty Information", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
+        public string EmptyInformationString()
+        {
+            return "Empty Information";
+        }
+
 
         public bool IncorrectInformation(string parameter)
         {
             MessageBox.Show($"Incorrect Information: {parameter} ", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
+        }
+        public string IncorrectInformationString(string parameter)
+        {
+            return $"Incorrect Information: {parameter} ";
         }
     }
 }

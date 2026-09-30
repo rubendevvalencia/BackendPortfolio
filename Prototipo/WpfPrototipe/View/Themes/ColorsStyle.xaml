@@ -11,9 +11,11 @@
 	<SolidColorBrush x:Key="Accent" Color="#0F6CBD" />
 	<SolidColorBrush x:Key="AccentHover" Color="#0B5596" />
 	<SolidColorBrush x:Key="AccentInk" Color="#FFFFFF" />
+	<SolidColorBrush x:Key="AccentSoft" Color="#EAF3FB" />
 
 	<!-- Tipografía -->
 	<FontFamily x:Key="FontSans">Segoe UI</FontFamily>
+	<FontFamily x:Key="FontMono">Consolas</FontFamily>
 
 	<!-- Espaciado -->
 	<Thickness x:Key="Space4">16</Thickness>
