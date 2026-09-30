@@ -3,8 +3,11 @@
 Cliente de escritorio para probar el consumo de la API desde otra tecnología. Vive en el monorepo como
 una carpeta más, no como repo aparte.
 
-- **Stack:** WPF sobre .NET Framework 4.8 y MVVM con
-  [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4.0.
+- **Stack:** WPF sobre .NET Framework 4.8. Las carpetas siguen una división tipo MVVM (`View`, `ViewModel`,
+  `Model`), pero no es MVVM estricto: la ventana usa code-behind y no hay `Binding` ni comandos todavía.
+  [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4.0 está referenciado en
+  el csproj, pero aún no se usa: es el paso previo a un MVVM completo (`ObservableObject`, `[RelayCommand]` y
+  bindings).
 - **Estructura:** `View/Themes/` (ventana, estilos y `App.xaml.cs`), `ViewModel/` (`MainViewModel` y sus
   servicios de mensajes), `Configuration/` (URLs de los endpoints), `Services/`, `Converters/`, `Model/` y
   `Properties/`.
