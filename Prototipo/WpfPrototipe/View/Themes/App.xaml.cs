@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using RegistroPerf.Model;
 using System;
+using System.IO;
 using System.Windows;
 
 namespace RegistroPerf
@@ -28,9 +29,12 @@ namespace RegistroPerf
                 .GetSection(ApiOptions.SectionName)
                 .Get<ApiOptions>();
 
-            if (api == null || string.IsNullOrWhiteSpace(api.BaseUrl) || string.IsNullOrWhiteSpace(api.SignUpPath))
+            if (api == null
+                || string.IsNullOrWhiteSpace(api.BaseUrl)
+                || string.IsNullOrWhiteSpace(api.SignUpPath)
+                || string.IsNullOrWhiteSpace(api.SignInPath))
             {
-                MessageBox.Show("Missing configuration: Api:BaseUrl and Api:SignUpPath in appsettings.json", "Configuration", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Missing configuration: ApiConf:BaseUrl, ApiConf:SignUpPath and ApiConf:SignInPath in appsettings.json", "Configuration", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);
                 return;
             }
