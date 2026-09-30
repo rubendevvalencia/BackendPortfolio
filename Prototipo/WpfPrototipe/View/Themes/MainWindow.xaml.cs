@@ -1,5 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
-using RegistroPerf.ViewModels;
+using RegistroPerf.ViewModel;
 
 namespace RegistroPerf
 {
@@ -10,7 +12,10 @@ namespace RegistroPerf
         public MainWindow()
         {
             InitializeComponent();
-            _viewModel = new MainViewModel();
+            string baseUrl = App.ApiConf.BaseUrl.TrimEnd('/');
+            string path = App.ApiConf.SignUpPath.TrimStart('/');
+            string url = $"{baseUrl}/{path}";
+            _viewModel = new MainViewModel(url);
             DataContext = _viewModel;
         }
 
@@ -18,7 +23,27 @@ namespace RegistroPerf
         private void OnPasswordChanged(object sender, RoutedEventArgs e)
         {
             string password = PasswordInput.Password;
-            _viewModel.Password = password;
+            _viewModel._password = password;
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e) => _viewModel.RegisterService();
+
+        private void EmailInput_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            string email = EmailInput.Text;
+            _viewModel._email = email;
+        }
+
+        private void tbFullName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            string name = tbFullName.Text;
+            _viewModel._fullName = name;
+        }
+
+        private void tbUserName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            string userName = tbUserName.Text;
+            _viewModel._userName = userName;
         }
     }
 }

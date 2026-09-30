@@ -9,20 +9,17 @@
     <!-- Los estilos (Card, Section, Label, campos y botones) vienen de Themes/Controls.xaml vía App.xaml. -->
     <Border Margin="24" Style="{StaticResource Card}">
         <StackPanel>
-            <TextBlock Text="Datos de registro" Style="{StaticResource Section}" />
+            <TextBlock Text="Sign Up" Style="{StaticResource Section}" />
+            <TextBlock Text="User Name" Style="{StaticResource Label}" />
+            <TextBox x:Name="tbUserName" TextChanged="tbUserName_TextChanged" />
 
-            <TextBlock Text="Nombre completo" Style="{StaticResource Label}" />
-            <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" />
-
+            <TextBlock Text="Full Name" Style="{StaticResource Label}" />
+            <TextBox x:Name="tbFullName" TextChanged="tbFullName_TextChanged" />
             <TextBlock Text="Email" Style="{StaticResource Label}" />
-            <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
-
-            <TextBlock Text="Contraseña (mín. 8, letras y números)" Style="{StaticResource Label}" />
+            <TextBox x:Name="EmailInput" TextChanged="EmailInput_TextChanged"/>
+            
+            <TextBlock Text="Password (mín. 8)" Style="{StaticResource Label}" />
             <PasswordBox x:Name="PasswordInput" PasswordChanged="OnPasswordChanged" />
-
-            <TextBlock Text="Repeticiones (1–100)" Style="{StaticResource Label}" />
-            <TextBox Text="{Binding Repetitions, UpdateSourceTrigger=PropertyChanged}"
-                     Width="80" HorizontalAlignment="Left" />
 
             <Grid Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
@@ -31,15 +28,11 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Button Content="Registrar" Command="{Binding RegisterCommand}" IsDefault="True"
-                        Style="{StaticResource PrimaryButton}" />
-                <Button Grid.Column="2" Content="Cancelar" Command="{Binding RegisterCancelCommand}"
+                <Button Content="Register" IsDefault="True"
+                        Style="{StaticResource PrimaryButton}" Click="Button_Click" />
+                <Button Grid.Column="2" Content="Cancelar"
                         Style="{StaticResource SecondaryButton}" />
             </Grid>
-
-            <!-- Resultado: de momento solo un texto -->
-            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,12,0,0"
-                       Foreground="{StaticResource InkMuted}" />
         </StackPanel>
     </Border>
 </Window>

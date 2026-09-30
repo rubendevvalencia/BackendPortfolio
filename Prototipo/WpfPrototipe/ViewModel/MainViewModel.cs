@@ -1,63 +1,118 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using RegistroPerf.Converters;
+using RegistroPerf.Model;
+using RegistroPerf.Model.Response;
+using RegistroPerf.Services;
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization.Json;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
-namespace RegistroPerf.ViewModels
+namespace RegistroPerf.ViewModel
 {
-    public partial class MainViewModel : ObservableObject
+    public partial class MainViewModel 
     {
-        // [ObservableProperty] genera la propiedad pública (FullName, Email…) con aviso de cambio.
-        [ObservableProperty] private string _fullName = "Ana Prueba";
-        [ObservableProperty] private string _email = "ana.prueba@example.com";
-        [ObservableProperty] private int _repetitions = 1;
-        [ObservableProperty] private string _message = "";
+        private readonly string _url;
 
-        public string Password { get; set; } = "";
-
-        // [RelayCommand] genera RegisterCommand.
-        // IncludeCancelCommand genera RegisterCancelCommand, que solo se habilita mientras se ejecuta.
-        [RelayCommand(IncludeCancelCommand = true)]
-        private async Task RegisterAsync(CancellationToken ct)
+        public string _password { get; set; } = "";
+        public string _fullName { get; set; } = "";
+        public string _email { get; set; } = "";
+        public string _userName { get; set; } = "";
+       
+        public MainViewModel(string url)
         {
-            var error = Validate();
-            if (error is not null)
-            {
-                Message = error;
-                return;
-            }
-
-            // Math.Clamp no existe en .NET Framework 4.8.
-            int atLeastOne = Math.Max(Repetitions, 1);
-            int runs = Math.Min(atLeastOne, 100);
-            try
-            {
-                for (int i = 1; i <= runs; i++)
-                {
-                    Message = $"Registrando {i}/{runs}…";
-                    await Task.Delay(300, ct); // aquí irá la llamada real a la API
-                }
-                Message = $"Hecho: {runs} registro(s) de {Email}.";
-            }
-            catch (OperationCanceledException)
-            {
-                Message = "Cancelado.";
-            }
+            _url = url;
         }
 
-        private string? Validate()
+        public async Task<bool> RegisterService()
         {
-            if (string.IsNullOrWhiteSpace(FullName)) return "El nombre es obligatorio.";
-            // string.Contains(char) no existe en .NET Framework 4.8: se usa la sobrecarga de string.
-            if (!Email.Contains("@")) return "El email no es válido.";
+            //GuardClauses para evitar llamdas cuando sabemos que es incorrecto, 1era barrera
+            if (string.IsNullOrWhiteSpace(_userName)) return EmptyInformation();
+            if (string.IsNullOrWhiteSpace(_fullName)) return EmptyInformation();
+            if (string.IsNullOrWhiteSpace(_email)) return EmptyInformation();
+            if (!_email.Contains('@')) return IncorrectInformation("Email without @");
+            if (string.IsNullOrEmpty(_password)) return EmptyInformation();
+            if (_password.Length < 8) return IncorrectInformation("Min 8 characters");
+            // El resto de reglas (formato completo de email, longitudes) las valida SignUpValidator en la API.
 
-            bool hasDigit = Password.Any(char.IsDigit);
-            bool hasLetter = Password.Any(char.IsLetter);
-            if (Password.Length < 8 || !hasDigit || !hasLetter)
-                return "La contraseña necesita 8 caracteres con letras y números.";
-            return null;
+            var request = new SingUpDto()
+            {
+                FirstName = _fullName,
+                LastName = _fullName,
+                Email = _email,
+                UserName = _userName,
+                Password = _password
+            };
+            
+            var json = JsonConvert.SerializeObject(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var manager = new Connection();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            CancellationToken cancellation = cts.Token;
+            HttpClient client = manager.CreateClient(_url);
+
+            try
+            {
+                HttpResponseMessage responseMessage = await client.PostAsync(_url, content, cancellation);
+                // Leer el contenido como string
+                string jsonResponse = await responseMessage.Content.ReadAsStringAsync();
+
+                if (!responseMessage.IsSuccessStatusCode) return ShowApiError(jsonResponse, (int)responseMessage.StatusCode);
+
+                // Deserializar el JSON al objeto de tipo T
+                var conversion = JsonConvert.DeserializeObject<ResponseConverter<bool>>(jsonResponse);
+                if (conversion.IsSuccess) MessageBox.Show("Correct Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                else MessageBox.Show("Incorrect Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return conversion.IsSuccess;
+            }
+            catch(OperationCanceledException)
+            {
+                MessageBox.Show("Service dosen't resolve", "Timeout", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+        }
+
+        // Muestra el motivo que devuelve la API (validator) o, si el cuerpo no se entiende, el código HTTP.
+        private bool ShowApiError(string jsonResponse, int statusCode)
+        {
+            string text = $"The API rejected the request (HTTP {statusCode}).";
+
+            try
+            {
+                var conversion = JsonConvert.DeserializeObject<ResponseConverter<bool>>(jsonResponse);
+                if (conversion != null)
+                {
+                    var messages = new System.Collections.Generic.List<string>();
+
+                    if (!string.IsNullOrWhiteSpace(conversion.Message)) messages.Add(conversion.Message);
+
+                    if (conversion.Error != null)
+                    {
+                        foreach (BaseError error in conversion.Error)
+                        {
+                            if (!string.IsNullOrWhiteSpace(error.ErrorMessage)) messages.Add(error.ErrorMessage);
+                        }
+                    }
+
+                    if (messages.Count > 0) text = string.Join(Environment.NewLine, messages);
+                }
+            }
+            catch (JsonException)
+            {
+                // Cuerpo que no es JSON: se queda el texto con el código HTTP.
+            }
+
+            MessageBox.Show(text, "Sign Up", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
         }
     }
 }

@@ -1,0 +1,45 @@
+name: CI-Wpf
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "Prototipo/**"
+      - ".github/workflows/ci-wpf.yaml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "Prototipo/**"
+      - ".github/workflows/ci-wpf.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # WPF sobre net48 solo compila en Windows.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore Project
+        run: dotnet restore Prototipo/WpfPrototipe/RegistroPerf.slnx
+
+      - name: Build Project
+        run: dotnet build Prototipo/WpfPrototipe/RegistroPerf.slnx --configuration Release --no-restore
+
+      # Sin este archivo junto al .exe la app no arranca (appsettings.json es obligatorio).
+      - name: Check appsettings.json is copied to output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "Prototipo/WpfPrototipe/bin/Release/net48/appsettings.json")) {
+            Write-Error "appsettings.json no se copio a la carpeta de salida"
+            exit 1
+          }

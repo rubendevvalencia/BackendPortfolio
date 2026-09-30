@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net48</TargetFramework>
@@ -11,21 +10,25 @@
     <!-- Se conserva Properties\AssemblyInfo.cs tal cual, no se genera otro. -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
-
   <ItemGroup>
     <Reference Include="System.Configuration" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-  </ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+	<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+	<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
+	<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
 
+  </ItemGroup>
   <ItemGroup>
     <!-- App.xaml no está en la raíz, así que el SDK no lo detecta como punto de entrada. -->
     <Page Remove="View\Themes\App.xaml" />
     <ApplicationDefinition Include="View\Themes\App.xaml" />
   </ItemGroup>
-
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -45,6 +48,8 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+	  <None Update="appsettings*.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
-
 </Project>
