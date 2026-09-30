@@ -1,0 +1,38 @@
+<Window x:Class="RegistroPerf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Registro" Width="380" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Surface}"
+        FontFamily="{StaticResource FontSans}" FontSize="13">
+
+    <!-- Los estilos (Card, Section, Label, campos y botones) vienen de Themes/Controls.xaml vía App.xaml. -->
+    <Border Margin="24" Style="{StaticResource Card}">
+        <StackPanel>
+            <TextBlock Text="Sign Up" Style="{StaticResource Section}" />
+            <TextBlock Text="User Name" Style="{StaticResource Label}" />
+            <TextBox x:Name="tbUserName" TextChanged="tbUserName_TextChanged" />
+
+            <TextBlock Text="Full Name" Style="{StaticResource Label}" />
+            <TextBox x:Name="tbFullName" TextChanged="tbFullName_TextChanged" />
+            <TextBlock Text="Email" Style="{StaticResource Label}" />
+            <TextBox x:Name="EmailInput" TextChanged="EmailInput_TextChanged"/>
+            
+            <TextBlock Text="Password (mín. 8)" Style="{StaticResource Label}" />
+            <PasswordBox x:Name="PasswordInput" PasswordChanged="OnPasswordChanged" />
+
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button Content="Register" IsDefault="True"
+                        Style="{StaticResource PrimaryButton}" Click="Button_Click" />
+                <Button Grid.Column="2" Content="Cancelar"
+                        Style="{StaticResource SecondaryButton}" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>
