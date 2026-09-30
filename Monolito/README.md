@@ -40,7 +40,7 @@ evolución desde la propia API.
 | Dónde se valida | Caso de uso | Caso de uso | Handler → `Response.Invalid` | `ValidationBehaviour` → excepción → middleware |
 | Detección de duplicados | No | Sí → 409 | Sí → 409 | Sí → 409 |
 | Qué demuestra | **El antipatrón**, a propósito | El límite transaccional en el caso de uso | Separación de comandos y consultas | La validación como preocupación transversal |
-| Estado | `Deprecated` | Vigente | Vigente | Vigente |
+| Estado | `Deprecated` | `Deprecated` | Vigente | Vigente |
 
 > **Un matiz sobre la comparación.** v3 y v4 comparten `ICustomerReadRepository`, así que la caché del
 > listado entró en las dos a la vez: en `GetAllAsync` se comportan hoy igual y arrastran la misma falta de
