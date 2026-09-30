@@ -43,6 +43,22 @@
 	<Style TargetType="TextBox" BasedOn="{StaticResource FieldBase}" />
 	<Style TargetType="PasswordBox" BasedOn="{StaticResource FieldBase}" />
 
+	<!-- Caja de solo lectura para valores que se copian (token): fondo tintado, monoespaciada y filo de acento a la izquierda -->
+	<Style x:Key="TokenBox" TargetType="TextBox" BasedOn="{StaticResource FieldBase}">
+		<Setter Property="IsReadOnly" Value="True" />
+		<Setter Property="TextWrapping" Value="Wrap" />
+		<Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+		<Setter Property="FontSize" Value="12" />
+		<Setter Property="Background" Value="{StaticResource AccentSoft}" />
+		<Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+		<Setter Property="BorderThickness" Value="3,0,0,0" />
+		<Setter Property="Padding" Value="10,8" />
+		<Setter Property="MinHeight" Value="64" />
+		<Setter Property="MaxHeight" Value="160" />
+		<Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+		<Setter Property="Margin" Value="0,12,0,0" />
+	</Style>
+
 	<!-- Botones: plantilla común y dos variantes -->
 	<Style x:Key="ButtonBase" TargetType="Button">
 		<Setter Property="FontWeight" Value="SemiBold" />

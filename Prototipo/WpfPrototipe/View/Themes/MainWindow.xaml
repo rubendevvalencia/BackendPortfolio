@@ -54,9 +54,7 @@
             
             <Button x:Name="button_signIn" Content="Sign In" Margin="0,8,0,0"
                     Style="{StaticResource PrimaryButton}" Click="button_signIn_Click" />
-                <TextBox x:Name="tbToken" IsReadOnly="True" TextWrapping="Wrap"
-         BorderThickness="0" Background="Transparent"
-         Padding="0" />
+            <TextBox x:Name="tbToken" Style="{StaticResource TokenBox}" />
 
             </StackPanel>
     </Border>
