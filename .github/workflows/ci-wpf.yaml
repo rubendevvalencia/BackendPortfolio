@@ -1,4 +1,4 @@
-name: CI-Wpf
+name: CI-Wpf #Valida y comprueba el appsettings.json
 
 on:
   push:
