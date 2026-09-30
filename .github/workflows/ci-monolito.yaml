@@ -1,4 +1,4 @@
-name: CI-Monolito
+name: CI-Monolito #Valida y ejecuta todos los tests
 
 on:
   push:
