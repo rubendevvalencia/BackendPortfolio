@@ -55,7 +55,7 @@ namespace RegistroPerf.ViewModel
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var manager = new Connection();
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             CancellationToken cancellation = cts.Token;
             HttpClient client = manager.CreateClient(_url);
 

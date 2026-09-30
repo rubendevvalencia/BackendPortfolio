@@ -12,7 +12,9 @@ namespace RegistroPerf
         public MainWindow()
         {
             InitializeComponent();
-            string url = "http://localhost:5102/api/v4/UserAuth/SignUp";//Change to Appsettings
+            string baseUrl = App.ApiConf.BaseUrl.TrimEnd('/');
+            string path = App.ApiConf.SignUpPath.TrimStart('/');
+            string url = $"{baseUrl}/{path}";
             _viewModel = new MainViewModel(url);
             DataContext = _viewModel;
         }
