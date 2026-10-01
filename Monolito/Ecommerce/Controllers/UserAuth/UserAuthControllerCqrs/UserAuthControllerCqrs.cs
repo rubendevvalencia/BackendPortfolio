@@ -51,8 +51,7 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpCommand entity)
         {
             var response = await _mediator.Send(entity);
-            if (!response.IsSuccess) return BadRequest(response);
-            return Ok(response);
+            return ToActionResult(response);
         }
     }
 }
