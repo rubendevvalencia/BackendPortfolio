@@ -26,7 +26,7 @@ namespace Ecommerce.Api.Controllers.v4
     [ApiController]
     [ApiVersion("4.0")]
     [SwaggerTag("Controller for managing customer operations.")]
-    public class CustomerController : ControllerBase
+    public class CustomerController : ApiResponseControllerBase
     {
         private readonly IMediator _mediator; //Orquesta todo
 
@@ -37,18 +37,7 @@ namespace Ecommerce.Api.Controllers.v4
 
         //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
         //Sin rama de Validation: en v4 ese fallo no viaja en Response, sale como excepcion y lo responde el middleware.
-        private IActionResult ToActionResult<T>(Response<T> response)
-        {
-            if (response.IsSuccess) return Ok(response);
-
-            return response.ErrorType switch
-            {
-                ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
-                ErrorType.Duplicated => Conflict(response),                                          //409: duplicado.
-                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
-                _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
-            };
-        }
+        
 
         [HttpPost("Create")]
         [RequestTimeout("CustomPolicy")]

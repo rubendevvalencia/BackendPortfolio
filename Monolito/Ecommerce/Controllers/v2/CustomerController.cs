@@ -18,7 +18,7 @@ namespace Ecommerce.Api.Controllers.v2
     [ApiController]
     [ApiVersion("2.0", Deprecated = true)]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
-    public class CustomerController : ControllerBase
+    public class CustomerController : ApiResponseControllerBase
     {
         private readonly ICustomerApplicationUoW _customerApplication;
 

@@ -20,7 +20,7 @@ namespace Ecommerce.Api.Controllers
     [ApiVersion("3.0")]
     [ApiVersion("4.0")]
     [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
-    public class UserAuthController : ControllerBase
+    public class UserAuthController : ApiResponseControllerBase
     {
         private readonly IUserAuthApplication _authApplication;
 

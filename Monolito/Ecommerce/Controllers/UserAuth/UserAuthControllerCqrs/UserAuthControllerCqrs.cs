@@ -1,5 +1,6 @@
 using System.Net;
 using Asp.Versioning;
+using Ecommerce.Application.Feature.Users.Commands.SignIn;
 using Ecommerce.Application.Feature.Users.Commands.SignUp;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
@@ -19,7 +20,7 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
     [ApiVersion("2.0", Deprecated = true)]
     [ApiVersion("3.0", Deprecated = true)]
     [ApiVersion("4.0")]
-    public class UserAuthControllerCqrs : ControllerBase
+    public class UserAuthControllerCqrs : ApiResponseControllerBase
     {
         private readonly IMediator _mediator;
 
@@ -48,9 +49,23 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
         [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
-        public async Task<IActionResult> SignUpAsync([FromBody] SignUpCommand entity)
+        public async Task<IActionResult> SignUpAsync([FromBody] SignUpCommand request)
         {
-            var response = await _mediator.Send(entity);
+            var response = await _mediator.Send(request);
+            return ToActionResult(response);
+        }
+
+        [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignIn necesita el limite mas estricto, no el general.
+        [HttpPost("SignIn")]
+        [SwaggerOperation(Summary = "Inicia sesión con un usuario existente.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
+        public async Task<IActionResult> SignInAsync([FromBody] SignInCommand request)
+        {
+            var response = await _mediator.Send(request);
             return ToActionResult(response);
         }
     }
