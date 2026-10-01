@@ -212,7 +212,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
 
             //Comprobacion del Arrange.
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("cualquiera@test.com");
-            if (usuarioEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar a nadie.");
+            if (usuarioEncontrado != null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar a nadie.");
 
             //Se registra lo que recibe el repositorio. Va despues de la comprobacion para que su llamada no cuente.
             string? emailConsultado = null;
@@ -287,7 +287,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
 
             //Comprobacion del Arrange.
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("fantasma@test.com");
-            if (usuarioEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
+            if (usuarioEncontrado != null) throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
 
             var command = new SignInCommand()
             {

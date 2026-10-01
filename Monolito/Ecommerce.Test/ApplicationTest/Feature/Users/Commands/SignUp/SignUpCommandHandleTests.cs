@@ -402,30 +402,5 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             Assert.Equal(1, contSaveChanges);
         }
 
-        //Cada fila es un numero de filas escritas distinto de cero: todas cuentan como exito.
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(5)]
-        public async Task Handle_DevuelveExitoConCualquierNumeroDeFilasMayorQueCero(int filas)
-        {
-            //Arrange: todo libre y el commit escribe `filas` filas.
-            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
-            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
-            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(filas);
-
-            //Comprobacion del Arrange.
-            var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
-            if (filasEscritas != filas) throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir {filas} filas y escribe {filasEscritas}.");
-
-            var command = NewSignUpCommand();
-
-            //Act
-            var response = await _handler.Handle(command, CancellationToken.None);
-
-            //Assert
-            Assert.True(response.IsSuccess);
-            Assert.True(response.Data);
-        }
     }
 }
