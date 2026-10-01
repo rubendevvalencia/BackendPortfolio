@@ -46,16 +46,29 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Comprobacion del Arrange: las tres piezas de la cadena.
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (usuarioEncontrado != usuario) throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
-            
+
             var contrasenaValida = _userRepository.CheckPass(usuario, ValidPassword);
             if (!contrasenaValida) throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por valida.");
-        
+
             var tokenGenerado = _jwt.GenerateToken(usuario);
             if (tokenGenerado.Item1 != "token-firmado" || tokenGenerado.Item2 != 3600) throw new InvalidOperationException("Arrange mal montado: IJwtApplication no devuelve el token de prueba.");
-            
-            //Se limpian las llamadas por el Received(1).GenerateToken de abajo.
-            _jwt.ClearReceivedCalls();
-            var command = new SignInCommand { Email = "ruben@test.com", Password = ValidPassword };
+
+            //Se registra lo que recibe el generador. Va despues de la comprobacion para que su llamada no cuente.
+            User? usuarioFirmado = null;
+            int contGenerateToken = 0;
+            _jwt
+                .When(jwt => jwt.GenerateToken(Arg.Any<User>()))
+                .Do(llamada =>
+                {
+                    usuarioFirmado = llamada.Arg<User>();
+                    contGenerateToken++;
+                });
+
+            var command = new SignInCommand()
+            {
+                Email = "ruben@test.com",
+                Password = ValidPassword
+            };
 
             //Act
             var response = await _handler.Handle(command, CancellationToken.None);
@@ -67,8 +80,9 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             Assert.Equal(3600, response.Data.ExpiresIn);
             Assert.Equal("Bearer", response.Data.TokenType);
 
-            //Se firma para el usuario que devolvio el repositorio.
-            _jwt.Received(1).GenerateToken(usuario);
+            //Se firma una sola vez, para el usuario que devolvio el repositorio.
+            Assert.Equal(1, contGenerateToken);
+            Assert.Same(usuario, usuarioFirmado);
         }
 
         [Fact]
@@ -80,8 +94,24 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Comprobacion del Arrange.
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("fantasma@test.com");
             if (usuarioEncontrado != null) throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
-            
-            var command = new SignInCommand { Email = "fantasma@test.com", Password = ValidPassword };
+
+            //Se cuentan las llamadas que no deberian ocurrir. Van despues de la comprobacion.
+            int contCheckPass = 0;
+            int contGenerateToken = 0;
+            _userRepository
+                .When(repo => repo.CheckPass(Arg.Any<User>(), Arg.Any<string>()))
+                .Do(llamada => contCheckPass++);
+
+            _jwt
+                .When(jwt => jwt.GenerateToken(Arg.Any<User>()))
+                .Do(llamada => contGenerateToken++);
+
+            var command = new SignInCommand()
+            {
+                Email = "fantasma@test.com",
+                Password = ValidPassword
+            };
+
             //Act
             var response = await _handler.Handle(command, CancellationToken.None);
 
@@ -89,8 +119,8 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Unauthorized, response.ErrorType);
             Assert.Equal("Invalid credentials", response.Message);
-            _userRepository.DidNotReceive().CheckPass(Arg.Any<User>(), Arg.Any<string>());
-            _jwt.DidNotReceive().GenerateToken(Arg.Any<User>());
+            Assert.Equal(0, contCheckPass);
+            Assert.Equal(0, contGenerateToken);
         }
 
         [Fact]
@@ -104,10 +134,21 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Comprobacion del Arrange.
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (usuarioEncontrado != usuario) throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
-            
+
             var contrasenaValida = _userRepository.CheckPass(usuario, "OtraPassword1!");
             if (contrasenaValida) throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por invalida.");
-            var command = new SignInCommand { Email = "ruben@test.com", Password = "OtraPassword1!" };
+
+            //Se cuentan las firmas, que no deberian ocurrir. Van despues de la comprobacion.
+            int contGenerateToken = 0;
+            _jwt
+                .When(jwt => jwt.GenerateToken(Arg.Any<User>()))
+                .Do(llamada => contGenerateToken++);
+
+            var command = new SignInCommand()
+            {
+                Email = "ruben@test.com",
+                Password = "OtraPassword1!"
+            };
 
             //Act
             var response = await _handler.Handle(command, CancellationToken.None);
@@ -116,7 +157,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Unauthorized, response.ErrorType);
             Assert.Null(response.Data);
-            _jwt.DidNotReceive().GenerateToken(Arg.Any<User>());
+            Assert.Equal(0, contGenerateToken);
         }
 
         //SignIn no distingue email inexistente de contrasena incorrecta.
@@ -132,16 +173,24 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Comprobacion del Arrange: los dos escenarios tienen que estar bien montados para compararlos.
             var emailInexistenteEncontrado = await _userRepository.GetByEmailAsync("fantasma@test.com");
             if (emailInexistenteEncontrado != null) throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
-            
+
             var emailRegistradoEncontrado = await _userRepository.GetByEmailAsync("registrado@test.com");
             if (emailRegistradoEncontrado != registrado) throw new InvalidOperationException("Arrange mal montado: registrado@test.com si deberia estar registrado.");
-            
 
             var contrasenaValida = _userRepository.CheckPass(registrado, ValidPassword);
             if (contrasenaValida) throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por invalida.");
-            
-            var commandEmailInexistente = new SignInCommand { Email = "fantasma@test.com", Password = ValidPassword };
-            var commandContrasenaIncorrecta = new SignInCommand { Email = "registrado@test.com", Password = ValidPassword };
+
+            var commandEmailInexistente = new SignInCommand()
+            {
+                Email = "fantasma@test.com",
+                Password = ValidPassword
+            };
+
+            var commandContrasenaIncorrecta = new SignInCommand()
+            {
+                Email = "registrado@test.com",
+                Password = ValidPassword
+            };
 
             //Act
             var emailInexistente = await _handler.Handle(commandEmailInexistente, CancellationToken.None);
@@ -165,16 +214,29 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("cualquiera@test.com");
             if (usuarioEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar a nadie.");
 
-            //Se limpian las llamadas porque la de arriba contaria para el Received(1) de abajo.
-            _userRepository.ClearReceivedCalls();
+            //Se registra lo que recibe el repositorio. Va despues de la comprobacion para que su llamada no cuente.
+            string? emailConsultado = null;
+            int contGetByEmail = 0;
+            _userRepository
+                .When(repo => repo.GetByEmailAsync(Arg.Any<string>()))
+                .Do(llamada =>
+                {
+                    emailConsultado = llamada.Arg<string>();
+                    contGetByEmail++;
+                });
 
-            var command = new SignInCommand { Email = "Ruben@Test.com", Password = ValidPassword };
+            var command = new SignInCommand()
+            {
+                Email = "Ruben@Test.com",
+                Password = ValidPassword
+            };
 
             //Act
             await _handler.Handle(command, CancellationToken.None);
 
             //Assert: se pregunta una vez y con el email tal cual viene, con sus mayusculas.
-            await _userRepository.Received(1).GetByEmailAsync("Ruben@Test.com");
+            Assert.Equal(1, contGetByEmail);
+            Assert.Equal("Ruben@Test.com", emailConsultado);
         }
 
         [Fact]
@@ -189,16 +251,32 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
             if (usuarioEncontrado != usuario) throw new InvalidOperationException("Arrange mal montado: el repositorio deberia encontrar al usuario de ruben@test.com.");
 
-            //Se limpian las llamadas por el Received(1).CheckPass de abajo.
-            _userRepository.ClearReceivedCalls();
+            //Se registra lo que recibe el repositorio. Va despues de la comprobacion para que su llamada no cuente.
+            User? usuarioComprobado = null;
+            string? contrasenaComprobada = null;
+            int contCheckPass = 0;
+            _userRepository
+                .When(repo => repo.CheckPass(Arg.Any<User>(), Arg.Any<string>()))
+                .Do(llamada =>
+                {
+                    usuarioComprobado = llamada.Arg<User>();
+                    contrasenaComprobada = llamada.Arg<string>();
+                    contCheckPass++;
+                });
 
-            var command = new SignInCommand { Email = "ruben@test.com", Password = "LaDelComando1!" };
+            var command = new SignInCommand()
+            {
+                Email = "ruben@test.com",
+                Password = "LaDelComando1!"
+            };
 
             //Act
             await _handler.Handle(command, CancellationToken.None);
 
             //Assert: una sola comprobacion, con el usuario del repositorio y la contrasena en claro del comando.
-            _userRepository.Received(1).CheckPass(usuario, "LaDelComando1!");
+            Assert.Equal(1, contCheckPass);
+            Assert.Same(usuario, usuarioComprobado);
+            Assert.Equal("LaDelComando1!", contrasenaComprobada);
         }
 
         [Fact]
@@ -211,7 +289,11 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             var usuarioEncontrado = await _userRepository.GetByEmailAsync("fantasma@test.com");
             if (usuarioEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: fantasma@test.com no deberia estar registrado.");
 
-            var command = new SignInCommand { Email = "fantasma@test.com", Password = ValidPassword };
+            var command = new SignInCommand()
+            {
+                Email = "fantasma@test.com",
+                Password = ValidPassword
+            };
 
             //Act
             var response = await _handler.Handle(command, CancellationToken.None);
@@ -238,24 +320,34 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             if (contrasenaValida) throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por invalida.");
 
             //Se registra lo que recibe el repositorio. Va despues de la comprobacion para que sus llamadas no cuenten.
-            string? emailConsultado = null;
-            _userRepository
-                .When(repo => repo.GetByEmailAsync(Arg.Any<string>()))
-                .Do(llamada => emailConsultado = llamada.Arg<string>());
-
             User? usuarioComprobado = null;
             string? contrasenaComprobada = null;
-            int vecesCheckPass = 0;
+            int contCheckPass = 0;
+
+            string? emailConsultado = null;
+            int contGetByEmail = 0;
+            _userRepository
+                .When(repo => repo.GetByEmailAsync(Arg.Any<string>()))
+                .Do(llamada =>
+                {
+                    emailConsultado = llamada.Arg<string>();
+                    contGetByEmail++;
+                });
+
             _userRepository
                 .When(repo => repo.CheckPass(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada =>
                 {
                     usuarioComprobado = llamada.Arg<User>();
                     contrasenaComprobada = llamada.Arg<string>();
-                    vecesCheckPass++;
+                    contCheckPass++;
                 });
 
-            var command = new SignInCommand { Email = "ruben@test.com", Password = ValidPassword };
+            var command = new SignInCommand()
+            {
+                Email = "ruben@test.com",
+                Password = ValidPassword
+            };
 
             //Act
             var response = await _handler.Handle(command, CancellationToken.None);
@@ -263,10 +355,11 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Assert: se consulta con ese correo, se compara la contrasena una vez y el resultado es el fallo generico.
             Assert.False(response.IsSuccess);
             Assert.Equal("Invalid credentials", response.Message);
+            Assert.Equal(1, contGetByEmail);
             Assert.Equal("ruben@test.com", emailConsultado);
             //Nos permiten saber estos asserts para comprobar que el handler hace lo que tiene que hacer
             //pero no se filtra al usuario ni la contrasena en el mensaje de error.
-            Assert.Equal(1, vecesCheckPass);
+            Assert.Equal(1, contCheckPass);
             Assert.Same(usuario, usuarioComprobado);
             Assert.Equal(ValidPassword, contrasenaComprobada);
         }
