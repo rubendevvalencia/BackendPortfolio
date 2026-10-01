@@ -18,29 +18,13 @@ namespace Ecommerce.Api.Controllers.v2
     [ApiController]
     [ApiVersion("2.0", Deprecated = true)]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
-    public class CustomerController : ControllerBase
+    public class CustomerController : ApiResponseControllerBase
     {
         private readonly ICustomerApplicationUoW _customerApplication;
 
         public CustomerController(ICustomerApplicationUoW customerApplication)
         {
             _customerApplication = customerApplication;
-        }
-
-        //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
-        //La Api es la unica que conoce HTTP; la Application solo dice QUE ha fallado, no con que codigo.
-        private IActionResult ToActionResult<T>(Response<T> response)
-        {
-            if (response.IsSuccess) return Ok(response);
-
-            return response.ErrorType switch
-            {
-                ErrorType.Validation => BadRequest(response),                                        //400: el cliente envio datos incorrectos.
-                ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
-                 ErrorType.Duplicated => Conflict(response),                                         // 409. Duplicado
-                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
-                _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
-            };
         }
 
         [HttpPost("AddAsync")]

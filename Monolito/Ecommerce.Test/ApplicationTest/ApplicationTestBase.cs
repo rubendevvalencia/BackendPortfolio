@@ -1,6 +1,7 @@
 using AutoMapper;
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
+using Ecommerce.Application.Feature.Users.Commands.SignUp;
 using Ecommerce.Application.Mapping;
 using Ecommerce.Application.Validator;
 using Ecommerce.Application.Validator.Jwt;
@@ -95,6 +96,18 @@ namespace Ecommerce.Test.ApplicationTest
                 UserName = userName,
                 Password = ValidPassword
             };           
+        }
+
+        protected SignUpCommand NewSignUpCommand(string email = "ruben@email.com", string userName = "ruben")
+        {
+            return new SignUpCommand
+            {
+                FirstName = "Ruben",
+                LastName = "Test",
+                Email = email,
+                UserName = userName,
+                Password = ValidPassword
+            };
         }
 
         protected SignInDto NewSignInDto(string email = "ruben@email.com", string password = ValidPassword) 

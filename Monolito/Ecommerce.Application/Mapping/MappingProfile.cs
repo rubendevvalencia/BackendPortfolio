@@ -8,6 +8,7 @@ using Ecommerce.Domain.Entities.Jwt;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Ecommerce.Application.Feature.Users.Commands.SignUp;
 
 namespace Ecommerce.Application.Mapping
 {
@@ -37,6 +38,14 @@ namespace Ecommerce.Application.Mapping
             CreateMap<SignUpDto, User>()
                 //La contrasena llega en claro y se copia tal cual: cifrarla es tarea de
                 //UserRepository.CreateUserAsync, el ultimo punto antes de persistir.
+                .ForMember(dest => dest.PasswordHash, opt => opt.MapFrom(src => src.Password))
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.LastUpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.LastUpdatedBy, opt => opt.Ignore());
+
+            CreateMap<SignUpCommand, User>()
                 .ForMember(dest => dest.PasswordHash, opt => opt.MapFrom(src => src.Password))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
