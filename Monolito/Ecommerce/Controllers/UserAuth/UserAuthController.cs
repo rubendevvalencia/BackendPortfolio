@@ -20,7 +20,7 @@ namespace Ecommerce.Api.Controllers
     [ApiVersion("3.0")]
     [ApiVersion("4.0")]
     [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
-    public class UserAuthController : ControllerBase
+    public class UserAuthController : ApiResponseControllerBase
     {
         private readonly IUserAuthApplication _authApplication;
 
@@ -55,7 +55,7 @@ namespace Ecommerce.Api.Controllers
             var response = await _authApplication.SingInAsync(entity);
             if (!response.IsSuccess)
             {
-                if (response.ErrorType == ErrorType.Validation) return BadRequest(response);
+                if (response.ErrorType == ErrorType.Duplicated) return BadRequest(response);
                 if (response.ErrorType == ErrorType.Unexpected) return StatusCode(StatusCodes.Status500InternalServerError, response);
                 return Unauthorized(response);
             }
