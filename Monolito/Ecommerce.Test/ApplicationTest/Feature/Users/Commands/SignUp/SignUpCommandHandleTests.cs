@@ -194,5 +194,180 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             //Assert: comportamiento ACTUAL. El mensaje distingue este caso de cualquier otro fallo.
             Assert.Equal("User already exists", response.Message);
         }
+
+        [Fact]
+        public async Task Handle_RechazaElAltaCuandoEmailYUserNameYaEstanRegistrados()
+        {
+            //Arrange: los dos datos estan cogidos, cada uno por un usuario distinto.
+            User usuarioConEmail = NewUser(id: 1, email: "ruben@test.com", userName: "otro1");
+            User usuarioConUserName = NewUser(id: 2, email: "otro2@test.com", userName: "ruben");
+            _userRepository.GetByEmailAsync("ruben@test.com").Returns(usuarioConEmail);
+            _userRepository.GetByUserNameAsync("ruben").Returns(usuarioConUserName);
+
+            //Comprobacion del Arrange.
+            var emailEncontrado = await _userRepository.GetByEmailAsync("ruben@test.com");
+            if (emailEncontrado != usuarioConEmail) throw new InvalidOperationException("Arrange mal montado: el email ruben@test.com tiene que estar cogido.");
+
+            var userNameEncontrado = await _userRepository.GetByUserNameAsync("ruben");
+            if (userNameEncontrado != usuarioConUserName) throw new InvalidOperationException("Arrange mal montado: el username 'ruben' tiene que estar cogido.");
+
+            SignUpCommand command = NewSignUpCommand(email: "ruben@test.com", userName: "ruben");
+
+            //Act
+            var response = await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: un solo fallo Duplicated, con Data en false y sin tocar la base de datos.
+            Assert.False(response.IsSuccess);
+            Assert.False(response.Data);
+            Assert.Equal(ErrorType.Duplicated, response.ErrorType);
+            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>());
+            await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Handle_ConsultaPorElEmailYElUserNameDelComando()
+        {
+            //Arrange: todo libre y el commit escribe una fila.
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
+            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
+            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
+
+            //Comprobacion del Arrange.
+            var emailEncontrado = await _userRepository.GetByEmailAsync("cualquiera@test.com");
+            if (emailEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar ningun email.");
+
+            var userNameEncontrado = await _userRepository.GetByUserNameAsync("cualquiera");
+            if (userNameEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar ningun username.");
+
+            //Se limpian las llamadas porque las consultas de arriba contarian para los Received(1) de abajo.
+            _userRepository.ClearReceivedCalls();
+
+            SignUpCommand command = NewSignUpCommand(email: "Nuevo@Test.com", userName: "NuevoUser");
+
+            //Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: se consulta con los valores tal cual vienen en el comando, sin normalizar.
+            await _userRepository.Received(1).GetByEmailAsync("Nuevo@Test.com");
+            await _userRepository.Received(1).GetByUserNameAsync("NuevoUser");
+        }
+
+        [Fact]
+        public async Task Handle_MapeaTodosLosCamposDelComandoALaEntidad()
+        {
+            //Arrange: email y username libres, y el commit escribe una fila.
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
+            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
+            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
+
+            User? usuarioRegistrado = null;
+            _userRepository
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .Do(llamada => usuarioRegistrado = llamada.Arg<User>());
+
+            //Comprobacion del Arrange.
+            var emailEncontrado = await _userRepository.GetByEmailAsync("cualquiera@test.com");
+            if (emailEncontrado is not null) throw new InvalidOperationException("Arrange mal montado: el repositorio no deberia encontrar ningun email.");
+
+            var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+            if (filasEscritas != 1) throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
+
+            var command = new SignUpCommand
+            {
+                FirstName = "Maria",
+                LastName = "Lopez",
+                Email = "maria@test.com",
+                UserName = "maria",
+                Password = "OtraPassword1!"
+            };
+
+            //Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: la contrasena llega en claro al repositorio, que es quien la cifra.
+            Assert.NotNull(usuarioRegistrado);
+            Assert.Equal("Maria", usuarioRegistrado.FirstName);
+            Assert.Equal("Lopez", usuarioRegistrado.LastName);
+            Assert.Equal("maria@test.com", usuarioRegistrado.Email);
+            Assert.Equal("maria", usuarioRegistrado.UserName);
+            Assert.Equal("OtraPassword1!", usuarioRegistrado.PasswordHash);
+        }
+
+        [Fact]
+        public async Task Handle_PasaElCancellationTokenAlCommit()
+        {
+            //Arrange: todo libre y el commit escribe una fila.
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
+            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
+            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
+
+            //Comprobacion del Arrange.
+            var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+            if (filasEscritas != 1) throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
+
+            //Se limpian las llamadas porque la de arriba usa otro token.
+            _unitOfWork.ClearReceivedCalls();
+
+            using var origenDelToken = new CancellationTokenSource();
+            CancellationToken token = origenDelToken.Token;
+            SignUpCommand command = NewSignUpCommand();
+
+            //Act
+            await _handler.Handle(command, token);
+
+            //Assert: el commit recibe el mismo token que el handler, no CancellationToken.None.
+            await _unitOfWork.Received(1).SaveChangesAsync(token);
+        }
+
+        [Fact]
+        public async Task Handle_RegistraElAltaAunqueElCommitNoEscribaFilas()
+        {
+            //Arrange: todo libre, pero EF no escribe ninguna fila.
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
+            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
+            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(0);
+
+            //Comprobacion del Arrange.
+            var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+            if (filasEscritas != 0) throw new InvalidOperationException($"Arrange mal montado: el commit no deberia escribir ninguna fila y escribe {filasEscritas}.");
+
+            _unitOfWork.ClearReceivedCalls();
+            SignUpCommand command = NewSignUpCommand();
+
+            //Act
+            var response = await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: el alta se registra una vez, se intenta confirmar una vez y el resultado es fallo con Data en false.
+            Assert.False(response.IsSuccess);
+            Assert.False(response.Data);
+            await _userRepository.Received(1).CreateUserAsync(Arg.Any<User>());
+            await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        }
+
+        //Cada fila es un numero de filas escritas distinto de cero: todas cuentan como exito.
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(5)]
+        public async Task Handle_DevuelveExitoConCualquierNumeroDeFilasMayorQueCero(int filas)
+        {
+            //Arrange: todo libre y el commit escribe `filas` filas.
+            _userRepository.GetByEmailAsync(Arg.Any<string>()).Returns((User?)null);
+            _userRepository.GetByUserNameAsync(Arg.Any<string>()).Returns((User?)null);
+            _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(filas);
+
+            //Comprobacion del Arrange.
+            var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+            if (filasEscritas != filas) throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir {filas} filas y escribe {filasEscritas}.");
+
+            SignUpCommand command = NewSignUpCommand();
+
+            //Act
+            var response = await _handler.Handle(command, CancellationToken.None);
+
+            //Assert
+            Assert.True(response.IsSuccess);
+            Assert.True(response.Data);
+        }
     }
 }
