@@ -1,0 +1,20 @@
+# Evita que el resultado de compilar en Windows (con rutas absolutas del host,
+# como el fallback package folder de Visual Studio) contamine el build de Docker.
+# Sin esto, "dotnet publish" dentro del contenedor reutiliza el obj/ del host en
+# vez de generar uno limpio para Linux, y falla con MSB4018 / rutas de Windows.
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/Logs/
+
+.git/
+.config/
+
+Ecommerce.Test/
+Ecommerce.IntegrationTest/
+
+Dockerfile
+.dockerignore
+README.md
+docs/
