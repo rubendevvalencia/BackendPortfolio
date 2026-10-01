@@ -29,19 +29,6 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
             _mediator = mediator;
         }
 
-        private IActionResult ToActionResult<T>(Response<T> response)
-        {
-            if (response.IsSuccess) return Ok(response);
-
-            return response.ErrorType switch
-            {
-                ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
-                ErrorType.Duplicated => Conflict(response),                                          //409: duplicado.
-                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
-                _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
-            };
-        }
-
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignUp necesita el limite mas estricto, no el general.
         [HttpPost("SignUp")]

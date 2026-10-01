@@ -27,22 +27,6 @@ namespace Ecommerce.Api.Controllers.v2
             _customerApplication = customerApplication;
         }
 
-        //Traduce el resultado de la capa Application al status code HTTP que le corresponde.
-        //La Api es la unica que conoce HTTP; la Application solo dice QUE ha fallado, no con que codigo.
-        private IActionResult ToActionResult<T>(Response<T> response)
-        {
-            if (response.IsSuccess) return Ok(response);
-
-            return response.ErrorType switch
-            {
-                ErrorType.Validation => BadRequest(response),                                        //400: el cliente envio datos incorrectos.
-                ErrorType.NotFound => NotFound(response),                                            //404: el recurso no existe.
-                 ErrorType.Duplicated => Conflict(response),                                         // 409. Duplicado
-                ErrorType.TimeOut => StatusCode((int)HttpStatusCode.GatewayTimeout, response),       //504: la operacion supero el tiempo limite.
-                _ => StatusCode((int)HttpStatusCode.InternalServerError, response)                   //500: fallo inesperado del servidor.
-            };
-        }
-
         [HttpPost("AddAsync")]
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
