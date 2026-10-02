@@ -13,7 +13,8 @@ namespace Ecommerce.Application.Mapping.SignUpMapping
             {
                 FirstName = protector.Protect(profileCommand.FirstName!),
                 LastName = protector.Protect(profileCommand.LastName!),
-                Email = protector.Protect(profileCommand.Email!),
+                Email = profileCommand.Email!,
+                UserName = profileCommand.UserName!,
             };
             return user;
         }

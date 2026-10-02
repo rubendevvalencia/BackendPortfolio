@@ -146,7 +146,7 @@ namespace Ecommerce.Infrastructure.Migrations
 
                     b.ToTable("Users", (string)null);
                 });
-#pragma warning restore 612, 618
+                #pragma warning restore 612, 618
         }
     }
 }

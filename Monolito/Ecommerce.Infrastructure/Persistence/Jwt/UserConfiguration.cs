@@ -25,7 +25,7 @@ namespace Ecommerce.Infrastructure.Persistence.Jwt
 
             builder.Property(u => u.Email)
                 .IsRequired() // Indica que la propiedad Email es obligatoria (no puede ser nula).
-                .HasMaxLength(450); // 450 caracteres: el valor se guarda cifrado con Protect() y 450 nvarchar (900 bytes) es el maximo que admite un indice unico en SQL Server.
+                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad Email.
 
             builder.HasIndex(u => u.Email).IsUnique(); // Crea un índice único en la propiedad Email para garantizar que no haya duplicados.        
 
