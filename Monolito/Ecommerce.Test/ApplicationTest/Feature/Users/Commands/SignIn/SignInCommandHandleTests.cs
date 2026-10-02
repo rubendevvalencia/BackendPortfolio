@@ -6,8 +6,10 @@ using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Transversal.Common.Enums;
 using MediatR;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using System.Text;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
 {
@@ -20,6 +22,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
         private readonly IMediator _mediator = Substitute.For<IMediator>();
         private readonly IMapper _mapper = Substitute.For<IMapper>();
         private readonly ILogger<SignInCommandHandle> _logger = Substitute.For<ILogger<SignInCommandHandle>>();
+        private readonly IDataProtector _protector = Substitute.For<IDataProtector>();
         private readonly SignInCommandHandle _handler;
 
         //xUnit crea una instancia por test: los dobles empiezan limpios.
@@ -31,14 +34,41 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             //Comprobacion: si no devolviera nuestro doble, ningun test probaria nada.
             var repositorioDelUnitOfWork = _unitOfWork._user;
             if (repositorioDelUnitOfWork != _userRepository) throw new InvalidOperationException("Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
-            _handler = new SignInCommandHandle(_mediator, _unitOfWork, _mapper, _logger, _jwt);
+
+            //El protector falso antepone "protegido:" a los bytes y Unprotect lo quita: asi un dato protegido se distingue
+            //del que no lo esta y un test puede preparar un usuario con nombre protegido.
+            //CreateProtector devuelve el mismo doble, para que el protector derivado del handler tambien lo sea.
+            _protector.CreateProtector(Arg.Any<string>()).Returns(_protector);
+            _protector.Protect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var prefijo = Encoding.UTF8.GetBytes("protegido:");
+                var bytesOriginales = llamada.Arg<byte[]>();
+                var bytesProtegidos = prefijo.Concat(bytesOriginales).ToArray();
+                return bytesProtegidos;
+            });
+            _protector.Unprotect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var longitudPrefijo = Encoding.UTF8.GetBytes("protegido:").Length;
+                var bytesProtegidos = llamada.Arg<byte[]>();
+                var bytesOriginales = bytesProtegidos.Skip(longitudPrefijo).ToArray();
+                return bytesOriginales;
+            });
+
+            //Comprobacion: el ciclo Protect/Unprotect tiene que devolver el texto original.
+            var textoProtegido = _protector.Protect("ida-y-vuelta");
+            var textoRecuperado = _protector.Unprotect(textoProtegido);
+            if (textoRecuperado != "ida-y-vuelta") throw new InvalidOperationException("Arrange mal montado: el protector falso no deshace su propio Protect.");
+
+            _handler = new SignInCommandHandle(_mediator, _unitOfWork, _mapper, _logger, _jwt, _protector);
         }
 
         [Fact]
         public async Task Handle_DevuelveElTokenCuandoLasCredencialesSonValidas()
         {
-            //Arrange: el usuario existe y la contrasena es correcta.
+            //Arrange: el usuario existe, con nombre y apellido protegidos como en la base de datos, y la contrasena es correcta.
             User usuario = NewUser(email: "ruben@test.com");
+            usuario.FirstName = _protector.Protect("Ruben");
+            usuario.LastName = _protector.Protect("Test");
             _userRepository.GetByEmailAsync("ruben@test.com").Returns(usuario);
             _userRepository.CheckPass(usuario, ValidPassword).Returns(true);
             _jwt.GenerateToken(usuario).Returns(("token-firmado", 3600));
@@ -80,9 +110,77 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             Assert.Equal(3600, response.Data.ExpiresIn);
             Assert.Equal("Bearer", response.Data.TokenType);
 
+            //El nombre completo sale de deshacer el Protect del nombre y del apellido.
+            Assert.Equal("Ruben Test", response.Data.FullName);
+
             //Se firma una sola vez, para el usuario que devolvio el repositorio.
             Assert.Equal(1, contGenerateToken);
             Assert.Same(usuario, usuarioFirmado);
+        }
+
+        [Fact]
+        public async Task Handle_DevuelveElNombreCompletoSinProtegerYNoFiltraLosDatosProtegidos()
+        {
+            //Arrange: el usuario guardado tiene nombre y apellido protegidos, distintos del texto original.
+            User usuario = NewUser(email: "maria@test.com");
+            usuario.FirstName = _protector.Protect("Maria");
+            usuario.LastName = _protector.Protect("Lopez");
+            _userRepository.GetByEmailAsync("maria@test.com").Returns(usuario);
+            _userRepository.CheckPass(usuario, ValidPassword).Returns(true);
+            _jwt.GenerateToken(usuario).Returns(("token-firmado", 3600));
+
+            //Comprobacion del Arrange: lo guardado no es el texto original, si no el test no probaria nada.
+            if (usuario.FirstName == "Maria") throw new InvalidOperationException("Arrange mal montado: el nombre del usuario deberia estar protegido.");
+            if (usuario.LastName == "Lopez") throw new InvalidOperationException("Arrange mal montado: el apellido del usuario deberia estar protegido.");
+
+            var command = new SignInCommand()
+            {
+                Email = "maria@test.com",
+                Password = ValidPassword
+            };
+
+            //Act
+            var response = await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: el nombre completo viaja ya desprotegido y sin restos del protector.
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.Equal("Maria Lopez", response.Data.FullName);
+        }
+
+        [Fact]
+        public async Task Handle_NoDesprotegeLosDatosCuandoLaContrasenaEsIncorrecta()
+        {
+            //Arrange: el usuario existe con datos protegidos, pero la contrasena no coincide.
+            User usuario = NewUser(email: "ruben@test.com");
+            usuario.FirstName = _protector.Protect("Ruben");
+            usuario.LastName = _protector.Protect("Test");
+            _userRepository.GetByEmailAsync("ruben@test.com").Returns(usuario);
+            _userRepository.CheckPass(usuario, "OtraPassword1!").Returns(false);
+
+            //Comprobacion del Arrange.
+            var contrasenaValida = _userRepository.CheckPass(usuario, "OtraPassword1!");
+            if (contrasenaValida) throw new InvalidOperationException("Arrange mal montado: la contrasena del test tiene que darse por invalida.");
+
+            //Se cuentan los Unprotect, que no deberian ocurrir. Van despues de la comprobacion.
+            int contUnprotect = 0;
+            _protector
+                .When(p => p.Unprotect(Arg.Any<byte[]>()))
+                .Do(llamada => contUnprotect++);
+
+            var command = new SignInCommand()
+            {
+                Email = "ruben@test.com",
+                Password = "OtraPassword1!"
+            };
+
+            //Act
+            var response = await _handler.Handle(command, CancellationToken.None);
+
+            //Assert: con credenciales invalidas no se toca ningun dato protegido.
+            Assert.False(response.IsSuccess);
+            Assert.Equal(ErrorType.Unauthorized, response.ErrorType);
+            Assert.Equal(0, contUnprotect);
         }
 
         [Fact]

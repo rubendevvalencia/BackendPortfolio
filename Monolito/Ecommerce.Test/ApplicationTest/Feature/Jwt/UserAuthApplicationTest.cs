@@ -64,28 +64,23 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             //Se captura el User que recibe el repositorio para mirarlo despues del Act.
             User? usuarioRegistrado = null;
             string? passwordRecibida = null;
-            await _userRepository.CreateUserAsync(Arg.Do<User>(u => usuarioRegistrado = u), Arg.Do<string>(p => passwordRecibida = p));
+            await _userRepository.CreateUserAsync(
+                Arg.Do<User>(u => usuarioRegistrado = u),
+                Arg.Do<string>(p => passwordRecibida = p));
 
             //Comprobacion del Arrange.
             var emailEncontrado = await _userRepository.GetByEmailAsync("nuevo@test.com");
-            if (emailEncontrado is not null)
-            {
-                throw new InvalidOperationException("Arrange mal montado: el email nuevo@test.com tiene que estar libre.");
-            }
-
+            if (emailEncontrado != null) throw new InvalidOperationException("Arrange mal montado: el email nuevo@test.com tiene que estar libre.");
+            
             var userNameEncontrado = await _userRepository.GetByUserNameAsync("nuevo");
-            if (userNameEncontrado is not null)
-            {
-                throw new InvalidOperationException("Arrange mal montado: el nombre de usuario 'nuevo' tiene que estar libre.");
-            }
+            if (userNameEncontrado != null) throw new InvalidOperationException("Arrange mal montado: el nombre de usuario 'nuevo' tiene que estar libre.");
+            
 
             var filasEscritas = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
-            if (filasEscritas != 1)
-            {
-                throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
-            }
+            if (filasEscritas != 1) throw new InvalidOperationException($"Arrange mal montado: el commit deberia escribir 1 fila y escribe {filasEscritas}.");
+            
 
-            SignUpDto signUpDto = NewSignUpDto(email: "nuevo@test.com", userName: "nuevo");
+            SignUpDto signUpDto = NewSignUpDto("nuevo@test.com", "nuevo");
 
             //Act
             var response = await _auth.SignUpAsync(signUpDto);
@@ -94,7 +89,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.NotNull(usuarioRegistrado);
-            Assert.Equal("nuevo@test.com", _protector.Unprotect(usuarioRegistrado.Email));
+            Assert.Equal("nuevo@test.com", usuarioRegistrado.Email);
             Assert.Equal("nuevo", usuarioRegistrado.UserName);
             Assert.Equal(signUpDto.Password, passwordRecibida);
         }

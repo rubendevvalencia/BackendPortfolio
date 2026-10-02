@@ -6,6 +6,7 @@ using Ecommerce.Transversal.Common.Enums;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using System.Text;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
 {
@@ -28,11 +29,24 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             var repositorioDelUnitOfWork = _unitOfWork._user;
             if (repositorioDelUnitOfWork != _userRepository) throw new InvalidOperationException("Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
 
-            //El protector falso devuelve los mismos bytes: asi un test puede deshacer el Protect con Unprotect.
+            //El protector falso antepone "protegido:" a los bytes y Unprotect lo quita: asi un dato protegido se distingue
+            //del que no lo esta y un test puede deshacer el Protect.
             //CreateProtector devuelve el mismo doble, para que el protector derivado del handler tambien lo sea.
             _protector.CreateProtector(Arg.Any<string>()).Returns(_protector);
-            _protector.Protect(Arg.Any<byte[]>()).Returns(llamada => llamada.Arg<byte[]>());
-            _protector.Unprotect(Arg.Any<byte[]>()).Returns(llamada => llamada.Arg<byte[]>());
+            _protector.Protect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var prefijo = Encoding.UTF8.GetBytes("protegido:");
+                var bytesOriginales = llamada.Arg<byte[]>();
+                var bytesProtegidos = prefijo.Concat(bytesOriginales).ToArray();
+                return bytesProtegidos;
+            });
+            _protector.Unprotect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var longitudPrefijo = Encoding.UTF8.GetBytes("protegido:").Length;
+                var bytesProtegidos = llamada.Arg<byte[]>();
+                var bytesOriginales = bytesProtegidos.Skip(longitudPrefijo).ToArray();
+                return bytesOriginales;
+            });
 
             //Comprobacion: el ciclo Protect/Unprotect tiene que devolver el texto original.
             var textoProtegido = _protector.Protect("ida-y-vuelta");
@@ -85,7 +99,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.NotNull(usuarioRegistrado);
-            Assert.Equal("nuevo@test.com", _protector.Unprotect(usuarioRegistrado.Email));
+            Assert.Equal("nuevo@test.com", usuarioRegistrado.Email);
             Assert.Equal("nuevo", usuarioRegistrado.UserName);
             Assert.Equal(1, contCreateUser);
             Assert.Equal(1, contSaveChanges);
@@ -337,13 +351,16 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             //Act
             await _handler.Handle(command, CancellationToken.None);
 
-            //Assert: nombre, apellido y email se protegen; la contrasena viaja en claro como argumento aparte
+            //Assert: nombre y apellido se protegen (no quedan en claro y Unprotect los recupera); email y username van en claro,
+            //porque se consultan por igualdad en la base de datos. La contrasena viaja en claro como argumento aparte
             //al repositorio, que es quien la hashea, y no queda en la entidad.
             Assert.Equal(1, contCreateUser);
             Assert.NotNull(usuarioRegistrado);
+            Assert.NotEqual("Maria", usuarioRegistrado.FirstName);
+            Assert.NotEqual("Lopez", usuarioRegistrado.LastName);
             Assert.Equal("Maria", _protector.Unprotect(usuarioRegistrado.FirstName));
             Assert.Equal("Lopez", _protector.Unprotect(usuarioRegistrado.LastName));
-            Assert.Equal("maria@test.com", _protector.Unprotect(usuarioRegistrado.Email));
+            Assert.Equal("maria@test.com", usuarioRegistrado.Email);
             Assert.Equal("maria", usuarioRegistrado.UserName);
             Assert.Equal("OtraPassword1!", passwordRecibida);
             Assert.True(string.IsNullOrEmpty(usuarioRegistrado.PasswordHash));
