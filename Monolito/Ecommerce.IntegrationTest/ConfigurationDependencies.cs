@@ -1,5 +1,5 @@
 using Ecommerce.Api.Controllers;
-using Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs;
+using Ecommerce.Api.Controllers.UserAuth.V4;
 using Ecommerce.Application;
 using Ecommerce.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -19,7 +19,7 @@ namespace Ecommerce.IntegrationTest
             services.AddInfrastructureServices(configuration, environment);
 
             services.AddScoped<UserAuthController>();
-            services.AddScoped<UserAuthControllerCqrs>();
+            services.AddScoped<UserAuthv4Controller>();
 
             return services;
         }

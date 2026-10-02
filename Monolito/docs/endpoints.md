@@ -69,7 +69,7 @@ contra `api/v4/UserAuth`.
 { "email": "ada@example.com", "password": "<contraseña>" }
 
 // TokenDto, dentro de data
-{ "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600 }
+{ "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600, "fullName": "Ada Lovelace" }
 ```
 
 > Un email inexistente y una contraseña incorrecta dan hoy el mismo mensaje ("Invalid credentials") y el

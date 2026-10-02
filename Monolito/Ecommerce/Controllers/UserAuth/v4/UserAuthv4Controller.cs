@@ -10,21 +10,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
+namespace Ecommerce.Api.Controllers.UserAuth.V4
 {
     [Authorize] //Todos los métodos de la clase necesitan un jwt válido para ser ejecutados, excepto los que tengan [AllowAnonymous].
     [EnableRateLimiting("user-limited")]
-    [Route("api/v{version:apiVersion}/[controller]")]
+    [Route("api/v{version:apiVersion}/UserAuth")] //Explicita: [controller] daria "UserAuthv" (el versionado quita el sufijo "v4") y colisionaria con UserAuthController.
     [ApiController]
-    [ApiVersion("1.0", Deprecated = true)]
-    [ApiVersion("2.0", Deprecated = true)]
-    [ApiVersion("3.0", Deprecated = true)]
     [ApiVersion("4.0")]
-    public class UserAuthControllerCqrs : ApiResponseControllerBase
+    public class UserAuthv4Controller : ApiResponseControllerBase
     {
         private readonly IMediator _mediator;
 
-        public UserAuthControllerCqrs(IMediator mediator)
+        public UserAuthv4Controller(IMediator mediator)
         {
             _mediator = mediator;
         }

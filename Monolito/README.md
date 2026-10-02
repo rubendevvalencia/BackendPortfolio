@@ -16,7 +16,7 @@ Así cada decisión se compara en código que funciona, no en un párrafo.
 >   esperado. Conviven con el resto para poder compararlos.
 > - **Hay piezas que son ejercicios, no soluciones.** El rate limiter y la caché con Redis son versiones
 >   simplificadas para ver el patrón de punta a punta; no responden a un problema medido.
-> - **Hay deuda, y está a la vista.** Las **26 limitaciones conocidas** están en
+> - **Hay deuda, y está a la vista.** Las **27 limitaciones conocidas** están en
 >   [*limitaciones conocidas*](docs/limitaciones.md) con el mecanismo de cada fallo, y el orden en que se
 >   van a abordar, en la [hoja de ruta](#hoja-de-ruta). Si vas a evaluar el proyecto, esa lista forma parte
 >   de él tanto como el código.
@@ -64,9 +64,9 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 | [Decisiones técnicas](docs/decisiones-tecnicas.md) | `Response<T>`, Unit of Work, logging, rate limiting, caché con Redis, health checks |
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
-| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 271 tests que no se ve leyendo el código |
+| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 291 tests que no se ve leyendo el código |
 | [Integración continua](docs/integracion-continua.md) | Los tres workflows de GitHub Actions y lo que la CI todavía no hace |
-| [Limitaciones conocidas](docs/limitaciones.md) | Las 26 limitaciones, por prioridad y con el mecanismo de cada fallo |
+| [Limitaciones conocidas](docs/limitaciones.md) | Las 27 limitaciones, por prioridad y con el mecanismo de cada fallo |
 
 ---
 
@@ -248,7 +248,7 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 
 ## Estado actual
 
-Compila sin errores y **271 de 271 tests en verde**, en local y en la CI. A eso se suma
+Compila sin errores y **291 de 291 tests en verde**, en local y en la CI. A eso se suma
 `Ecommerce.IntegrationTest`, un proyecto aparte con tests de integración de la autenticación —`SignUp → SignIn`
 tanto por el servicio de v1–v3 como por CQRS en v4—, que resuelven el controller real desde el contenedor
 de DI contra una base de datos SQL Server real y con el `DataProtection` real, sin dobles. Los de CQRS
@@ -256,13 +256,13 @@ comprueban lo que un test unitario no puede: que nombre y apellido **llegan cifr
 `SignIn` devuelve el `FullName` descifrado, que una contraseña incorrecta da 401 sin datos y que un email
 ya registrado da `Duplicated`. Hoy **solo corren en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
 runner no tiene ni SQL Server ni los *user secrets* que necesita (detalle en
-[*Integración continua*](docs/integracion-continua.md)). Hay **26 limitaciones conocidas** (de 31
+[*Integración continua*](docs/integracion-continua.md)). Hay **27 limitaciones conocidas** (de 32
 anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
 [*limitaciones conocidas*](docs/limitaciones.md).
 
 | Área | Pendientes | Las que más pesan |
 |---|---|---|
-| Seguridad | 2 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) |
+| Seguridad | 3 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) |
 | Corrección | 8 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) |
 | Tests | 3 | La frontera HTTP no tiene ni un test de integración (nº 8) · la caché tampoco tiene ninguno (nº 29) |
 | Diseño | 8 | El dominio es anémico (nº 12) · se cachea la entidad con una clave sin versionar (nº 27) |

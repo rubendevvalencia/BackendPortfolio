@@ -1,4 +1,4 @@
-using Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs;
+using Ecommerce.Api.Controllers.UserAuth.V4;
 using Ecommerce.Application.Common.Configuration;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Feature.Users.Commands.SignIn;
@@ -40,7 +40,7 @@ namespace Ecommerce.IntegrationTest.UserAuthTest
                 var dbContext = serviceProvider.GetRequiredService<DbContextEF>();
                 dbContext.Database.Migrate();
 
-                var controller = serviceProvider.GetRequiredService<UserAuthControllerCqrs>();
+                var controller = serviceProvider.GetRequiredService<UserAuthv4Controller>();
 
                 var signUp = new SignUpCommand()
                 {
@@ -122,7 +122,7 @@ namespace Ecommerce.IntegrationTest.UserAuthTest
                 var dbContext = serviceProvider.GetRequiredService<DbContextEF>();
                 dbContext.Database.Migrate();
 
-                var controller = serviceProvider.GetRequiredService<UserAuthControllerCqrs>();
+                var controller = serviceProvider.GetRequiredService<UserAuthv4Controller>();
 
                 var signUp = new SignUpCommand()
                 {
@@ -187,7 +187,7 @@ namespace Ecommerce.IntegrationTest.UserAuthTest
                 var dbContext = serviceProvider.GetRequiredService<DbContextEF>();
                 dbContext.Database.Migrate();
 
-                var controller = serviceProvider.GetRequiredService<UserAuthControllerCqrs>();
+                var controller = serviceProvider.GetRequiredService<UserAuthv4Controller>();
 
                 var primerAlta = new SignUpCommand()
                 {
