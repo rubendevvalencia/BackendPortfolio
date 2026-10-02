@@ -1,10 +1,13 @@
 using AutoMapper;
+using Ecommerce.Application.Common.Configuration;
 using Ecommerce.Application.Common.Interface;
+using Ecommerce.Application.Mapping.SignUpMapping;
 using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
 using MediatR;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Application.Feature.Users.Commands.SignUp
@@ -14,12 +17,14 @@ namespace Ecommerce.Application.Feature.Users.Commands.SignUp
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<SignUpCommandHandle> _logger;
-
-        public SignUpCommandHandle(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SignUpCommandHandle> logger)
+        private readonly IDataProtector _protector;
+        
+        public SignUpCommandHandle(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SignUpCommandHandle> logger, IDataProtectionProvider dataProtectionProvider)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _protector = dataProtectionProvider.CreateProtector(ProtectorParameters.Purpose);
         }
 
         public async Task<Response<bool>> Handle(SignUpCommand request, CancellationToken cancellationToken)
@@ -32,10 +37,10 @@ namespace Ecommerce.Application.Feature.Users.Commands.SignUp
                 return Response<bool>.Fail("User already exists", ErrorType.Duplicated);
             }
 
-            var user = _mapper.Map<User>(request);
-
+            //var user = _mapper.Map<User>(request);
+            var user = request.ConfigureMappingToWrapper(_protector);
             //Dos pasos: el repositorio registra el alta y el caso de uso confirma, una sola vez.
-            await _unitOfWork._user.CreateUserAsync(user);
+            await _unitOfWork._user.CreateUserAsync(user, request.Password!);
 
             var filasEscritas = await _unitOfWork.SaveChangesAsync(cancellationToken);
             var usuarioCreado = filasEscritas > 0;
