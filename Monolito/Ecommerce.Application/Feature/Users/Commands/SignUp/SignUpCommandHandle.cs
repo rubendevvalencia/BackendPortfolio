@@ -1,4 +1,5 @@
 using AutoMapper;
+using Ecommerce.Application.Common.Configuration;
 using Ecommerce.Application.Common.Interface;
 using Ecommerce.Application.Mapping.SignUpMapping;
 using Ecommerce.Domain.Entities.Jwt;
@@ -23,7 +24,7 @@ namespace Ecommerce.Application.Feature.Users.Commands.SignUp
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
-            _protector = dataProtectionProvider.CreateProtector("Ecommerce.Application.Feature.Users.Commands.SignUp.SignUpCommand");
+            _protector = dataProtectionProvider.CreateProtector(ProtectorParameters.Purpose);
         }
 
         public async Task<Response<bool>> Handle(SignUpCommand request, CancellationToken cancellationToken)
