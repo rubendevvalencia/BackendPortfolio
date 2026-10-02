@@ -141,8 +141,8 @@ Common/
 | | |
 |---|---|
 | **Base** | .NET 10 · C# · ASP.NET Core Web API · EF Core 10 (Code First) sobre SQL Server |
-| **Patrones** | MediatR (CQRS en v3 y v4, con *pipeline behaviors*) · FluentValidation · AutoMapper |
-| **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
+| **Patrones** | MediatR (CQRS en v3 y v4, con *pipeline behaviors*; también en la autenticación de v4) · FluentValidation · AutoMapper |
+| **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · ASP.NET Core Data Protection (nombre y apellido cifrados en base de datos) · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
 | **Resiliencia** | Redis vía `IDistributedCache` (*cache-aside*) · rate limiter nativo de ventana fija · AspNetCore.HealthChecks (`/health` y `/health/ui`) — las tres, en versión simplificada |
 | **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks y comprobación del build de la imagen Docker |
 | **Contenedores** | Dockerfile *multi-stage* (imagen `aspnet` sin privilegios) · `docker-compose` con API, SQL Server y Redis, con los secretos montados como archivos |
@@ -236,7 +236,7 @@ envoltura `Response<T>`, cuyo `ErrorType` es lo que el controller traduce a 200,
 
 | Recurso | Rutas |
 |---|---|
-| `api/v{1\|2\|3\|4}/UserAuth` | `POST /SignUp` · `POST /SignIn` |
+| `api/v{1\|2\|3\|4}/UserAuth` | `POST /SignUp` · `POST /SignIn` — v1–v3 **deprecadas**, por el servicio de aplicación; v4 vigente, por commands de MediatR (`SignUpCommand`, `SignInCommand`) |
 | `api/v{1\|2}/Customer` | `GET /GetAllAsync` · `GET /GetByIdAsync/{id}` · `POST /AddAsync` · `PUT /UpdateAsync{id}` · `POST /UpdateAsyncPost/{id}` · `DELETE /DeleteAsync/{id}` |
 | `api/v{3\|4}/Customer` | Lo mismo, con `AddAsync` renombrado a `Create` y sin `PUT`: la actualización va por `POST /UpdateAsyncPost` con el `Id` en el cuerpo |
 
@@ -249,9 +249,12 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 ## Estado actual
 
 Compila sin errores y **271 de 271 tests en verde**, en local y en la CI. A eso se suma
-`Ecommerce.IntegrationTest`, un proyecto aparte con un primer test de integración —`SignUp → SignIn`,
-resolviendo el controller real desde el contenedor de DI contra una base de datos SQL Server real, sin
-dobles— que hoy **solo corre en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
+`Ecommerce.IntegrationTest`, un proyecto aparte con tests de integración de la autenticación —`SignUp → SignIn`
+tanto por el servicio de v1–v3 como por CQRS en v4—, que resuelven el controller real desde el contenedor
+de DI contra una base de datos SQL Server real y con el `DataProtection` real, sin dobles. Los de CQRS
+comprueban lo que un test unitario no puede: que nombre y apellido **llegan cifrados a la tabla** y que
+`SignIn` devuelve el `FullName` descifrado, que una contraseña incorrecta da 401 sin datos y que un email
+ya registrado da `Duplicated`. Hoy **solo corren en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
 runner no tiene ni SQL Server ni los *user secrets* que necesita (detalle en
 [*Integración continua*](docs/integracion-continua.md)). Hay **26 limitaciones conocidas** (de 31
 anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
@@ -268,7 +271,7 @@ anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
 No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en qué orden pienso resolverlo.
 
 <details>
-<summary>Historial de cambios — los 21 hitos, en el orden en que se construyeron</summary>
+<summary>Historial de cambios — los 23 hitos, en el orden en que se construyeron</summary>
 
 | # | Cambio | Qué resolvió |
 |---|---|---|
@@ -293,6 +296,8 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 19 | **Integración continua con GitHub Actions**: `ci-monolito` (build y tests), `secret-scan` con gitleaks y `docker-monolito` (build de la imagen), en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, una credencial nueva no entra sin avisar, y el Dockerfile no se rompe sin que nadie lo note |
 | 20 | **Cuatro correcciones de seguridad**: middleware de excepciones movido al principio del pipeline con mensaje genérico (nº 1) · `EnableSensitiveDataLogging` solo en desarrollo (nº 2) · `SignIn` responde siempre el mismo 401 (nº 3) · rate limiter particionado por IP, con política propia y más estricta para `SignIn`/`SignUp` (nº 23, sin cerrar del todo: falta `Retry-After`) | Cierra la fuga de la excepción cruda, la de los valores de `PasswordHash` en el log de EF, la enumeración de usuarios por `SignIn` y el contador de rate limit compartido por todos los clientes |
 | 21 | **Dockerfile y `docker-compose`**: imagen *multi-stage* con el `restore` en su propia capa y usuario sin privilegios, y un compose local con API, SQL Server y Redis | El monolito se levanta con un solo comando y la misma imagen es la que se desplegará |
+| 22 | **Autenticación con CQRS en v4**: `SignUpCommand` y `SignInCommand` con su handler y validador · `ApiResponseControllerBase.ToActionResult` traduce `Response<T>` a 200/404/409/504/500 en un único sitio · controllers de `UserAuth` separados en `v1-3` (las tres versiones pasan a `Deprecated`) y `v4` (la vigente) | La autenticación sigue el mismo camino que `Customer` (controller solo con `IMediator`), y la traducción `ErrorType` → HTTP deja de repetirse en cada acción |
+| 23 | **Datos personales cifrados en base de datos** con `IDataProtector` (propósito centralizado en `ProtectorParameters`): `FirstName` y `LastName` se protegen al registrar y `SignIn` los descifra para devolver `FullName` en el `TokenDto` · migraciones que ajustan el tamaño de las columnas · los handlers de `SignUp` y `SignIn` con tests unitarios por rama (duplicado por email o por usuario, commit sin filas, credenciales inválidas indistinguibles, no desproteger si la contraseña falla) y tres tests de integración contra base de datos real | Un volcado de la tabla `User` ya no expone nombre y apellido en claro. El email **se queda en claro a propósito**: `SignIn` lo usa como clave de búsqueda; se probó cifrarlo y se revirtió (migración `RevertUserEmailLength`) |
 
 </details>
 
@@ -307,7 +312,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y un primer test de integración (`SignUp → SignIn`); faltan los de `LoggingBehaviour`, el resto de la frontera HTTP y meterlos en la CI |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y los tests de integración de la autenticación (`SignUp → SignIn` en v1–v3 y en CQRS v4, con la protección de datos real); faltan los de `LoggingBehaviour`, el resto de la frontera HTTP y meterlos en la CI |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI y Dockerfile hechos (la CI comprueba que la imagen construye); falta el despliegue |
 | **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
@@ -323,7 +328,7 @@ Siguientes pasos, por orden:
    manual es el único disponible.
 3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
    en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.
-4. **Tests de integración**: ya hay un primer caso (`SignUp → SignIn`) contra una base de datos real,
+4. **Tests de integración**: ya hay casos de autenticación (`SignUp → SignIn`, v1–v3 y CQRS v4) contra una base de datos real,
    resolviendo el controller desde el contenedor de DI en vez de con `WebApplicationFactory`; falta
    extenderlos al CRUD de `Customer` en las cuatro versiones y decidir cómo entran en la CI.
 5. **Paginar `GetAll`** (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
