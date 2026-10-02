@@ -51,8 +51,9 @@ la contraseña falla.
 
 ## `UserAuth` — `api/v{1|2|3|4}/UserAuth`
 
-Un único controller sirve las cuatro versiones (el contrato no cambia, así que no se duplica); v1 y v2 están
-marcadas `Deprecated`. Un cliente de v4 se autentica contra `api/v4/UserAuth`.
+Hay dos controllers: `UserAuthController` (servicio de aplicación) sirve **v1, v2 y v3, las tres `Deprecated`**,
+y `UserAuthControllerCqrs` (commands de MediatR) sirve la **v4, la vigente**. Un cliente nuevo se autentica
+contra `api/v4/UserAuth`.
 
 | Verbo | Ruta | Cuerpo | Devuelve |
 |---|---|---|---|
@@ -68,7 +69,7 @@ marcadas `Deprecated`. Un cliente de v4 se autentica contra `api/v4/UserAuth`.
 { "email": "ada@example.com", "password": "<contraseña>" }
 
 // TokenDto, dentro de data
-{ "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600 }
+{ "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600, "fullName": "Ada Lovelace" }
 ```
 
 > Un email inexistente y una contraseña incorrecta dan hoy el mismo mensaje ("Invalid credentials") y el

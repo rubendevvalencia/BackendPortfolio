@@ -2,7 +2,7 @@
 
 [← Volver al README](../README.md)
 
-**271 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
+**291 tests**, repartidos en frentes distintos porque cada uno tiene un problema distinto.
 
 **Repositorios (`Infrastructure`).** `DbContextEF` no expone miembros virtuales, así que **no se puede
 sustituir con un mock**. Estos tests usan el proveedor InMemory de EF Core, con una base distinta por test y

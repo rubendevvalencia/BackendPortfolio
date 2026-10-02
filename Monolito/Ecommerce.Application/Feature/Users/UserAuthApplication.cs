@@ -2,6 +2,7 @@
 using Ecommerce.Application.Dto;
 using Ecommerce.Application.Dto.Jwt;
 using Ecommerce.Application.Interface.Jwt;
+using Ecommerce.Application.Mapping.SignUpMapping;
 using Ecommerce.Application.Validator;
 using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
@@ -9,6 +10,7 @@ using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
 using Ecommerce.Transversal.Loggin.Interface;
 using FluentValidation;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -24,7 +26,9 @@ namespace Ecommerce.Application.Feature.Users
         private readonly IValidator<SignInDto> _validatorSignIn;
         private readonly IJwtApplication _genJwt;
         private readonly ILogger<UserAuthApplication> _logger; //Le agregamos un logger para poder registrar eventos y errores en la clase AuthApplication.
-        public UserAuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, ILogger<UserAuthApplication> logger)
+        
+        private readonly IDataProtector _protector;
+        public UserAuthApplication(IUnitOfWork unitOfWork, IMapper mapper, IValidator<SignUpDto> validatorSignUp, IValidator<SignInDto> validatorSignIn, IJwtApplication genJwt, ILogger<UserAuthApplication> logger, IDataProtectionProvider dataProtectionProvider)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -32,6 +36,7 @@ namespace Ecommerce.Application.Feature.Users
             _validatorSignIn = validatorSignIn;
             _genJwt = genJwt;
             _logger = logger;
+            _protector = dataProtectionProvider.CreateProtector("UserAuthApplication");
         }
 
         public async Task<Response<bool>> SignUpAsync(SignUpDto entity)
@@ -56,10 +61,10 @@ namespace Ecommerce.Application.Feature.Users
                     return response;
                 }
 
-                var user = _mapper.Map<User>(entity);
+                var user = entity.ConfigureMappingToWrapper(_protector);
 
                 //Dos pasos: el repositorio registra el alta y el caso de uso confirma, una sola vez.
-                await _unitOfWork._user.CreateUserAsync(user);
+                await _unitOfWork._user.CreateUserAsync(user, entity.Password!);
 
                 var filasEscritas = await _unitOfWork.SaveChangesAsync();
                 var usuarioCreado = filasEscritas > 0;

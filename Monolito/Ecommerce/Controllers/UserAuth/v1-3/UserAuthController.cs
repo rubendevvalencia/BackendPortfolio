@@ -1,16 +1,15 @@
-using System.Net;
-using Asp.Versioning;
-using Ecommerce.Application.Feature.Users.Commands.SignIn;
-using Ecommerce.Application.Feature.Users.Commands.SignUp;
+﻿using Asp.Versioning;
+using Ecommerce.Application.Dto.Jwt;
+using Ecommerce.Application.Interface.Jwt;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
+namespace Ecommerce.Api.Controllers
 {
     [Authorize] //Todos los métodos de la clase necesitan un jwt válido para ser ejecutados, excepto los que tengan [AllowAnonymous].
     [EnableRateLimiting("user-limited")]
@@ -19,16 +18,15 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
     [ApiVersion("1.0", Deprecated = true)]
     [ApiVersion("2.0", Deprecated = true)]
     [ApiVersion("3.0", Deprecated = true)]
-    [ApiVersion("4.0")]
-    public class UserAuthControllerCqrs : ApiResponseControllerBase
+    [SwaggerTag("Operaciones relacionadas con la autenticación de usuarios, incluyendo registro y inicio de sesión.")]
+    public class UserAuthController : ApiResponseControllerBase
     {
-        private readonly IMediator _mediator;
+        private readonly IUserAuthApplication _authApplication;
 
-        public UserAuthControllerCqrs(IMediator mediator)
+        public UserAuthController(IUserAuthApplication authApplication)
         {
-            _mediator = mediator;
+            _authApplication = authApplication;
         }
-
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignUp necesita el limite mas estricto, no el general.
         [HttpPost("SignUp")]
@@ -36,12 +34,13 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
         [SwaggerResponse(StatusCodes.Status200OK, "SignIn successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
-        public async Task<IActionResult> SignUpAsync([FromBody] SignUpCommand request)
-        {
-            var response = await _mediator.Send(request);
-            return ToActionResult(response);
-        }
 
+        public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto entity)
+        {
+            var response = await _authApplication.SignUpAsync(entity);
+            if (!response.IsSuccess) return BadRequest(response);
+            return Ok(response);
+        }
         [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
         [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignIn necesita el limite mas estricto, no el general.
         [HttpPost("SignIn")]
@@ -50,12 +49,16 @@ namespace Ecommerce.Api.Controllers.UserAuth.UserAuthControllerCqrs
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
-        public async Task<IActionResult> SignInAsync([FromBody] SignInCommand request)
+        public async Task<IActionResult> SignInAsync([FromBody] SignInDto entity)
         {
-            var response = await _mediator.Send(request);
-            return ToActionResult(response);
+            var response = await _authApplication.SingInAsync(entity);
+            if (!response.IsSuccess)
+            {
+                if (response.ErrorType == ErrorType.Duplicated) return BadRequest(response);
+                if (response.ErrorType == ErrorType.Unexpected) return StatusCode(StatusCodes.Status500InternalServerError, response);
+                return Unauthorized(response);
+            }
+            return Ok(response);
         }
     }
 }
-
-

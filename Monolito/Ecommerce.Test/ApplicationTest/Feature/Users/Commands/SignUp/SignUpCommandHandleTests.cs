@@ -3,8 +3,10 @@ using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Transversal.Common.Enums;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using System.Text;
 
 namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
 {
@@ -14,6 +16,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
         private readonly ILogger<SignUpCommandHandle> _logger = Substitute.For<ILogger<SignUpCommandHandle>>();
+        private readonly IDataProtector _protector = Substitute.For<IDataProtector>();
         private readonly SignUpCommandHandle _handler;
 
         //xUnit crea una instancia por test: los dobles empiezan limpios.
@@ -26,7 +29,31 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             var repositorioDelUnitOfWork = _unitOfWork._user;
             if (repositorioDelUnitOfWork != _userRepository) throw new InvalidOperationException("Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
 
-            _handler = new SignUpCommandHandle(_unitOfWork, Mapper, _logger);
+            //El protector falso antepone "protegido:" a los bytes y Unprotect lo quita: asi un dato protegido se distingue
+            //del que no lo esta y un test puede deshacer el Protect.
+            //CreateProtector devuelve el mismo doble, para que el protector derivado del handler tambien lo sea.
+            _protector.CreateProtector(Arg.Any<string>()).Returns(_protector);
+            _protector.Protect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var prefijo = Encoding.UTF8.GetBytes("protegido:");
+                var bytesOriginales = llamada.Arg<byte[]>();
+                var bytesProtegidos = prefijo.Concat(bytesOriginales).ToArray();
+                return bytesProtegidos;
+            });
+            _protector.Unprotect(Arg.Any<byte[]>()).Returns(llamada =>
+            {
+                var longitudPrefijo = Encoding.UTF8.GetBytes("protegido:").Length;
+                var bytesProtegidos = llamada.Arg<byte[]>();
+                var bytesOriginales = bytesProtegidos.Skip(longitudPrefijo).ToArray();
+                return bytesOriginales;
+            });
+
+            //Comprobacion: el ciclo Protect/Unprotect tiene que devolver el texto original.
+            var textoProtegido = _protector.Protect("ida-y-vuelta");
+            var textoRecuperado = _protector.Unprotect(textoProtegido);
+            if (textoRecuperado != "ida-y-vuelta") throw new InvalidOperationException("Arrange mal montado: el protector falso no deshace su propio Protect.");
+
+            _handler = new SignUpCommandHandle(_unitOfWork, Mapper, _logger, _protector);
         }
 
         [Fact]
@@ -52,7 +79,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             int contCreateUser = 0;
             int contSaveChanges = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada =>
                 {
                     usuarioRegistrado = llamada.Arg<User>();
@@ -93,7 +120,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             int contCreateUser = 0;
             int contSaveChanges = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada => contCreateUser++);
 
             _unitOfWork
@@ -132,7 +159,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             int contCreateUser = 0;
             int contSaveChanges = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada => contCreateUser++);
 
             _unitOfWork
@@ -216,7 +243,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             int contCreateUser = 0;
             int contSaveChanges = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada => contCreateUser++);
 
             _unitOfWork
@@ -301,12 +328,14 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
 
             //Se registra el User que recibe el repositorio. Va despues de la comprobacion para que su llamada no cuente.
             User? usuarioRegistrado = null;
+            string? passwordRecibida = null;
             int contCreateUser = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada =>
                 {
                     usuarioRegistrado = llamada.Arg<User>();
+                    passwordRecibida = llamada.ArgAt<string>(1);
                     contCreateUser++;
                 });
 
@@ -322,14 +351,19 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             //Act
             await _handler.Handle(command, CancellationToken.None);
 
-            //Assert: la contrasena llega en claro al repositorio, que es quien la cifra.
+            //Assert: nombre y apellido se protegen (no quedan en claro y Unprotect los recupera); email y username van en claro,
+            //porque se consultan por igualdad en la base de datos. La contrasena viaja en claro como argumento aparte
+            //al repositorio, que es quien la hashea, y no queda en la entidad.
             Assert.Equal(1, contCreateUser);
             Assert.NotNull(usuarioRegistrado);
-            Assert.Equal("Maria", usuarioRegistrado.FirstName);
-            Assert.Equal("Lopez", usuarioRegistrado.LastName);
+            Assert.NotEqual("Maria", usuarioRegistrado.FirstName);
+            Assert.NotEqual("Lopez", usuarioRegistrado.LastName);
+            Assert.Equal("Maria", _protector.Unprotect(usuarioRegistrado.FirstName));
+            Assert.Equal("Lopez", _protector.Unprotect(usuarioRegistrado.LastName));
             Assert.Equal("maria@test.com", usuarioRegistrado.Email);
             Assert.Equal("maria", usuarioRegistrado.UserName);
-            Assert.Equal("OtraPassword1!", usuarioRegistrado.PasswordHash);
+            Assert.Equal("OtraPassword1!", passwordRecibida);
+            Assert.True(string.IsNullOrEmpty(usuarioRegistrado.PasswordHash));
         }
 
         [Fact]
@@ -383,7 +417,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignUp
             int contCreateUser = 0;
             int contSaveChanges = 0;
             _userRepository
-                .When(repo => repo.CreateUserAsync(Arg.Any<User>()))
+                .When(repo => repo.CreateUserAsync(Arg.Any<User>(), Arg.Any<string>()))
                 .Do(llamada => contCreateUser++);
 
             _unitOfWork

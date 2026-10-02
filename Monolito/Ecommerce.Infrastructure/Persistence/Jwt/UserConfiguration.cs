@@ -17,11 +17,11 @@ namespace Ecommerce.Infrastructure.Persistence.Jwt
 
             builder.Property(u => u.FirstName)
                 .IsRequired() // Indica que la propiedad FirstName es obligatoria (no puede ser nula).
-                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad FirstName.
+                .HasMaxLength(500); // 500 caracteres: Protect() añade cabecera, IV y firma y lo pasa a base64; un nombre de 100 caracteres ocupa unos 250 cifrado.
 
             builder.Property(u => u.LastName)
                 .IsRequired() // Indica que la propiedad LastName es obligatoria (no puede ser nula).
-                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad LastName.
+                .HasMaxLength(500); // 500 caracteres: mismo motivo que FirstName, el valor se guarda cifrado con Protect().
 
             builder.Property(u => u.Email)
                 .IsRequired() // Indica que la propiedad Email es obligatoria (no puede ser nula).
