@@ -29,9 +29,9 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
         }
 
       
-        public async Task CreateUserAsync(User entity)
+        public async Task CreateUserAsync(User entity, string password)
         {
-            var passHash = _passwordHasher.HashPassword(entity, entity.PasswordHash);
+            var passHash = _passwordHasher.HashPassword(entity, password);
 
             var userTransform = new User
             {

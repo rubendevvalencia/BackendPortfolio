@@ -6,6 +6,7 @@ using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Transversal.Common.Enums;
 using Ecommerce.Transversal.Loggin.Interface;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -20,6 +21,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
         private readonly IJwtApplication _jwt = Substitute.For<IJwtApplication>();
         private readonly ILogger<UserAuthApplication> _logger = Substitute.For<ILogger<UserAuthApplication>>();
         private readonly UserAuthApplication _auth;
+        private readonly IDataProtector _protector = Substitute.For<IDataProtector>();
 
         //xUnit crea una instancia por test: los dobles empiezan limpios.
         public UserAuthApplicationTest()
@@ -34,7 +36,21 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
                 throw new InvalidOperationException("Arrange mal montado: _unitOfWork._user no devuelve el doble de IUserRepository.");
             }
 
-            _auth = new UserAuthApplication(_unitOfWork, Mapper, SignUpValidator, SignInValidator, _jwt, _logger);
+            //El protector falso devuelve los mismos bytes: asi un test puede deshacer el Protect con Unprotect.
+            //CreateProtector devuelve el mismo doble, para que el protector derivado del constructor tambien lo sea.
+            _protector.CreateProtector(Arg.Any<string>()).Returns(_protector);
+            _protector.Protect(Arg.Any<byte[]>()).Returns(llamada => llamada.Arg<byte[]>());
+            _protector.Unprotect(Arg.Any<byte[]>()).Returns(llamada => llamada.Arg<byte[]>());
+
+            //Comprobacion: el ciclo Protect/Unprotect tiene que devolver el texto original.
+            var textoProtegido = _protector.Protect("ida-y-vuelta");
+            var textoRecuperado = _protector.Unprotect(textoProtegido);
+            if (textoRecuperado != "ida-y-vuelta")
+            {
+                throw new InvalidOperationException("Arrange mal montado: el protector falso no deshace su propio Protect.");
+            }
+
+            _auth = new UserAuthApplication(_unitOfWork, Mapper, SignUpValidator, SignInValidator, _jwt, _logger, _protector);
         }
 
         [Fact]
@@ -47,7 +63,8 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
 
             //Se captura el User que recibe el repositorio para mirarlo despues del Act.
             User? usuarioRegistrado = null;
-            await _userRepository.CreateUserAsync(Arg.Do<User>(u => usuarioRegistrado = u));
+            string? passwordRecibida = null;
+            await _userRepository.CreateUserAsync(Arg.Do<User>(u => usuarioRegistrado = u), Arg.Do<string>(p => passwordRecibida = p));
 
             //Comprobacion del Arrange.
             var emailEncontrado = await _userRepository.GetByEmailAsync("nuevo@test.com");
@@ -77,8 +94,9 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.True(response.IsSuccess);
             Assert.True(response.Data);
             Assert.NotNull(usuarioRegistrado);
-            Assert.Equal("nuevo@test.com", usuarioRegistrado.Email);
+            Assert.Equal("nuevo@test.com", _protector.Unprotect(usuarioRegistrado.Email));
             Assert.Equal("nuevo", usuarioRegistrado.UserName);
+            Assert.Equal(signUpDto.Password, passwordRecibida);
         }
 
         //El repositorio registra el alta y el caso de uso confirma una sola vez (pendiente #1, corregido).
@@ -104,7 +122,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             await _auth.SignUpAsync(signUpDto);
 
             //Assert: el alta se registra una vez y el commit lo pide el caso de uso, tambien una vez.
-            await _userRepository.Received(1).CreateUserAsync(Arg.Any<User>());
+            await _userRepository.Received(1).CreateUserAsync(Arg.Any<User>(), Arg.Any<string>());
             await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
         }
 
@@ -155,7 +173,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.True(response.Errors.ContainsKey(propiedadConError));
             await _userRepository.DidNotReceive().GetByEmailAsync(Arg.Any<string>());
-            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>());
+            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>(), Arg.Any<string>());
             await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
         }
 
@@ -182,7 +200,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.Equal("User already exists", response.Message);
-            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>());
+            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>(), Arg.Any<string>());
             await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
         }
 
@@ -216,7 +234,7 @@ namespace Ecommerce.Test.ApplicationTest.MainService.Jwt
             Assert.False(response.IsSuccess);
             Assert.Equal(ErrorType.Validation, response.ErrorType);
             Assert.Equal("User already exists", response.Message);
-            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>());
+            await _userRepository.DidNotReceive().CreateUserAsync(Arg.Any<User>(), Arg.Any<string>());
             await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
         }
 

@@ -17,15 +17,15 @@ namespace Ecommerce.Infrastructure.Persistence.Jwt
 
             builder.Property(u => u.FirstName)
                 .IsRequired() // Indica que la propiedad FirstName es obligatoria (no puede ser nula).
-                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad FirstName.
+                .HasMaxLength(500); // 500 caracteres: Protect() añade cabecera, IV y firma y lo pasa a base64; un nombre de 100 caracteres ocupa unos 250 cifrado.
 
             builder.Property(u => u.LastName)
                 .IsRequired() // Indica que la propiedad LastName es obligatoria (no puede ser nula).
-                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad LastName.
+                .HasMaxLength(500); // 500 caracteres: mismo motivo que FirstName, el valor se guarda cifrado con Protect().
 
             builder.Property(u => u.Email)
                 .IsRequired() // Indica que la propiedad Email es obligatoria (no puede ser nula).
-                .HasMaxLength(100); // Establece una longitud máxima de 100 caracteres para la propiedad Email.
+                .HasMaxLength(450); // 450 caracteres: el valor se guarda cifrado con Protect() y 450 nvarchar (900 bytes) es el maximo que admite un indice unico en SQL Server.
 
             builder.HasIndex(u => u.Email).IsUnique(); // Crea un índice único en la propiedad Email para garantizar que no haya duplicados.        
 
