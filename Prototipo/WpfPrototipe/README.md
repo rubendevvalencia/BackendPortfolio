@@ -3,11 +3,12 @@
 Cliente de escritorio para probar el consumo de la API desde otra tecnología. Vive en el monorepo como
 una carpeta más, no como repo aparte.
 
-- **Stack:** WPF sobre .NET Framework 4.8. Las carpetas siguen una división tipo MVVM (`View`, `ViewModel`,
-  `Model`), pero no es MVVM estricto: la ventana usa code-behind y no hay `Binding` ni comandos todavía.
+- **Stack:** WPF sobre .NET Framework 4.8. **Es un cliente con code-behind, no MVVM:** la ventana gestiona
+  eventos `Click` y de campos, y no hay `Binding` ni comandos. Las carpetas (`View`, `ViewModel`, `Model`) solo
+  anticipan la separación; `MainViewModel` es hoy una clase de servicio que llama a la API, sin notificación
+  de cambios. La migración a MVVM está en la hoja de ruta (ver más abajo).
   [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4.0 está referenciado en
-  el csproj, pero aún no se usa: es el paso previo a un MVVM completo (`ObservableObject`, `[RelayCommand]` y
-  bindings).
+  el csproj, pero aún no se usa: es el paso previo a esa migración.
 - **Estructura:** `View/Themes/` (ventana, estilos y `App.xaml.cs`), `ViewModel/` (`MainViewModel` y sus
   servicios de mensajes), `Configuration/` (URLs de los endpoints), `Services/`, `Converters/`, `Model/` y
   `Properties/`.
@@ -30,6 +31,17 @@ una carpeta más, no como repo aparte.
   en `Controls.xaml` (`Card`, `Section`, `Label`, campos, botones `Primary`/`Secondary` y `TokenBox`).
 - **Pendiente:** el manejo de errores del `ViewModel` es básico, el token solo se muestra (aún no se usa en
   llamadas autenticadas) y no hay inyección de dependencias: la ventana crea `EndPointsService` a mano.
+
+## Hoja de ruta: migración a MVVM
+
+Estado actual: code-behind. Pasos previstos, en orden:
+
+1. Hacer que `MainViewModel` herede de `ObservableObject` y exponga los DTOs como propiedades observables.
+2. Sustituir los eventos `Click` por comandos (`[RelayCommand]`, con versiones asíncronas para las llamadas HTTP).
+3. Enlazar los campos de texto con `Binding`. Los `PasswordBox` no admiten `Binding` directo, así que
+   necesitarán un comportamiento adjunto (*attached behavior*) o una solución equivalente.
+4. Inyectar `EndPointsService` y `Connection` en el `ViewModel` en lugar de crearlos a mano en la ventana.
+5. Tests unitarios del `ViewModel`, posibles solo una vez desaparezca la dependencia del code-behind.
 
 ## Configuración
 
