@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 
-namespace Ecommerce.Api.Controllers.v4
+namespace Ecommerce.Api.Controllers.Customer.v4
 {
     //v4 = v3 con la validacion en el pipeline de MediatR (ValidationBehaviour).
     //El controller ya no comprueba ids ni datos: delega todo y, si la peticion no es valida,
