@@ -19,7 +19,6 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
         private readonly IJwtApplication _jwt = Substitute.For<IJwtApplication>();
-        private readonly IMediator _mediator = Substitute.For<IMediator>();
         private readonly IMapper _mapper = Substitute.For<IMapper>();
         private readonly ILogger<SignInCommandHandle> _logger = Substitute.For<ILogger<SignInCommandHandle>>();
         private readonly IDataProtector _protector = Substitute.For<IDataProtector>();
@@ -59,7 +58,7 @@ namespace Ecommerce.Test.ApplicationTest.Feature.Users.Commands.SignIn
             var textoRecuperado = _protector.Unprotect(textoProtegido);
             if (textoRecuperado != "ida-y-vuelta") throw new InvalidOperationException("Arrange mal montado: el protector falso no deshace su propio Protect.");
 
-            _handler = new SignInCommandHandle(_mediator, _unitOfWork, _mapper, _logger, _jwt, _protector);
+            _handler = new SignInCommandHandle(_unitOfWork, _mapper, _logger, _jwt, _protector);
         }
 
         [Fact]
