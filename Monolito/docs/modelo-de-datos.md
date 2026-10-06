@@ -134,12 +134,15 @@ misma operación:
 
 1. Carga el cliente (`_customersUoW.GetByIdAsync`) y el producto (`_products.GetByIdAsync`). Si falta
    alguno → `ErrorType.NotFound` → 404.
-2. Añade el producto a `customer.Products` y marca el cliente como modificado.
-3. Un único `SaveChangesAsync`: EF inserta la fila en `CustomerProducts` y el interceptor de auditoría
-   actualiza `LastUpdatedAt`/`LastUpdatedBy` del cliente.
+2. Añade el producto a `customer.Products` y llama a `Update` (que no hace nada: el cliente ya viene
+   rastreado por `FindAsync`).
+3. Un único `SaveChangesAsync`: EF detecta el cambio en la navegación e inserta la fila en
+   `CustomerProducts`. Como no cambia ninguna propiedad del propio `Customer`, el interceptor de auditoría
+   **no** actualiza su `LastUpdatedAt`/`LastUpdatedBy`: la asignación no deja rastro de auditoría.
 
 Para crear productos, `POST api/v4/Product/Create` (`CreateProductCommand`, 409 si ya existe uno con los
-mismos datos). Update y Delete de `Product` están como carpetas vacías o comentados: pendientes.
+mismos datos). Es el único endpoint de `Product` activo: Update, Delete, GetById y GetAll están comentados en el
+controller y las carpetas de Update y Delete están vacías.
 
 ---
 
