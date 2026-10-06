@@ -1,62 +1,69 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Ecommerce.Application.Dto;
-using Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand;
-using Ecommerce.Application.Feature.Customers.Commands.DeleteCustomer;
-using Ecommerce.Application.Feature.Customers.Commands.UpdateCustomer;
-using Ecommerce.Application.Feature.Customers.Queries.GetAllCustomerQuery;
-using Ecommerce.Application.Feature.Customers.Queries.GetCustomerQuery;
 using Ecommerce.Application.Interface;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
-using System.Net.NetworkInformation;
 
-namespace Ecommerce.Api.Controllers.v3
+namespace Ecommerce.Api.Controllers.Customer.v2
 {
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
     [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
-    [ApiVersion("3.0")]
+    [ApiVersion("2.0", Deprecated = true)]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
     public class CustomerController : ApiResponseControllerBase
     {
-        private readonly IMediator _mediator; //Orquesta todo
+        private readonly ICustomerApplicationUoW _customerApplication;
 
-        public CustomerController(IMediator mediator)
+        public CustomerController(ICustomerApplicationUoW customerApplication)
         {
-            _mediator = mediator;
+            _customerApplication = customerApplication;
         }
 
-        [HttpPost("Create")]
-        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]   
-        [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          
+        [HttpPost("AddAsync")]
+        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
-        public async Task<IActionResult> Create([FromBody] CreateCustomerCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> AddAsync([FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
-            if (command == null) return BadRequest();
-           
-            var response = await _mediator.Send(command, cancellationToken);
+            if (customerDto == null) return BadRequest();
+            //El CancellationToken lo inyecta ASP.NET Core (HttpContext.RequestAborted): si el cliente
+            //aborta la peticion, la validacion y las consultas se cancelan en lugar de seguir trabajando.
+            var response = await _customerApplication.AddAsync(customerDto, cancellationToken);
             return ToActionResult(response);
         }
 
-        [HttpPost("UpdateAsyncPost")]
+        [HttpPut("UpdateAsync{id}")]
+        [SwaggerOperation(Summary = "Updates an existing customer.", Description = "Updates the details of an existing customer in the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
+        {
+            if (customerDto == null) return BadRequest();
+
+            var response = await _customerApplication.UpdateAsync(id, customerDto, cancellationToken);
+            return ToActionResult(response);
+        }
+
+        [HttpPost("UpdateAsyncPost/{id}")]
         [SwaggerOperation(Summary = "Updates an existing customer using POST.", Description = "Updates the details of an existing customer in the system using a POST request.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> UpdateAsyncPost([FromBody] UpdateCustomerCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsyncPost([FromRoute] int id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
-            if (command == null) return BadRequest();
-            if(command.Id <= 0) return BadRequest();
+            if (customerDto == null) return BadRequest();
 
-            var response = await _mediator.Send(command, cancellationToken);
+            var response = await _customerApplication.UpdateAsync(id, customerDto, cancellationToken);
             return ToActionResult(response);
         }
 
@@ -64,14 +71,11 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerOperation(Summary = "Deletes an existing customer.", Description = "Deletes an existing customer from the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer deleted successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> DeleteAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteAsync([FromRoute] int id)
         {
-            if(id<=0) return BadRequest(); //Se puede añadir un data annotation para validar que el id sea mayor que 0, pero en este caso lo hacemos de manera manual.
-            DeleteCustomerCommand command = new()
-            {
-                Id = id
-            };
-            var response = await _mediator.Send(command, cancellationToken);
+            if(id<0) return BadRequest(); //Se puede añadir un data annotation para validar que el id sea mayor que 0, pero en este caso lo hacemos de manera manual.
+
+            var response = await _customerApplication.DeleteAsync(id);
             return ToActionResult(response);
         }
 
@@ -79,24 +83,19 @@ namespace Ecommerce.Api.Controllers.v3
         [SwaggerOperation(Summary = "Retrieves a customer by ID.", Description = "Retrieves the details of a customer based on the provided ID.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customer retrieved successfully.", typeof(Response<CustomerDto>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<CustomerDto>))]
-        public async Task<IActionResult> GetByIdAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetByIdAsync([FromRoute] int id)
         {
-            if(id <= 0) return BadRequest("Invalid Id");
-            GetCustomerQuery query = new()
-            {
-                Id = id
-            };
-            var response = await _mediator.Send(query, cancellationToken);
+            if(id<0) return BadRequest("Invalid Id");
+            var response = await _customerApplication.GetByIdAsync(id);
             return ToActionResult(response);
         }
 
         [HttpGet("GetAllAsync")]
         [SwaggerOperation(Summary = "Retrieves all customers.", Description = "Retrieves a list of all customers in the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Customers retrieved successfully.", typeof(Response<IEnumerable<CustomerDto>>))]
-        public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAllAsync()
         {
-            GetAllCustomerQuery query = new GetAllCustomerQuery();
-            var response = await _mediator.Send(query, cancellationToken);
+            var response = await _customerApplication.GetAllAsync();
             return ToActionResult(response);
         }
     }

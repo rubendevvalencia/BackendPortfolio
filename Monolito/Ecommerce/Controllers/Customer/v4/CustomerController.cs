@@ -5,6 +5,7 @@ using Ecommerce.Application.Feature.Customers.v4.Commands.DeleteCustomer;
 using Ecommerce.Application.Feature.Customers.v4.Commands.UpdateCustomer;
 using Ecommerce.Application.Feature.Customers.v4.Queries.GetAllCustomerQuery;
 using Ecommerce.Application.Feature.Customers.v4.Queries.GetCustomerQuery;
+using Ecommerce.Application.Feature.ProductToCustomer;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
 using MediatR;
@@ -15,7 +16,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 
-namespace Ecommerce.Api.Controllers.v4
+namespace Ecommerce.Api.Controllers.Customer.v4
 {
     //v4 = v3 con la validacion en el pipeline de MediatR (ValidationBehaviour).
     //El controller ya no comprueba ids ni datos: delega todo y, si la peticion no es valida,
@@ -120,5 +121,19 @@ namespace Ecommerce.Api.Controllers.v4
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
             return Ok(); //No se llega aqui: el middleware corta la peticion antes de los 5 segundos.
         }
+
+        [HttpPost("SaveProduct")]
+        [RequestTimeout("CustomPolicy")]
+        [SwaggerOperation(Summary = "Saves a product for a customer.", Description = "Associates a product with a customer in the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Product saved successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The product data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "The customer or product does not exist.", typeof(Response<bool>))]
+        public async Task<IActionResult> SaveProduct([FromBody] ProductToCustomerCommand command, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(command, cancellationToken);
+            return ToActionResult(response);
+        }
+
+
     }
 }

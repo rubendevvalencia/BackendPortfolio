@@ -1,3 +1,4 @@
+using Ecommerce.Domain.Interface.IRepository.IProduct;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace Ecommerce.Domain.Interface.IRepository
         //Trabaja como un contenedor para todos los repositorios, permitiendo que se realicen operaciones de manera coordinada y asegurando la consistencia de los datos.
         ICustomerRepositoryUoW _customersUoW {get;}
         IUserRepository _user { get; }
+        IProductRepository _products { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

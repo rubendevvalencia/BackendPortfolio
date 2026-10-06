@@ -4,6 +4,7 @@ using Ecommerce.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ecommerce.Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextEF))]
-    partial class DbContextEFModelSnapshot : ModelSnapshot
+    [Migration("20261006142207_AddProductsTable")]
+    partial class AddProductsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,21 +24,6 @@ namespace Ecommerce.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CustomerProduct", b =>
-                {
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductsId")
-                        .HasColumnType("int");
-
-                    b.HasKey("CustomerId", "ProductsId");
-
-                    b.HasIndex("ProductsId");
-
-                    b.ToTable("CustomerProducts", (string)null);
-                });
 
             modelBuilder.Entity("Ecommerce.Domain.Entities.Customer", b =>
                 {
@@ -202,22 +190,24 @@ namespace Ecommerce.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerId");
+
                     b.ToTable("Products", (string)null);
                 });
 
-            modelBuilder.Entity("CustomerProduct", b =>
+            modelBuilder.Entity("Ecommerce.Domain.Entities.Product", b =>
                 {
-                    b.HasOne("Ecommerce.Domain.Entities.Customer", null)
-                        .WithMany()
+                    b.HasOne("Ecommerce.Domain.Entities.Customer", "Customer")
+                        .WithMany("Products")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("Ecommerce.Domain.Entities.Product", null)
-                        .WithMany()
-                        .HasForeignKey("ProductsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Ecommerce.Domain.Entities.Customer", b =>
+                {
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

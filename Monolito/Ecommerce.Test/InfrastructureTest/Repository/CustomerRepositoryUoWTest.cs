@@ -1,5 +1,6 @@
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.IProduct;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
 using Ecommerce.Infrastructure.Interceptors;
@@ -59,7 +60,8 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
         {
             var repository = new CustomerRepositoryUoW(context);
             var userRepository = Substitute.For<IUserRepository>();
-            return new UnitOfWork(context, repository, userRepository);
+            var productRepository = Substitute.For<IProductRepository>();
+            return new UnitOfWork(context, repository, userRepository, productRepository);
         }
 
         //Guarda un cliente con su propio contexto y devuelve su Id.

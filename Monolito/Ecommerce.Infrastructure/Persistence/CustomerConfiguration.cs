@@ -44,6 +44,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.Property(c => c.Fax)
             .HasMaxLength(20); // Establece una longitud máxima de 20 caracteres para la propiedad Fax.
+
+        builder.HasMany(c => c.Products) // Configura la relación uno a muchos entre Customer y Product.
+            .WithMany(p => p.Customer) // Indica que la entidad Product no tiene una propiedad de navegación hacia Customer.
+            .UsingEntity(j => j.ToTable("CustomerProducts")); // Configura la tabla intermedia "CustomerProducts" para la relación muchos a muchos entre Customer y Product.
     }
 
 
