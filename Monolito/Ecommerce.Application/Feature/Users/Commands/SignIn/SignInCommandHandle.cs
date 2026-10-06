@@ -14,15 +14,13 @@ namespace Ecommerce.Application.Feature.Users.Commands.SignIn
 {
     public class SignInCommandHandle : IRequestHandler<SignInCommand, Response<TokenDto>>
     {
-        private readonly IMediator _mediator;
         private readonly IMapper _mapper;
         private readonly ILogger<SignInCommandHandle> _logger;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtApplication _genJwt;
         private readonly IDataProtector _dataProtector;
-        public SignInCommandHandle(IMediator mediator, IUnitOfWork unitOfWork, IMapper mapper, ILogger<SignInCommandHandle> logger, IJwtApplication genJwt, IDataProtectionProvider dataProtectionProvider)
+        public SignInCommandHandle(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SignInCommandHandle> logger, IJwtApplication genJwt, IDataProtectionProvider dataProtectionProvider)
         {
-            _mediator = mediator;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
