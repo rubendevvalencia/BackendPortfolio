@@ -10,19 +10,19 @@ using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 
-namespace Ecommerce.Api.Controllers.v2
+namespace Ecommerce.Api.Controllers.Customer.v1
 {
     [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido. Se puede poner en endpoints individuales si se quiere que algunos sean publicos.
     [EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
-    [ApiVersion("2.0", Deprecated = true)]
+    [ApiVersion("1.0", Deprecated = true)]
     [SwaggerTag("Controller for managing customer operations.")] //Con las annotations de Swagger, podemos añadir una descripción a nivel de controlador para que se muestre en la documentación generada por Swagger.
     public class CustomerController : ApiResponseControllerBase
     {
-        private readonly ICustomerApplicationUoW _customerApplication;
+        private readonly ICustomerApplication _customerApplication;
 
-        public CustomerController(ICustomerApplicationUoW customerApplication)
+        public CustomerController(ICustomerApplication customerApplication)
         {
             _customerApplication = customerApplication;
         }
@@ -31,7 +31,6 @@ namespace Ecommerce.Api.Controllers.v2
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]    //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]          //Compensa sobretodo en API de terceros que se generen para su consumo
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
-        [SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
         public async Task<IActionResult> AddAsync([FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
             if (customerDto == null) return BadRequest();
@@ -46,11 +45,14 @@ namespace Ecommerce.Api.Controllers.v2
         [SwaggerResponse(StatusCodes.Status200OK, "Customer updated successfully.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The customer does not exist.", typeof(Response<bool>))]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] string id, [FromBody] CustomerDto customerDto, CancellationToken cancellationToken)
         {
             if (customerDto == null) return BadRequest();
 
-            var response = await _customerApplication.UpdateAsync(id, customerDto, cancellationToken);
+            var number = 0;
+            Int32.TryParse(id, out number);
+
+            var response = await _customerApplication.UpdateAsync(number, customerDto, cancellationToken);
             return ToActionResult(response);
         }
 
