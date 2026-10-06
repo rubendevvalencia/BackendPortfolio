@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Common.Behaviours;
+using Ecommerce.Application.Common.Configuration;
 using Ecommerce.Application.Feature.Customers;
 using Ecommerce.Application.Feature.Users;
 using Ecommerce.Application.Interface;
@@ -41,7 +42,8 @@ namespace Ecommerce.Application
             //Añadimos el ensamblado genérico de IFluentValidation, con esto no es necesario registrar cada validador de manera individual, 
             //se registran todos los que hereden de AbstractValidator<T> en el ensamblado.
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-            
+            services.AddDataProtection(); //Agrega servicios de protección de datos, como cifrado y descifrado de datos sensibles.
+        
             return services;
         }
     }

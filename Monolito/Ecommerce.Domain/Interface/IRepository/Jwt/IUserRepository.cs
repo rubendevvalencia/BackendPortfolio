@@ -12,7 +12,7 @@ namespace Ecommerce.Domain.Interface.IRepository.Jwt
         Task<User?> GetByEmailAsync(string email);
         Task<User?> GetByUserNameAsync(string userName);
 
-        Task CreateUserAsync(User user);
+        Task CreateUserAsync(User user, string password);
 
         //Sincrono: comparar un hash no toca la base de datos ni hace ninguna espera real.
         bool CheckPass(User user, string password);

@@ -42,12 +42,11 @@ namespace Ecommerce.Test.InfrastructureTest.Repository.Jwt
                 FirstName = "John",
                 LastName = "Doe",
                 Email = "john.doe@example.com",
-                UserName = "john",
-                PasswordHash = "Password123!"
+                UserName = "john"
             };
 
-            //Act
-            await userRepository.CreateUserAsync(user);
+            //Act: la contrasena llega en claro y el repositorio la hashea.
+            await userRepository.CreateUserAsync(user, "Password123!");
 
             //Assert: todavia no hay nada en la base.
             Assert.Empty(await dbContext.Users.ToListAsync());
