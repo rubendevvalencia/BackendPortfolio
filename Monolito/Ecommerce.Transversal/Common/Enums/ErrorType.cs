@@ -11,7 +11,8 @@ namespace Ecommerce.Transversal.Common.Enums
         Unexpected = 4,   //Excepcion no controlada -> 500 Internal Server Error.
         Duplicated = 5,    //Información duplicada
         TimeOut = 6,
-        Unauthorized = 7  //Credenciales invalidas -> 401 Unauthorized. Separado de Validation para no compartir status/forma con los errores de formato del DTO.
+        Unauthorized = 7,  //Credenciales invalidas -> 401 Unauthorized. Separado de Validation para no compartir status/forma con los errores de formato del DTO.
+        InvalidOperation = 8, //La operacion no es valida en el contexto actual -> 400 Bad Request.
 
     }
 }

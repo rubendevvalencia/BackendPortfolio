@@ -13,7 +13,7 @@ namespace Ecommerce.Domain.Entities
         public Category? Category { get; set; }
 
         //Relación con la entidad Customer
-        public Customer? Customer { get; set; }
+        public ICollection<Customer>? Customer { get; set; }
         public int? CustomerId { get; set; }
     }
 }
