@@ -1,5 +1,6 @@
 ﻿using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.IProduct;
 using Ecommerce.Domain.Interface.IRepository.Jwt;
 using Ecommerce.Infrastructure.Data;
 using Ecommerce.Infrastructure.HealthCheck;
@@ -47,6 +48,7 @@ namespace Ecommerce.Infrastructure
             services.AddScoped<AuditableEntitySaveChangesInterceptor>();
             services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
             services.AddScoped<ICustomerReadRepository, CustomerReadRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
             return services;
         }
     }

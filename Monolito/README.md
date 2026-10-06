@@ -62,6 +62,7 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 |---|---|
 | [Evolución v1 → v4](docs/evolucion-v1-v4.md) | Los tres saltos —límite transaccional, CQRS, validación en el pipeline— y qué problema abría cada uno |
 | [Decisiones técnicas](docs/decisiones-tecnicas.md) | `Response<T>`, Unit of Work, logging, rate limiting, caché con Redis, health checks |
+| [Modelo de datos e Infrastructure](docs/modelo-de-datos.md) | Las tablas (`Customers`, `Users`, `Products`, `CustomerProducts`), la relación N:M y qué piezas de `Infrastructure` las construyen |
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
 | [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 291 tests que no se ve leyendo el código |
