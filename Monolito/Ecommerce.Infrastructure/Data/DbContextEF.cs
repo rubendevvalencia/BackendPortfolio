@@ -23,6 +23,7 @@ namespace Ecommerce.Infrastructure.Data
 
         public DbSet<Customer> Customers { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Product> Products { get; set; }
 
         public DbContextEF(DbContextOptions<DbContextEF> options, IConfiguration configuration, AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor)
             : base(options)
@@ -34,7 +35,7 @@ namespace Ecommerce.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()); //Fluent API -> Llamamos a las configuraciones de las entidades (CustomerConfiguration, ProductConfiguration, etc.) que heredan de IEntityTypeConfiguration<T> y están en el mismo ensamblado que DbContextEF.
             base.OnModelCreating(modelBuilder);
         }
 
@@ -46,9 +47,6 @@ namespace Ecommerce.Infrastructure.Data
                 optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
             }
             optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
-
-            
-           
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
