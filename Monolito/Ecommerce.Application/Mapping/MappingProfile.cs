@@ -32,7 +32,8 @@ namespace Ecommerce.Application.Mapping
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())         //Los cuatro campos de auditoria los rellena
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())         //AuditableEntitySaveChangesInterceptor al
                 .ForMember(dest => dest.LastUpdatedAt, opt => opt.Ignore())     //confirmar, nunca el mapeo. Si el mapeo los
-                .ForMember(dest => dest.LastUpdatedBy, opt => opt.Ignore());    //tocara, pisaria lo que pone el interceptor.
+                .ForMember(dest => dest.LastUpdatedBy, opt => opt.Ignore())     //tocara, pisaria lo que pone el interceptor.
+                .ForMember(dest => dest.Products, opt => opt.Ignore());         //La relacion con Product se gestiona en ProductToCustomer, no por mapeo.
 
             //Registro de usuario. La direccion inversa (User -> SignUpDto) no la usa nadie
             //y se ha quitado: un mapa que no se usa es codigo muerto que hay que mantener valido.
@@ -54,8 +55,11 @@ namespace Ecommerce.Application.Mapping
                 .ForMember(dest => dest.LastUpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.LastUpdatedBy, opt => opt.Ignore());
 
-            CreateMap<Customer, CreateCustomerCommand>().ReverseMap();
-            CreateMap<Customer, CreateCustomerCommandV4>().ReverseMap();
+            //El ForMember tras ReverseMap() configura el mapa inverso (comando -> Customer).
+            CreateMap<Customer, CreateCustomerCommand>().ReverseMap()
+                .ForMember(dest => dest.Products, opt => opt.Ignore());         //La relacion con Product se gestiona en ProductToCustomer, no por mapeo.
+            CreateMap<Customer, CreateCustomerCommandV4>().ReverseMap()
+                .ForMember(dest => dest.Products, opt => opt.Ignore());         //La relacion con Product se gestiona en ProductToCustomer, no por mapeo.
 
 
             CreateMap<Product, CreateProductCommand>().ReverseMap();
