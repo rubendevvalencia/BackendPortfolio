@@ -26,11 +26,6 @@ namespace Ecommerce.Infrastructure.Persistence
 
             builder.Property(p => p.Category)
                 .IsRequired(); // Configura la relación entre Product y Category.
-
-            builder.Property(p => p.CategoryId)
-                .IsRequired(); // Indica que la propiedad CategoryId es obligatoria (no puede ser nula).
-
-           
             
         }
 

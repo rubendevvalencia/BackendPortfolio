@@ -8,10 +8,10 @@ namespace Ecommerce.Infrastructure.Repository
 {
     //Version del repositorio de Customer bajo el patron Unit of Work (v2 de la API).
     //No confirma en ningun metodo: el unico SaveChangesAsync de la Infraestructura vive en UnitOfWork.
-    public class ProductRepositoryUoW : IProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly DbContextEF _dbContext;
-        public ProductRepositoryUoW(DbContextEF dbContext)
+        public ProductRepository(DbContextEF dbContext)
         {
             _dbContext = dbContext;
         }
@@ -49,8 +49,7 @@ namespace Ecommerce.Infrastructure.Repository
                 o.Name == entity.Name &&
                 o.Description == entity.Description &&
                 o.Price == entity.Price &&
-                o.StockQuantity == entity.StockQuantity &&
-                o.CategoryId == entity.CategoryId, 
+                o.StockQuantity == entity.StockQuantity,
                 cancellationToken);
         }
     }

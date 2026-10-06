@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Ecommerce.Application.Feature.Users.Commands.SignUp;
+using Ecommerce.Application.Feature.Products.Commands.CreateProduct;
 
 namespace Ecommerce.Application.Mapping
 {
@@ -55,6 +56,9 @@ namespace Ecommerce.Application.Mapping
 
             CreateMap<Customer, CreateCustomerCommand>().ReverseMap();
             CreateMap<Customer, CreateCustomerCommandV4>().ReverseMap();
+
+
+            CreateMap<Product, CreateProductCommand>().ReverseMap();
         }
     }
 }

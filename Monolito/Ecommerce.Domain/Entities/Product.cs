@@ -10,7 +10,6 @@ namespace Ecommerce.Domain.Entities
         public string? Description { get; set; }
         public decimal? Price { get; set; } = 0;
         public int? StockQuantity { get; set; } = 0;
-        public int? CategoryId { get; set; }
         public Category? Category { get; set; }
 
         //Relación con la entidad Customer
