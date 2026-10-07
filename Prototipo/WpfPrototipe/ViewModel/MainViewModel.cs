@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace RegistroPerf.ViewModel
 {
@@ -43,10 +44,10 @@ namespace RegistroPerf.ViewModel
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var manager = new Connection();
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             CancellationToken cancellation = cts.Token;
             HttpClient client = manager.CreateClient(_endPoints.SignUpUrl);
-
+            Mouse.OverrideCursor = Cursors.Wait;
             try
             {
                 HttpResponseMessage responseMessage = await client.PostAsync(_endPoints.SignUpUrl, content, cancellation);
@@ -59,11 +60,15 @@ namespace RegistroPerf.ViewModel
                 var conversion = JsonConvert.DeserializeObject<ResponseConverter<bool>>(jsonResponse);
                 if (conversion.IsSuccess) MessageBox.Show("Correct Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                 else MessageBox.Show("Incorrect Sign Up", "Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Mouse.OverrideCursor = Cursors.Arrow;
+
+
                 return conversion.IsSuccess;
             }
             catch(OperationCanceledException)
             {
-                MessageBox.Show("Service dosen't resolve", "Timeout", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Service doesn't resolve", "Timeout", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Mouse.OverrideCursor = Cursors.Arrow;
                 return false;
             }
 
