@@ -185,7 +185,7 @@ lance**. De ahí tres huecos, el último ya activo:
   una diferencia real con v3, donde sí queda una línea `Information`. Lo cubriría un
   `UnhandledExceptionBehaviour` (pendiente nº 10).
 
-**`IApiLogger<T>` — logs con intención.** Se inyecta y se llama a mano, en el punto donde se sabe qué regla
+**`ILogger<T>` a mano — logs con intención.** Se inyecta y se llama a mano, en el punto donde se sabe qué regla
 se ha incumplido: es lo que el interceptor no puede dar —un código de estado no dice *por qué*— y **el
 único enfoque posible fuera de MediatR**, que es donde viven v1, v2 y `UserAuthApplication`.
 
@@ -194,9 +194,13 @@ código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo cada pet
 su status, así que repetir un 404 desde `Application` no aporta nada; sí lo aportan el 409 —el status no
 dice con qué dato chocó— y el `SaveChangesAsync` que devuelve 0, que es el caso más opaco del diseño.
 
-**Estado actual:** el behaviour está registrado y activo para v3 y v4. `IApiLogger` y `AppLogger<T>` se
-conservan **sin registrar**, como ejemplo del enfoque manual, y `UserAuthApplication` usa hoy `ILogger<T>`
-directo. Cablearlo en v1 y v2 es el siguiente paso.
+**Por qué no hay una abstracción propia encima.** Hubo un `IApiLogger<T>` con su `AppLogger<T>`, que solo
+delegaba en `ILogger<T>`. Se retiró: `ILogger<T>` ya es la abstracción, Serilog se configura en un único
+sitio (`AddTransversalServices`) y `LoggingBehaviour`, en `Application`, ya referencia
+`Microsoft.Extensions.Logging`, así que la capa extra no aislaba nada.
+
+**Estado actual:** el behaviour está registrado y activo para v3 y v4, y `UserAuthApplication` usa
+`ILogger<T>` directo. Añadir logs a mano en v1 y v2 es el siguiente paso.
 
 ### Rate limiting: versión simplificada, a modo de prueba
 
