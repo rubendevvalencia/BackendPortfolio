@@ -129,7 +129,7 @@ correcta*) y dos colecciones distintas para lo mismo— son el pendiente nº 20.
 
 > **El listado de v3 y v4 se sirve desde Redis y la caché no se invalida nunca.** Crear, actualizar o
 > borrar un cliente no toca la caché, así que `GetAllAsync` puede seguir devolviendo el estado anterior
-> hasta que la entrada expire sola (una hora absoluta, doce minutos deslizantes). Es el pendiente nº 24 y
+> hasta que la entrada expire sola (una hora absoluta, doce minutos deslizantes: política `CustomerAll`). Es el pendiente nº 24 y
 > el fallo funcional más visible de la API. `GetByIdAsync` no está cacheado, a propósito.
 >
 > Y si Redis no responde, `GetAllAsync` no cae a la base de datos: responde **500** (pendiente nº 26).
