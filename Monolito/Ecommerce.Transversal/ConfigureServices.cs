@@ -1,6 +1,4 @@
-﻿using Ecommerce.Transversal.Loggin.Interface;
-using Ecommerce.Transversal.Loggin.Services;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;

@@ -8,7 +8,6 @@ using Ecommerce.Domain.Entities.Jwt;
 using Ecommerce.Domain.Interface.IRepository;
 using Ecommerce.Transversal.Common;
 using Ecommerce.Transversal.Common.Enums;
-using Ecommerce.Transversal.Loggin.Interface;
 using FluentValidation;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
