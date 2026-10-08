@@ -194,11 +194,6 @@ código de estado no dice ya.** Con `UseSerilogRequestLogging()` activo cada pet
 su status, así que repetir un 404 desde `Application` no aporta nada; sí lo aportan el 409 —el status no
 dice con qué dato chocó— y el `SaveChangesAsync` que devuelve 0, que es el caso más opaco del diseño.
 
-**Por qué no hay una abstracción propia encima.** Hubo un `IApiLogger<T>` con su `AppLogger<T>`, que solo
-delegaba en `ILogger<T>`. Se retiró: `ILogger<T>` ya es la abstracción, Serilog se configura en un único
-sitio (`AddTransversalServices`) y `LoggingBehaviour`, en `Application`, ya referencia
-`Microsoft.Extensions.Logging`, así que la capa extra no aislaba nada.
-
 **Estado actual:** el behaviour está registrado y activo para v3 y v4, y `UserAuthApplication` usa
 `ILogger<T>` directo. Añadir logs a mano en v1 y v2 es el siguiente paso.
 
