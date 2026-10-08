@@ -8,7 +8,7 @@ cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de
 
 | Workflow | Qué hace | Cuándo se dispara | Qué protege |
 |---|---|---|---|
-| [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 271 tests sigan en verde |
+| [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 421 tests unitarios sigan en verde |
 | [`docker-monolito.yaml`](../../.github/workflows/docker-monolito.yaml) | `docker build` de [`Monolito/Docker/Dockerfile`](../Docker/Dockerfile) con contexto `Monolito/`, sin publicar la imagen | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que el Dockerfile sigue construyendo: rutas de `COPY` y `restore`/`publish` dentro del contenedor |
 | [`secret-scan.yaml`](../../.github/workflows/secret-scan.yaml) | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Siempre, cambie lo que cambie | Que no entre al repositorio una credencial nueva |
 

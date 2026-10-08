@@ -66,7 +66,7 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 | [Modelo de datos e Infrastructure](docs/modelo-de-datos.md) | Las tablas (`Customers`, `Users`, `Products`, `CustomerProducts`), la relación N:M y qué piezas de `Infrastructure` las construyen |
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
-| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 291 tests que no se ve leyendo el código |
+| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 421 tests que no se ve leyendo el código |
 | [Integración continua](docs/integracion-continua.md) | Los tres workflows de GitHub Actions y lo que la CI todavía no hace |
 | [Limitaciones conocidas](docs/limitaciones.md) | Las 27 limitaciones, por prioridad y con el mecanismo de cada fallo |
 
@@ -250,7 +250,7 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 
 ## Estado actual
 
-Compila sin errores y **291 de 291 tests en verde**, en local y en la CI. A eso se suma
+Compila sin errores y **421 de 421 tests unitarios en verde**, en local y en la CI. A eso se suma
 `Ecommerce.IntegrationTest`, un proyecto aparte con tests de integración de la autenticación —`SignUp → SignIn`
 tanto por el servicio de v1–v3 como por CQRS en v4—, que resuelven el controller real desde el contenedor
 de DI contra una base de datos SQL Server real y con el `DataProtection` real, sin dobles. Los de CQRS
@@ -258,17 +258,17 @@ comprueban lo que un test unitario no puede: que nombre y apellido **llegan cifr
 `SignIn` devuelve el `FullName` descifrado, que una contraseña incorrecta da 401 sin datos y que un email
 ya registrado da `Duplicated`. Hoy **solo corren en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
 runner no tiene ni SQL Server ni los *user secrets* que necesita (detalle en
-[*Integración continua*](docs/integracion-continua.md)). Hay **27 limitaciones conocidas** (de 32
-anotadas, cinco ya resueltas), cada una con su mecanismo explicado en
+[*Integración continua*](docs/integracion-continua.md)). Hay **27 limitaciones conocidas** (de 34
+anotadas, siete ya resueltas), cada una con su mecanismo explicado en
 [*limitaciones conocidas*](docs/limitaciones.md).
 
 | Área | Pendientes | Las que más pesan |
 |---|---|---|
 | Seguridad | 3 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) |
-| Corrección | 8 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) |
-| Tests | 3 | La frontera HTTP no tiene ni un test de integración (nº 8) · la caché tampoco tiene ninguno (nº 29) |
+| Corrección | 10 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) |
+| Tests | 2 | La frontera HTTP no tiene ni un test de integración (nº 8) · `ConfigureServicesTest` no resuelve `ICustomerReadRepository` ni los handlers de MediatR (nº 31) |
 | Diseño | 8 | El dominio es anémico (nº 12) · se cachea la entidad con una clave sin versionar (nº 27) |
-| Higiene | 5 | Sin paginación en `GetAll`, que además es el endpoint cacheado (nº 18) |
+| Higiene | 4 | Sin paginación en `GetAll`, que además es el endpoint cacheado (nº 18) |
 
 No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en qué orden pienso resolverlo.
 
@@ -293,13 +293,14 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 14 | **v4: `ValidationBehaviour`** · `IValidatableRequest` · `ValidationExceptionCustom` → 400 en el middleware | Validación fuera de handlers y controller, aislada de v3 con una marca en la petición |
 | 15 | **Rate limiter de ventana fija** (versión simplificada, de prueba) · 429 · valores en `appsettings.json` | Primer freno a ráfagas de peticiones, con la configuración validada al arrancar |
 | 16 | **Health checks** (`/health` en JSON, `/health/ui` en HTML) con SQL Server y Redis | Las dependencias externas dejan de fallar en silencio |
-| 17 | **Caché distribuida con Redis** sobre `GetAllCustomers` (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
+| 17 | **Caché distribuida con Redis** sobre el listado de clientes (*cache-aside*, a modo de ejercicio) · caducidades por política en configuración (`Cache:Default` y `Cache:Policies:CustomerAll`) · tests de la caché sin Redis | El patrón montado de punta a punta dentro de `Infrastructure` — con la invalidación todavía pendiente, que es su parte difícil |
 | 18 | **Health checks repartidos por capa**: el registro baja a `Infrastructure` y `Api` se queda solo con `MapHealthChecks` y el HTML | Los paquetes de sonda salen del `.csproj` de `Api`: la capa que no sabe que existe una base de datos deja de declarar cómo se comprueba |
 | 19 | **Integración continua con GitHub Actions**: `ci-monolito` (build y tests), `secret-scan` con gitleaks y `docker-monolito` (build de la imagen), en cada push y PR contra `dev` y `main` | Que la solución compile y los tests pasen deja de depender de mi máquina, una credencial nueva no entra sin avisar, y el Dockerfile no se rompe sin que nadie lo note |
 | 20 | **Cuatro correcciones de seguridad**: middleware de excepciones movido al principio del pipeline con mensaje genérico (nº 1) · `EnableSensitiveDataLogging` solo en desarrollo (nº 2) · `SignIn` responde siempre el mismo 401 (nº 3) · rate limiter particionado por IP, con política propia y más estricta para `SignIn`/`SignUp` (nº 23, sin cerrar del todo: falta `Retry-After`) | Cierra la fuga de la excepción cruda, la de los valores de `PasswordHash` en el log de EF, la enumeración de usuarios por `SignIn` y el contador de rate limit compartido por todos los clientes |
 | 21 | **Dockerfile y `docker-compose`**: imagen *multi-stage* con el `restore` en su propia capa y usuario sin privilegios, y un compose local con API, SQL Server y Redis | El monolito se levanta con un solo comando y la misma imagen es la que se desplegará |
 | 22 | **Autenticación con CQRS en v4**: `SignUpCommand` y `SignInCommand` con su handler y validador · `ApiResponseControllerBase.ToActionResult` traduce `Response<T>` a 200/404/409/504/500 en un único sitio · controllers de `UserAuth` separados en `v1-3` (las tres versiones pasan a `Deprecated`) y `v4` (la vigente) | La autenticación sigue el mismo camino que `Customer` (controller solo con `IMediator`), y la traducción `ErrorType` → HTTP deja de repetirse en cada acción |
 | 23 | **Datos personales cifrados en base de datos** con `IDataProtector` (propósito centralizado en `ProtectorParameters`): `FirstName` y `LastName` se protegen al registrar y `SignIn` los descifra para devolver `FullName` en el `TokenDto` · migraciones que ajustan el tamaño de las columnas · los handlers de `SignUp` y `SignIn` con tests unitarios por rama (duplicado por email o por usuario, commit sin filas, credenciales inválidas indistinguibles, no desproteger si la contraseña falla) y tres tests de integración contra base de datos real | Un volcado de la tabla `User` ya no expone nombre y apellido en claro. El email **se queda en claro a propósito**: `SignIn` lo usa como clave de búsqueda; se probó cifrarlo y se revirtió (migración `RevertUserEmailLength`) |
+| 24 | **Cobertura de `Infrastructure` y del pipeline**: tests de la caché sin Redis (`CustomerReadRepository` y `CacheConfiguration`) · `LoggingBehaviour` · health check con `Random` inyectable · `EnableSensitiveDataLogging` solo en `Development` · `CompareInfoInDb` · política de caché renombrada a `CustomerAll` (`eCacheKey` y `Cache:Policies:CustomerAll`) | La suite pasa de 291 a **421 tests unitarios** y la lógica de caché deja de ser la única parte de `Infrastructure` sin cubrir |
 
 </details>
 
@@ -314,7 +315,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y los tests de integración de la autenticación (`SignUp → SignIn` en v1–v3 y en CQRS v4, con la protección de datos real); faltan los de `LoggingBehaviour`, el resto de la frontera HTTP y meterlos en la CI |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y los tests de integración de la autenticación (`SignUp → SignIn` en v1–v3 y en CQRS v4, con la protección de datos real); el resto de la frontera HTTP y meterlos en la CI |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI y Dockerfile hechos (la CI comprueba que la imagen construye); falta el despliegue |
 | **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
@@ -325,8 +326,7 @@ Siguientes pasos, por orden:
    `SaveChangesInterceptor` (nº 24), modelo de caché propio y clave versionada (nº 27), validación al
    arrancar (nº 25) y degradación si Redis no responde (nº 26). Sin la invalidación, lo que hay montado
    demuestra solo la mitad fácil del patrón.
-2. **Cerrar v4 y el logging**: unificar el contrato de error de validación (nº 20), los tests que faltan de
-   `LoggingBehaviour` y de la caché (nº 29), y añadir logs con `ILogger<T>` en v1 y v2, que es donde el
+2. **Cerrar v4 y el logging**: unificar el contrato de error de validación (nº 20) y añadir logs con `ILogger<T>` en v1 y v2, que es donde el
    enfoque manual es el único disponible.
 3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
    en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.

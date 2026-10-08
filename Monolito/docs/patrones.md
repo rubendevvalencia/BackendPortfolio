@@ -54,6 +54,7 @@ Data Protection añade cabecera, IV y firma y lo pasa a base64. El mapeo está d
 | **Dos contextos** (EF InMemory) | Escribe con un contexto y lee con otro para comprobar que el dato persistió de verdad. |
 | **Tests de caracterización** | Fijan un bug conocido para que, al corregirlo, el test diga qué cambió. |
 | **Test del composition root** | Resuelve todo el grafo de DI con `validateScopes: true` para cazar dependencias mal registradas. |
+| **Costura para el test** | Un constructor alternativo (o un parámetro como `IHostEnvironment`) permite controlar lo no determinista sin tocar el comportamiento en producción. | `HealthCheckCustome(Random)` y `AddInfrastructureServices(configuration, environment)` |
 | **Factorías de datos** | `NewCustomerDto` y `NewSignUpDto` en la clase base evitan repetir la construcción de datos de prueba. |
 | **Tests de integración** | [`Ecommerce.IntegrationTest`](../Ecommerce.IntegrationTest) usa el contenedor de DI real para recorrer el flujo SignUp → SignIn. |
 
