@@ -289,7 +289,7 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 10 | **v3 con CQRS (MediatR)** · commands y queries por carpeta · repositorio de lectura | Separación de escrituras y lecturas; controller acoplado solo a `IMediator` |
 | 11 | Detección de duplicados → 409 en v2 y v3 | Alta duplicada como resultado de negocio, no como error |
 | 12 | Tests de v3 · reorganización de tests por feature y versión | La suite refleja la misma estructura que el código |
-| 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `IApiLogger` conservado como el enfoque manual | Traza automática de v3 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
+| 13 | **`LoggingBehaviour` en el pipeline de MediatR** · `ILogger<T>` directo como el enfoque manual | Traza automática de v3 y v4 sin tocar los handlers, y el reparto explícito entre interceptor y call site |
 | 14 | **v4: `ValidationBehaviour`** · `IValidatableRequest` · `ValidationExceptionCustom` → 400 en el middleware | Validación fuera de handlers y controller, aislada de v3 con una marca en la petición |
 | 15 | **Rate limiter de ventana fija** (versión simplificada, de prueba) · 429 · valores en `appsettings.json` | Primer freno a ráfagas de peticiones, con la configuración validada al arrancar |
 | 16 | **Health checks** (`/health` en JSON, `/health/ui` en HTML) con SQL Server y Redis | Las dependencias externas dejan de fallar en silencio |
@@ -326,8 +326,8 @@ Siguientes pasos, por orden:
    arrancar (nº 25) y degradación si Redis no responde (nº 26). Sin la invalidación, lo que hay montado
    demuestra solo la mitad fácil del patrón.
 2. **Cerrar v4 y el logging**: unificar el contrato de error de validación (nº 20), los tests que faltan de
-   `LoggingBehaviour` y de la caché (nº 29), y cablear `IApiLogger` en v1 y v2, que es donde el enfoque
-   manual es el único disponible.
+   `LoggingBehaviour` y de la caché (nº 29), y añadir logs con `ILogger<T>` en v1 y v2, que es donde el
+   enfoque manual es el único disponible.
 3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
    en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.
 4. **Tests de integración**: ya hay casos de autenticación (`SignUp → SignIn`, v1–v3 y CQRS v4) contra una base de datos real,

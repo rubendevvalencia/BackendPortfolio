@@ -78,5 +78,3 @@ Detalle en [*Integración continua*](integracion-continua.md).
   `IBaseRepositoryUoW<T>` existen, pero cada entidad tiene el suyo.
 - **v4 valida con una excepción**, en contra del *Result pattern* del resto. Es un compromiso asumido:
   ver [*v3 → v4*](evolucion-v1-v4.md#v3--v4-la-validación-sale-del-handler).
-- **`IApiLogger<T>` y `AppLogger<T>` no están registrados.** Se conservan como ejemplo del enfoque manual
-  de logging.
