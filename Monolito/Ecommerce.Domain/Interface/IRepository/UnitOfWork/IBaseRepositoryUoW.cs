@@ -8,8 +8,8 @@ namespace Ecommerce.Domain.Interface.IRepository
         Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
         Task AddAsync(T entity, CancellationToken cancellationToken = default);
-        void Update(T entity); //No notifica porque el UoW lo hace, por eso void
-        void Delete(T entity); //No notifica porque el UoW lo hace, por eso void. Recibe la entidad, no el id: comprobar si existe es decision del caso de uso.
+        void Update(T entity); //No notifica porque el UoW lo hace, por eso void. No necesita ser async: el cambio se registra en el ChangeTracker y la confirmacion la hace el UoW.
+        void Delete(T entity); //No notifica porque el UoW lo hace, por eso void. Recibe la entidad, no el id: comprobar si existe es decision del caso de uso. No necesita ser async: el cambio se registra en el ChangeTracker y la confirmacion la hace el UoW.
         Task<bool> CompareInfoInDb(T entity, CancellationToken cancellationToken = default);
     }
 }
