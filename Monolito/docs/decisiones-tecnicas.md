@@ -251,8 +251,8 @@ pasado, pero no cuánto tiene que esperar para reintentar.
 > carga, ni métricas, ni paginación: el endpoint cacheado devuelve hoy un puñado de filas.
 
 *Cache-aside* —mirar la caché; si no está, ir a la base de datos y guardar— sobre una sola consulta,
-`GetAllCustomers`. Todo vive en `Infrastructure`: `AddStackExchangeRedisCache` registra `IDistributedCache`,
-[`CustomerReadRepository.GetAllAsync`](../Ecommerce.Infrastructure/Repository/CustomerReadRepository.cs)
+el listado de clientes (`GetAllAsync`, clave `eCacheKey.CustomerAll`). Todo vive en `Infrastructure`: `AddStackExchangeRedisCache` registra `IDistributedCache`,
+[`CustomerReadRepository.GetAllAsync`](../Ecommerce.Infrastructure/Repository/Customer/CustomerReadRepository.cs)
 implementa el patrón, [`CacheConfiguration`](../Ecommerce.Infrastructure/Data/Cache/CacheConfiguration.cs)
 traduce las caducidades de `appsettings.json`, `eCacheKey` guarda las claves como `enum` para que no viajen
 como *string* suelto, y `.AddRedis(...)` mete Redis en `/health`.
@@ -260,11 +260,15 @@ como *string* suelto, y `.AddRedis(...)` mete Redis en `/health`.
 ```json
 "Cache": {
   "Default":  { "AbsoluteExpiration": "02:00:00", "SlidingExpiration": "01:00:00" },
-  "Policies": { "GetAllCustomers": { "AbsoluteExpiration": "01:00:00", "SlidingExpiration": "00:12:00" } }
+  "Policies": { "CustomerAll": { "AbsoluteExpiration": "01:00:00", "SlidingExpiration": "00:12:00" } }
 }
 ```
 
-Mismo formato `"hh:mm:ss"` con `TryParseExact` que el rate limiter, y por el mismo motivo.
+Mismo formato `"hh:mm:ss"` con `TryParseExact` que el rate limiter, y por el mismo motivo. El nombre de la
+política en `Policies` es el del miembro del `enum` (`eCacheKey.CustomerAll`): `CacheConfiguration` lee
+`Cache:Policies:CustomerAll` para esa clave y `Cache:Default` para cualquier otra. Si una caducidad falta o está
+mal escrita lanza `InvalidOperationException` (hoy, en el primer *miss*; ver nº 25). Todo esto está fijado por
+`CacheConfigurationTests`, y el comportamiento del repositorio por `CustomerReadRepositoryTest`, ambos sin Redis.
 
 **Solo se cachea el listado, y es deliberado.** `GetByIdAsync` va contra la clave primaria: SQL Server lo
 resuelve con un *seek* y el salto de red hasta Redis puede costar más que la consulta que ahorra, a cambio
