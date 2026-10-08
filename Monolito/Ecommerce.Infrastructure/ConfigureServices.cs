@@ -1,0 +1,55 @@
+﻿using Ecommerce.Domain.Entities.Jwt;
+using Ecommerce.Domain.Interface.IRepository;
+using Ecommerce.Domain.Interface.IRepository.IProduct;
+using Ecommerce.Domain.Interface.IRepository.Jwt;
+using Ecommerce.Infrastructure.Data;
+using Ecommerce.Infrastructure.HealthCheck;
+using Ecommerce.Infrastructure.Interceptors;
+using Ecommerce.Infrastructure.Repository;
+using Ecommerce.Infrastructure.Repository.Jwt;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+
+namespace Ecommerce.Infrastructure
+{
+    public static class ConfigureServices
+    {
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        {
+            // Register your infrastructure services here
+            // Example: services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddDbContext<DbContextEF>(options =>
+                options.UseSqlServer(configuration.GetConnectionString("EcommerceDb"),          //Cadena de conexión a la base de datos
+                builder => builder
+                    .MigrationsAssembly(typeof(DbContextEF).Assembly.FullName)                  //Configura la migración de la base de datos
+                    .EnableRetryOnFailure())
+                    .EnableSensitiveDataLogging(environment.IsDevelopment()));                                                   //Reintenta automáticamente ante fallos transitorios
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration.GetConnectionString("RedisConnection");
+                //options.ConfigurationOptions.AbortOnConnectFail = false;
+            });
+
+            services.AddHealthChecks()
+                .AddSqlServer(configuration.GetConnectionString("EcommerceDb"), tags: new[] { "database" })
+                .AddRedis(configuration.GetConnectionString("RedisConnection"), tags: new[] { "caché" })
+                .AddCheck<HealthCheckCustome>("HealthCheckCustom", tags: new[] { "custom" });
+
+
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICustomerRepositoryUoW, CustomerRepositoryUoW>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<AuditableEntitySaveChangesInterceptor>();
+            services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+            services.AddScoped<ICustomerReadRepository, CustomerReadRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
+            return services;
+        }
+    }
+}

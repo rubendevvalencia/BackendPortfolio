@@ -1,0 +1,27 @@
+<!-- Valores base del tema. Solo lo que usan Controls.xaml y MainWindow.xaml. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Color -->
+	<SolidColorBrush x:Key="Surface" Color="#F6F7F9" />
+	<SolidColorBrush x:Key="SurfaceRaised" Color="#FFFFFF" />
+	<SolidColorBrush x:Key="Line" Color="#D9DEE5" />
+	<SolidColorBrush x:Key="Ink" Color="#16202C" />
+	<SolidColorBrush x:Key="InkMuted" Color="#5A6573" />
+	<SolidColorBrush x:Key="Accent" Color="#0F6CBD" />
+	<SolidColorBrush x:Key="AccentHover" Color="#0B5596" />
+	<SolidColorBrush x:Key="AccentInk" Color="#FFFFFF" />
+	<SolidColorBrush x:Key="AccentSoft" Color="#EAF3FB" />
+
+	<!-- Tipografía -->
+	<FontFamily x:Key="FontSans">Segoe UI</FontFamily>
+	<FontFamily x:Key="FontMono">Consolas</FontFamily>
+
+	<!-- Espaciado -->
+	<Thickness x:Key="Space4">16</Thickness>
+	<Thickness x:Key="FieldGap">0,0,0,12</Thickness>
+
+	<!-- Radios -->
+	<CornerRadius x:Key="RadiusMd">4</CornerRadius>
+	<CornerRadius x:Key="RadiusLg">8</CornerRadius>
+</ResourceDictionary>

@@ -1,0 +1,110 @@
+# Orquestacion de ejemplo para levantar el sistema en local: el monolito (Ecommerce)
+# junto con sus dependencias (SQL Server, Redis). El servicio de Identity se deja
+# comentado como ejemplo: todavia es una carpeta reservada sin codigo ni Dockerfile
+# (ver Microservicios/Identity/README.md); cuando exista, se activa igual que
+# ecommerce-api.
+#
+# Secrets:
+#   Se montan como archivos via SECRETS_DIR (ruta a tu carpeta de secrets, no
+#   secreto en si), pasada al ejecutar o en un .env local (no versionado):
+#     SECRETS_DIR=<ruta> docker compose up --build
+#
+#   SECRETS_DIR debe contener:
+#     secrets.json -> { "Jwt:Key": "...", "ConnectionStrings:EcommerceDb": "..." }
+#     sa_password  -> password de sa en texto plano (mismo que en la connection
+#                     string); aparte porque SQL Server lo lee como archivo
+#                     crudo, no JSON.
+
+secrets:
+  app_secrets:
+    file: ${SECRETS_DIR}/secrets.json
+  sa_password:
+    file: ${SECRETS_DIR}/sa_password
+
+services:
+  ecommerce-api:
+    build:
+      context: ../Monolito
+      dockerfile: Docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__RedisConnection: "redis:6379"
+      Jwt__Issuer: Ecommerce
+      Jwt__Audience: Ecommerce.Users
+      Config__OrinCors: "http://localhost:3000"
+    secrets:
+      # Se monta en /run/secrets/secrets.json; la app lo añade a su
+      # configuracion con builder.Configuration.AddJsonFile(...) para que
+      # ConnectionStrings:EcommerceDb y Jwt:Key queden disponibles igual que
+      # si vinieran de appsettings.json.
+      - source: app_secrets
+        target: secrets.json
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - ecommerce-net
+
+  # identity-api:
+  #   Pendiente de construir (ver Microservicios/Identity/README.md). Cuando tenga
+  #   su propio Dockerfile, se añade aqui con el mismo patron que ecommerce-api:
+  #
+  #   build:
+  #     context: ../Microservicios/Identity
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     sqlserver:
+  #       condition: service_healthy
+  #   networks:
+  #     - ecommerce-net
+
+  sqlserver:
+    # Fijado a un CU concreto (no ":2022-latest"): la build mas reciente en su
+    # momento (RTM-CU27) tenia roto el login de "sa" para CUALQUIER password
+    # (fallaba igual con la correcta y con una inventada a proposito, con
+    # "Error: 18456 ... An error occurred while evaluating the password").
+    # Verificado que CU14 no tiene ese bug antes de fijarlo aqui.
+    image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      # Alternativa "_FILE" que soporta la imagen oficial de SQL Server: en vez
+      # de MSSQL_SA_PASSWORD con el valor en claro, lee el password de un
+      # archivo montado (el secret de mas abajo).
+      MSSQL_SA_PASSWORD_FILE: /run/secrets/sa_password
+    secrets:
+      - sa_password
+    ports:
+      # Puerto host 1433 porque ese lo usa el SQL Server local de
+      # los integration tests; dentro de la red del compose sigue siendo 1433
+      # (ver ConnectionStrings:EcommerceDb -> Server=sqlserver,1433).
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$(cat /run/secrets/sa_password)\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ecommerce-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-net
+
+volumes:
+  sqlserver-data:
+  redis-data:
+
+networks:
+  ecommerce-net:

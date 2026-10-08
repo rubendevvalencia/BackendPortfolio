@@ -43,6 +43,7 @@ coverage*.info
 # Los VALORES reales van en User Secrets (desarrollo) o variables de entorno (despliegue).
 appsettings.*.local.json
 secrets.json
+.env
 *.pubxml
 *.pubxml.user
 PublishProfiles/
@@ -60,3 +61,7 @@ $RECYCLE.BIN/
 *.tmp
 *.cache
 *.dbmdl
+Monolito/docs/patrones-y-arquitectura-entrevista.md
+
+# Memoria local de Claude Code
+CLAUDE.md
