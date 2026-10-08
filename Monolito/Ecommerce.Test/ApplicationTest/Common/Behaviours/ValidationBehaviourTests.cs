@@ -33,7 +33,7 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
 
             var vecesNext = 0;
             var respuestaDelHandler = Response<bool>.Success(true);
-            RequestHandlerDelegate<Response<bool>> next = (token) =>
+            RequestHandlerDelegate<Response<bool>> next = (CancellationToken token) =>
             {
                 vecesNext++;
                 return Task.FromResult(respuestaDelHandler);
@@ -72,7 +72,7 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
             var behaviour = new ValidationBehaviour<CreateCustomerCommand, Response<bool>>(validators);
 
             var vecesNext = 0;
-            RequestHandlerDelegate<Response<bool>> next = (token) =>
+            RequestHandlerDelegate<Response<bool>> next = (CancellationToken token) =>
             {
                 vecesNext++;
                 return Task.FromResult(Response<bool>.Success(true));
@@ -105,7 +105,7 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
             var behaviour = new ValidationBehaviour<CreateCustomerCommand, Response<bool>>(validators);
 
             var vecesNext = 0;
-            RequestHandlerDelegate<Response<bool>> next = (token) =>
+            RequestHandlerDelegate<Response<bool>> next = (CancellationToken token) =>
             {
                 vecesNext++;
                 return Task.FromResult(Response<bool>.Success(true));

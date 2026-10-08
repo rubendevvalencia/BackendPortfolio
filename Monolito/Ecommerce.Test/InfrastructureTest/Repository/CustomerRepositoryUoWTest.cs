@@ -443,5 +443,54 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
             Assert.Equal(1, rowsAffected);
             Assert.Equal("Superviviente", saved.CompanyName);
         }
+
+        [Fact]
+        public async Task CompareInfoInDb_DevuelveTrueSiExisteUnClienteConLosMismosDatos()
+        {
+            //Arrange: en el almacen hay un cliente y se compara con otra instancia con los mismos datos.
+            var dbName = NewDbName();
+            await AddCustomerAsync(dbName, NewCustomer("Peter"));
+            var candidate = NewCustomer("Peter");
+
+            //Act: contexto nuevo, asi que la consulta lee del almacen.
+            await using var readContext = CreateContext(dbName);
+            var unitOfWork = CreateUnitOfWork(readContext);
+            var exists = await unitOfWork._customersUoW.CompareInfoInDb(candidate);
+
+            //Assert
+            Assert.True(exists);
+        }
+
+        [Fact]
+        public async Task CompareInfoInDb_DevuelveFalseSiAlgunCampoEsDistinto()
+        {
+            //Arrange: mismo cliente salvo el CompanyName, y la comparacion exige que coincidan todos los campos.
+            var dbName = NewDbName();
+            await AddCustomerAsync(dbName, NewCustomer("Peter"));
+            var candidate = NewCustomer("Northwind");
+
+            //Act
+            await using var readContext = CreateContext(dbName);
+            var unitOfWork = CreateUnitOfWork(readContext);
+            var exists = await unitOfWork._customersUoW.CompareInfoInDb(candidate);
+
+            //Assert
+            Assert.False(exists);
+        }
+
+        [Fact]
+        public async Task CompareInfoInDb_DevuelveFalseSiNoHayClientes()
+        {
+            //Arrange: un solo contexto, el almacen esta vacio.
+            await using var context = CreateContext(NewDbName());
+            var unitOfWork = CreateUnitOfWork(context);
+            var candidate = NewCustomer();
+
+            //Act
+            var exists = await unitOfWork._customersUoW.CompareInfoInDb(candidate);
+
+            //Assert
+            Assert.False(exists);
+        }
     }
 }

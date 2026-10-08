@@ -5,8 +5,19 @@ namespace Ecommerce.Infrastructure.HealthCheck
     public class HealthCheckCustome : IHealthCheck
     {
         //Vamos a usar Random para validar distintos tiempos de respuesta y ver como se comporta.
-        private readonly Random _random = new Random();
-        private readonly string? _htmlFormat;
+        private readonly Random _random;
+
+        //Constructor que usa el contenedor de dependencias al registrar el check.
+        public HealthCheckCustome()
+        {
+            _random = new Random();
+        }
+
+        //Constructor para los tests: permite pasar un Random que devuelva siempre el valor que se quiera comprobar.
+        public HealthCheckCustome(Random random)
+        {
+            _random = random;
+        }
 
         public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {
