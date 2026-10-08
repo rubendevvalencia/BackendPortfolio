@@ -14,18 +14,18 @@ namespace Ecommerce.Infrastructure.Data.Cache
         //TimeSpan.FromHours ni saber en que unidad estaba escrito el valor.
         public static TimeSpan[] Configuration(eCacheKey key, IConfiguration configuration)
         {
-            string? absoluteText;
-            string? slidingText;
+            string? absoluteTime;
+            string? slidingTime;
 
-            if(key == eCacheKey.GetAllCustomers)
+            if(key == eCacheKey.CustomerAll)
             {
-                absoluteText = configuration["Cache:Policies:GetAllCustomers:AbsoluteExpiration"];
-                slidingText = configuration["Cache:Policies:GetAllCustomers:SlidingExpiration"];
+                absoluteTime = configuration["Cache:Policies:CustomerAll:AbsoluteExpiration"];
+                slidingTime = configuration["Cache:Policies:CustomerAll:SlidingExpiration"];
             }
             else
             {
-                absoluteText = configuration["Cache:Default:AbsoluteExpiration"];
-                slidingText = configuration["Cache:Default:SlidingExpiration"];
+                absoluteTime = configuration["Cache:Default:AbsoluteExpiration"];
+                slidingTime = configuration["Cache:Default:SlidingExpiration"];
             }
 
             //InvariantCulture a proposito: el valor viene de un archivo de configuracion, no del
@@ -33,15 +33,13 @@ namespace Ecommerce.Infrastructure.Data.Cache
             //TryParseExact y no TryParse: TimeSpan lee un entero suelto como DIAS ("30" => 30 dias),
             //asi que un valor mal escrito pasaria la validacion y daria una caducidad absurda.
             //Exigiendo "hh:mm:ss" ese error se convierte en un fallo al arrancar.
-            var absoluteOk = TimeSpan.TryParseExact(absoluteText, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var absoluteExpiration);
+            var absoluteOk = TimeSpan.TryParseExact(absoluteTime, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var absoluteExpiration);
 
-            if (!absoluteOk)
-                throw new InvalidOperationException($"AbsoluteExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
+            if (!absoluteOk) throw new InvalidOperationException($"AbsoluteExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
 
-            var slidingOk = TimeSpan.TryParseExact(slidingText, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var slidingExpiration);
+            var slidingOk = TimeSpan.TryParseExact(slidingTime, @"hh\:mm\:ss", CultureInfo.InvariantCulture, out var slidingExpiration);
 
-            if (!slidingOk)
-                throw new InvalidOperationException($"SlidingExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
+            if (!slidingOk) throw new InvalidOperationException($"SlidingExpiration de '{key}' no es un TimeSpan valido (formato esperado \"hh:mm:ss\").");
 
             TimeSpan[] conf = new TimeSpan[2];
             conf[0] = absoluteExpiration;

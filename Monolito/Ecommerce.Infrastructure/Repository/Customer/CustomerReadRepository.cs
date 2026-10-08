@@ -31,7 +31,7 @@ namespace Ecommerce.Infrastructure.Repository
         {
             IEnumerable<Customer>? customers;
 
-            eCacheKey cacheKey = eCacheKey.GetAllCustomers;
+            eCacheKey cacheKey = eCacheKey.CustomerAll;
             var redisCategories = await _distributedCache.GetAsync(cacheKey.ToString(), cancellationToken);
 
             if (redisCategories != null) customers = JsonSerializer.Deserialize<IEnumerable<Customer>>(redisCategories); //Obtenemos de redis
