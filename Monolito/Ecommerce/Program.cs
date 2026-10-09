@@ -94,8 +94,6 @@ try
             {
                 c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
             }
-
-
             c.RoutePrefix = "swagger"; //Esto establece la ruta base para acceder a la interfaz de usuario de Swagger. En este caso, la interfaz estará disponible en /swagger.
             c.DisplayRequestDuration(); //Esto habilita la visualización de la duración de las solicitudes en la interfaz de usuario de Swagger. Muestra cuánto tiempo tarda cada solicitud en completarse, lo que puede ser útil para el rendimiento y la depuración.
             c.EnableDeepLinking();
@@ -109,10 +107,7 @@ try
                 options.DocumentTitle = "Ecommerce Services Api";
                 options.SpecUrl = $"/swagger/{description.GroupName}/swagger.json";
             }
-        }
-
-            
-            );
+        });
         //app.MapOpenApi(): No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
     }
     
