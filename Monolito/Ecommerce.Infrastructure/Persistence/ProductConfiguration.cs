@@ -9,6 +9,7 @@ namespace Ecommerce.Infrastructure.Persistence
         public void Configure(EntityTypeBuilder<Product> builder)
         {
             builder.ToTable("Products");
+            builder.HasQueryFilter(p => !p.IsDeleted);
             builder.HasKey(p => p.Id); // Configura la propiedad Id como clave primaria de la entidad Product.
 
             builder.Property(p => p.Name)
