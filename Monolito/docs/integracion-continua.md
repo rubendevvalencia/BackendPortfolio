@@ -8,7 +8,7 @@ cada *pull request* contra `dev` y `main`, sobre `ubuntu-latest` y con el SDK de
 
 | Workflow | Qué hace | Cuándo se dispara | Qué protege |
 |---|---|---|---|
-| [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 421 tests unitarios sigan en verde |
+| [`ci-monolito.yaml`](../../.github/workflows/ci-monolito.yaml) | `dotnet restore` → `dotnet build --configuration Release` → `dotnet test --configuration Release`, sobre `Monolito/Ecommerce.slnx` | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que la solución compile fuera de Visual Studio y que los 427 tests unitarios sigan en verde |
 | [`docker-monolito.yaml`](../../.github/workflows/docker-monolito.yaml) | `docker build` de [`Monolito/Docker/Dockerfile`](../Docker/Dockerfile) con contexto `Monolito/`, sin publicar la imagen | Solo si cambia algo bajo `Monolito/` (o el propio workflow) | Que el Dockerfile sigue construyendo: rutas de `COPY` y `restore`/`publish` dentro del contenedor |
 | [`secret-scan.yaml`](../../.github/workflows/secret-scan.yaml) | [`gitleaks/gitleaks-action@v2`](https://github.com/gitleaks/gitleaks-action), con `fetch-depth: 0` en el checkout | Siempre, cambie lo que cambie | Que no entre al repositorio una credencial nueva |
 
@@ -33,7 +33,14 @@ proveedor InMemory de EF Core y los de `Application` doblan los límites de la c
 runner no necesita SQL Server, ni Redis, ni un solo secreto. Es una propiedad de la suite que hoy sale
 gratis y que dejará de salirlo con los tests de integración con `WebApplicationFactory`
 (pendiente nº 8): o levantan sus dependencias como *services* del job —contenedores de SQL Server y de
-Redis— o el job deja de ser autosuficiente. Conviene decidirlo entonces, y no descubrirlo.
+Redis— o el job deja de ser autosuficiente. Conviene decidirlo entonces, y no descubrirlo. Los tests de
+integración que ya existen tienen ese inventario hecho en
+[`docker-compose.integration-tests.yml`](../../Docker/Integration%20Tests/docker-compose.integration-tests.yml),
+que es el punto de partida para llevarlos a la CI; lo que falta es dar al runner los *user secrets* que
+ese compose y los tests leen.
+
+Los tests unitarios tampoco dependen de una carpeta concreta para las claves de Data Protection: los que
+construyen el contenedor real usan una carpeta temporal, que existe en cualquier runner.
 
 **Permisos mínimos, y elevados solo donde hacen falta.** Los tres workflows declaran
 `permissions: contents: read` a nivel raíz, así que el `GITHUB_TOKEN` de cualquier job nace sin poder

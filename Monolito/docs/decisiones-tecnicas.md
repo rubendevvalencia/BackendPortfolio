@@ -86,6 +86,36 @@ recorre el `ChangeTracker`. Como *todos* los cambios pasan por `SaveChanges`, ha
 resolver una preocupación que afecta a todas las entidades — en lugar de repetir las mismas cuatro líneas
 en cada repositorio.
 
+### Borrado lógico en el mismo interceptor
+
+El borrado lógico usa ese mismo punto único. Cuando el interceptor encuentra una entidad en estado
+`Deleted`, la cambia a `Modified` y rellena `IsDeleted`, `DeletedAt` y `DeletedBy`: EF genera un `UPDATE`
+y la fila se queda. Un `HasQueryFilter(x => !x.IsDeleted)` en la configuración de cada entidad la oculta
+después de cualquier consulta.
+
+La ventaja es la misma que en la auditoría: **ningún repositorio ni caso de uso ha cambiado**. Los
+`Delete` de las cuatro versiones de `Customer` siguen llamando a `Remove`, y el `Delete` de usuario de v4
+hace lo mismo. La contrapartida también es la misma: leyendo un repositorio no hay pista de que `Remove`
+no borre. Y el borrado lógico tiene efectos en el esquema que hay que cuidar a mano: un índice único debe
+filtrarse a las filas vivas (`Email` ya lo está, `UserName` todavía no: nº 36), y el `ON DELETE CASCADE`
+deja de dispararse (nº 38). Detalle en [*Modelo de datos*](modelo-de-datos.md#borrado-lógico).
+
+### Claves de Data Protection persistidas
+
+Nombre y apellido del usuario se cifran con `IDataProtector`, y las claves que lo hacen posible son tan
+datos como la propia tabla: si se pierden, lo cifrado no se puede leer. Por eso `AddApplicationServices`
+las persiste con `PersistKeysToFileSystem` en la carpeta de `DataProtection:KeysPath` y **no arranca si
+esa clave falta**: es preferible a arrancar con claves en memoria que desaparecen con el proceso.
+`SetApplicationName("Ecommerce")` fija el aislamiento de las claves, que por defecto depende de la ruta
+de instalación; sin él, la misma aplicación en otra carpeta no podría descifrar lo anterior.
+
+En Docker esa carpeta es `/keys`, un volumen con nombre. El Dockerfile la crea con el usuario `app` como
+propietario antes de cambiar de usuario, porque un volumen nuevo hereda el propietario del directorio y
+el usuario sin privilegios no podría escribir en él. La ruta llega por `DataProtection__KeysPath`, y
+`Program.cs` vuelve a llamar a `AddEnvironmentVariables()` después de cargar el `secrets.json` montado
+para que la variable de entorno gane a la ruta de Windows que pueda traer ese archivo. Lo que falta es
+cifrar las claves en reposo (`ProtectKeysWith...`).
+
 ### Mapeo manual en la actualización
 
 El alta usa AutoMapper, pero la actualización usa un mapeo escrito a mano (`ManualMappingCustomer.MapInto`),

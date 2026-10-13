@@ -4,7 +4,7 @@
 
 Qué tablas hay en la base de datos, de dónde sale cada una y qué piezas de `Ecommerce.Infrastructure` las
 construyen. Se actualiza con cada migración; el estado descrito es el de la migración
-`20261006152443_AddCustomerProductTable`.
+`20261013070036_FilteredUniqueEmailIndex`.
 
 ---
 
@@ -44,21 +44,22 @@ erDiagram
         int Id PK
         nvarchar500 FirstName "cifrado"
         nvarchar500 LastName "cifrado"
-        nvarchar100 Email UK
+        nvarchar100 Email UK "filtrado: IsDeleted = 0"
         nvarchar100 UserName UK
         nvarchar255 PasswordHash
     }
 ```
 
-`Customers`, `Products` y `Users` llevan además las cuatro columnas de auditoría de `BaseAuditEntity`
-(`CreatedAt`, `CreatedBy`, `LastUpdatedAt`, `LastUpdatedBy`), que no se dibujan para no ensuciar el
-diagrama. `CustomerProducts` no hereda de `BaseAuditEntity`: es una tabla de unión sin entidad propia.
+`Customers`, `Products` y `Users` llevan además las siete columnas de `BaseAuditEntity`, que no se dibujan
+para no ensuciar el diagrama: las cuatro de auditoría (`CreatedAt`, `CreatedBy`, `LastUpdatedAt`,
+`LastUpdatedBy`) y las tres del borrado lógico (`IsDeleted` `bit`, `DeletedAt` `datetime2`, `DeletedBy`
+`nvarchar(max)`). `CustomerProducts` no hereda de `BaseAuditEntity`: es una tabla de unión sin entidad propia.
 
 | Tabla | Entidad | Configuración | Migración que la crea |
 |---|---|---|---|
-| `Customers` | `Customer` | `CustomerConfiguration` | `InitialCreate` |
-| `Users` | `User` | `UserConfiguration` | `AddUsersTable` (+ índices únicos, tamaños) |
-| `Products` | `Product` | `ProductConfiguration` | `AddProductsTable` |
+| `Customers` | `Customer` | `CustomerConfiguration` | `InitialCreate` (+ `SoftDeletedUpdate`) |
+| `Users` | `User` | `UserConfiguration` | `AddUsersTable` (+ índices únicos, tamaños, `SoftDeletedUpdate`, `FilteredUniqueEmailIndex`) |
+| `Products` | `Product` | `ProductConfiguration` | `AddProductsTable` (+ `SoftDeletedUpdate`) |
 | `CustomerProducts` | *(ninguna: tabla de unión)* | `CustomerConfiguration` | `AddCustomerProductTable` |
 
 ### `Products`
@@ -84,7 +85,33 @@ varios productos y un producto pertenecer a varios clientes.
 
 La PK compuesta impide que el mismo producto se asocie dos veces al mismo cliente. El cascade en ambos
 lados significa que borrar un cliente o un producto borra sus filas de la tabla de unión, **nunca** la
-entidad del otro lado.
+entidad del otro lado. Con el borrado lógico ese cascade ya no se dispara desde la aplicación: borrar un
+cliente o un producto es un `UPDATE` en la base de datos, y sus filas de `CustomerProducts` se quedan
+(pendiente nº 38).
+
+---
+
+## Borrado lógico
+
+Ninguna de las tres entidades se borra de verdad. Lo resuelven tres piezas, y ninguna es un repositorio ni
+un caso de uso: `Delete` y `Remove` siguen llamándose igual que antes.
+
+| Pieza | Qué hace |
+|---|---|
+| `BaseAuditEntity` | Añade `IsDeleted`, `DeletedAt` y `DeletedBy`, así que las tres entidades los heredan. |
+| `AuditableEntitySaveChangesInterceptor` | Ante una entidad en estado `Deleted`, la pasa a `Modified` y rellena `IsDeleted = true`, `DeletedAt` y `DeletedBy` (el usuario del JWT, por `ICurrentUser`). EF genera un `UPDATE` en lugar de un `DELETE`. En `Added` y `Modified` deja `IsDeleted = false`. |
+| `HasQueryFilter(x => !x.IsDeleted)` | En `CustomerConfiguration`, `ProductConfiguration` y `UserConfiguration`. Toda consulta LINQ sobre esas tablas añade el filtro sola, así que lo borrado desaparece de listados, búsquedas, `SignIn` y detección de duplicados sin tocarlos. |
+
+Consecuencias que conviene tener presentes:
+
+- **El índice único de `Email` está filtrado** (`HasFilter("[IsDeleted] = 0")`, migración
+  `FilteredUniqueEmailIndex`): solo exige unicidad entre los usuarios vivos, así que un email borrado se
+  puede volver a registrar. El de `UserName` **no** está filtrado (pendiente nº 36).
+- **`FindAsync` no siempre pasa por el filtro.** Si la entidad ya está rastreada en el mismo `DbContext`,
+  la devuelve desde el `ChangeTracker`, aunque esté marcada como borrada. En una petición nueva sí se
+  filtra. `CustomerRepositoryTest.DeleteAsync_EliminaElClienteExistente` fija ese comportamiento.
+- **Para ver lo borrado hay que pedirlo** con `IgnoreQueryFilters()`; hoy no lo usa nadie.
+- **`DeletedAt` no admite nulos**: las filas vivas llevan `0001-01-01` (pendiente nº 38).
 
 ---
 
@@ -170,8 +197,10 @@ mapeadas** (sin `DbSet` ni tabla): código muerto, ya anotado en [*limitaciones*
 dotnet ef database update --project Ecommerce.Infrastructure --startup-project Ecommerce
 ```
 
-Sobre una base ya creada solo aplica las dos migraciones pendientes. Para volver al estado anterior a la
-tabla de unión (restaura la FK 1:N): `dotnet ef database update AddProductsTable`. Más detalle de la CLI en
+Sobre una base ya creada solo aplica las migraciones pendientes; las dos últimas son `SoftDeletedUpdate`
+(las tres columnas del borrado lógico en `Customers`, `Products` y `Users`, con `IsDeleted = 0` para las
+filas que ya existían) y `FilteredUniqueEmailIndex` (rehace `IX_Users_Email` con el filtro). Para volver al
+estado anterior a la tabla de unión (restaura la FK 1:N): `dotnet ef database update AddProductsTable`. Más detalle de la CLI en
 la skill `migraciones-ef-core`.
 
 > [!WARNING]
