@@ -30,6 +30,7 @@ try
     // Carga el secret montado por docker-compose.yml (ConnectionStrings:EcommerceDb, Jwt:Key).
     // Debe ir antes de AddInfrastructureServices(), que ya lee la connection string.
     builder.Configuration.AddJsonFile("/run/secrets/secrets.json", optional: true);
+    builder.Configuration.AddEnvironmentVariables();
 
     // Add services to the container.
     builder.Services.AddControllers();

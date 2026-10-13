@@ -2,9 +2,11 @@ using Ecommerce.Application;
 using Ecommerce.Application.Common.Behaviours;
 using Ecommerce.Transversal.Common;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using CreateCustomerCommandV3 = Ecommerce.Application.Feature.Customers.Commands.CreateCustomerCommand.CreateCustomerCommand;
 using CreateCustomerCommandV4 = Ecommerce.Application.Feature.Customers.v4.Commands.CreateCustomer.CreateCustomerCommand;
 
@@ -18,8 +20,9 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         {
             //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
+            var configuration = Substitute.For<IConfiguration>();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-            services.AddApplicationServices();
+            services.AddApplicationServices(configuration);
             var provider = services.BuildServiceProvider();
 
             //Act
@@ -36,8 +39,9 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         {
             //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
+            var configuration = Substitute.For<IConfiguration>();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-            services.AddApplicationServices();
+            services.AddApplicationServices(configuration);
             var provider = services.BuildServiceProvider();
 
             //Act

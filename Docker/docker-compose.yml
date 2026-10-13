@@ -14,6 +14,16 @@
 #     sa_password  -> password de sa en texto plano (mismo que en la connection
 #                     string); aparte porque SQL Server lo lee como archivo
 #                     crudo, no JSON.
+#
+# Data Protection:
+#   SignUp cifra nombre y apellido con las claves de Data Protection, que se guardan
+#   como ficheros en DataProtection:KeysPath. Si se pierden, esos datos no se pueden
+#   descifrar. Por eso la carpeta /keys es un volumen con nombre, que sobrevive a
+#   recrear el contenedor (borrarlo con "docker compose down -v" tambien borra las claves).
+#   El secrets.json de arriba puede traer tu ruta de Windows para DataProtection:KeysPath
+#   (es el mismo fichero que usan tus User Secrets): la variable de entorno
+#   DataProtection__KeysPath de abajo la sobrescribe porque Program.cs vuelve a llamar a
+#   AddEnvironmentVariables() despues de cargar el secrets.json.
 
 name: docker-production
 
@@ -36,6 +46,10 @@ services:
       Jwt__Issuer: Ecommerce
       Jwt__Audience: Ecommerce.Users
       Config__OrinCors: "http://localhost:3000"
+      # Ruta dentro del contenedor, no la de Windows del secrets.json.
+      DataProtection__KeysPath: /keys
+    volumes:
+      - dataprotection-keys:/keys
     secrets:
       # Se monta en /run/secrets/secrets.json; la app lo añade a su
       # configuracion con builder.Configuration.AddJsonFile(...) para que
@@ -107,6 +121,7 @@ services:
 volumes:
   sqlserver-data:
   redis-data:
+  dataprotection-keys:
 
 networks:
   ecommerce-net:

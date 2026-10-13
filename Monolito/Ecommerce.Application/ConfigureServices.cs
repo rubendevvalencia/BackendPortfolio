@@ -44,9 +44,12 @@ namespace Ecommerce.Application
             //Añadimos el ensamblado genérico de IFluentValidation, con esto no es necesario registrar cada validador de manera individual, 
             //se registran todos los que hereden de AbstractValidator<T> en el ensamblado.
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+            string? keysPath = configuration["DataProtection:KeysPath"];
+            if (string.IsNullOrWhiteSpace(keysPath)) throw new InvalidOperationException("Falta DataProtection:KeysPath en la configuración.");
+            
             services.AddDataProtection() //Agrega servicios de protección de datos, como cifrado y descifrado de datos sensibles.
                 .SetApplicationName("Ecommerce")
-                .PersistKeysToFileSystem(new DirectoryInfo(configuration["DataProtection:KeysPath"]));
+                .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
             return services;
         }
     }
