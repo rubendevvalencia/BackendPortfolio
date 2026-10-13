@@ -36,7 +36,7 @@ try
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
-    builder.Services.AddApplicationServices();
+    builder.Services.AddApplicationServices(builder.Configuration);
 
     // Aplica las migraciones pendientes antes de AddTransversalServices(): ese metodo configura
     // el sink de Serilog en SQL Server, que necesita que la base de datos ya exista.
