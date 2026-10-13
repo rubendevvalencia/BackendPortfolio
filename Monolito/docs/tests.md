@@ -2,7 +2,7 @@
 
 [← Volver al README](../README.md)
 
-**421 tests unitarios** (más 4 de integración en un proyecto aparte), repartidos en frentes distintos porque cada uno tiene un problema distinto.
+**427 tests unitarios** (más 4 de integración en un proyecto aparte), repartidos en frentes distintos porque cada uno tiene un problema distinto.
 
 **Repositorios (`Infrastructure`).** `DbContextEF` no expone miembros virtuales, así que **no se puede
 sustituir con un mock**. Estos tests usan el proveedor InMemory de EF Core, con una base distinta por test y
@@ -26,6 +26,13 @@ o no existe no se llama en absoluto.
 La comparación v3 → v4 también se ve en los tests: los handlers de v3 tienen un caso de validación y los de
 v4 no, porque en v4 la validación ya no vive en el handler sino en `ValidationBehaviour`.
 
+**Borrado de usuario (v4).** `DeleteCommandHandleTests` dobla `IUnitOfWork` e `IUserRepository` y cubre las
+ramas del handler: éxito cuando el commit escribe filas y el usuario ya no se encuentra; el mismo 401 con
+el mismo mensaje tanto si el email no existe como si la contraseña falla, sin llegar a borrar ni a
+confirmar; `Unexpected` si el commit no escribe filas o si el usuario sigue visible después; y que el
+`CancellationToken` llega al commit. Que el borrado sea lógico no se prueba aquí, porque lo decide el
+interceptor y no el handler.
+
 **Validadores (v3 y v4).** Los de `Create` y `Update` recorren cada regla con `[Theory]`: campo vacío,
 longitud exactamente en el límite (válida) y un carácter por encima (inválida). En v4, `Delete` y
 `GetCustomer` prueban además la regla del `Id`, que en v3 comprobaba el controller a mano. Si alguien cambia
@@ -35,7 +42,9 @@ una regla, falla su fila concreta.
 petición válida llama a `next()`, con una inválida lanza `ValidationExceptionCustom` **y no llama a
 `next()`** —que es la garantía de que el handler no se ejecuta—, y sin validadores registrados deja pasar.
 `ValidationBehaviourRegistrationTests` construye el contenedor real y comprueba lo que no se ve en el código:
-que una petición de v4 recibe el behaviour y una de v3 no. `LoggingBehaviourTests` fija la clasificación por
+que una petición de v4 recibe el behaviour y una de v3 no. Como `AddApplicationServices` exige
+`DataProtection:KeysPath`, esos tests le pasan una configuración en memoria que apunta a una carpeta
+temporal. `LoggingBehaviourTests` fija la clasificación por
 `ErrorType`: una respuesta correcta registra `Debug` e `Information`, una fallida registra en el nivel que
 corresponde a su `ErrorType` (una fila de `[Theory]` por tipo), y una respuesta que no es `Response<T>` solo
 registra `Debug`.
@@ -87,8 +96,14 @@ en `Development`. `HealthCheckCustomeTests` inyecta un `Random` controlado (el c
 para fijar el estado que devuelve cada tramo de tiempo de respuesta, sin depender del azar.
 
 **Tests de integración.** `Ecommerce.IntegrationTest` es un proyecto aparte, con 4 tests de autenticación contra
-SQL Server real y con `DataProtection` real. La CI **no los ejecuta**: no tiene base de datos ni *user secrets*.
+SQL Server real y con `DataProtection` real. Sus dependencias se levantan con
+[`docker-compose.integration-tests.yml`](../../Docker/Integration%20Tests/docker-compose.integration-tests.yml):
+SQL Server en el puerto 1435 y Redis en el 6379, con la contraseña de `sa` sacada de los propios *user
+secrets* del proyecto. Como el borrado es lógico y el índice de `UserName` no está filtrado (nº 36),
+`SignUpTest` genera un usuario y un email con un sufijo aleatorio en cada ejecución, para no chocar con
+los datos de la anterior. La CI **no los ejecuta**: no tiene esos servicios ni los *user secrets*.
 
-**Lo que falta:** ningún test cruza un controller; `ConfigureServicesTest` no resuelve `ICustomerReadRepository`
+**Lo que falta:** ningún test cruza un controller; ningún test de integración recorre el `Delete` de usuario
+ni comprueba contra la base de datos real que la fila se marca y no se borra; `ConfigureServicesTest` no resuelve `ICustomerReadRepository`
 ni los handlers de MediatR; y cuando exista la invalidación de la caché (nº 24) faltará el test que compruebe
 que se desaloja **después** del commit. Ver pendientes nº 8, 24 y 31.

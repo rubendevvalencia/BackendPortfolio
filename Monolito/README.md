@@ -16,7 +16,7 @@ Así cada decisión se compara en código que funciona, no en un párrafo.
 >   esperado. Conviven con el resto para poder compararlos.
 > - **Hay piezas que son ejercicios, no soluciones.** El rate limiter y la caché con Redis son versiones
 >   simplificadas para ver el patrón de punta a punta; no responden a un problema medido.
-> - **Hay deuda, y está a la vista.** Las **27 limitaciones conocidas** están en
+> - **Hay deuda, y está a la vista.** Las **30 limitaciones conocidas** están en
 >   [*limitaciones conocidas*](docs/limitaciones.md) con el mecanismo de cada fallo, y el orden en que se
 >   van a abordar, en la [hoja de ruta](#hoja-de-ruta). Si vas a evaluar el proyecto, esa lista forma parte
 >   de él tanto como el código.
@@ -63,12 +63,12 @@ Este fichero es el recorrido corto: qué es, cómo está montado y cómo se arra
 | [Evolución v1 → v4](docs/evolucion-v1-v4.md) | Los tres saltos —límite transaccional, CQRS, validación en el pipeline— y qué problema abría cada uno |
 | [Decisiones técnicas](docs/decisiones-tecnicas.md) | `Response<T>`, Unit of Work, logging, rate limiting, caché con Redis, health checks |
 | [Patrones usados](docs/patrones.md) | Mapa de los patrones del código (Repository, UoW, CQRS, Mediator, Cache-aside…), qué hace cada uno y dónde verlo; también los de tests y CI, y lo que el proyecto todavía no es |
-| [Modelo de datos e Infrastructure](docs/modelo-de-datos.md) | Las tablas (`Customers`, `Users`, `Products`, `CustomerProducts`), la relación N:M y qué piezas de `Infrastructure` las construyen |
+| [Modelo de datos e Infrastructure](docs/modelo-de-datos.md) | Las tablas (`Customers`, `Users`, `Products`, `CustomerProducts`), la relación N:M, el borrado lógico y qué piezas de `Infrastructure` las construyen |
 | [Endpoints](docs/endpoints.md) | Rutas de las cuatro versiones, el contrato `Response<T>` y los códigos de estado |
 | [Versionado de la API](docs/versionado-api.md) | Por qué segmento de URL y no cabecera, y cómo conviven cuatro contratos en Swagger |
-| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 421 tests que no se ve leyendo el código |
+| [Tests](docs/tests.md) | Qué se dobla y qué se usa real, y qué demuestran los 427 tests que no se ve leyendo el código |
 | [Integración continua](docs/integracion-continua.md) | Los tres workflows de GitHub Actions y lo que la CI todavía no hace |
-| [Limitaciones conocidas](docs/limitaciones.md) | Las 27 limitaciones, por prioridad y con el mecanismo de cada fallo |
+| [Limitaciones conocidas](docs/limitaciones.md) | Las 30 limitaciones, por prioridad y con el mecanismo de cada fallo |
 
 ---
 
@@ -123,7 +123,8 @@ Feature/
 │   │   │                 (cada una: Command · Handler · Validator)
 │   │   └── Queries/    GetAllCustomerQuery · GetCustomerQuery
 │   └── v4/   misma estructura; GetCustomerQuery gana Validator y los handlers pierden IValidator
-├── Users/   UserAuthApplication.cs
+├── Users/   UserAuthApplication.cs (v1–v3)
+│   └── Commands/   SignUp · SignIn · Delete (v4, cada una: Command · Handler · Validator)
 └── Jwt/     JwtApplication.cs
 
 Common/
@@ -144,10 +145,10 @@ Common/
 |---|---|
 | **Base** | .NET 10 · C# · ASP.NET Core Web API · EF Core 10 (Code First) sobre SQL Server |
 | **Patrones** | MediatR (CQRS en v3 y v4, con *pipeline behaviors*; también en la autenticación de v4) · FluentValidation · AutoMapper |
-| **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · ASP.NET Core Data Protection (nombre y apellido cifrados en base de datos) · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
+| **Transversal** | Asp.Versioning (versionado por URL) · JWT Bearer · ASP.NET Core Data Protection (nombre y apellido cifrados en base de datos, claves persistidas en disco) · borrado lógico con filtro global de EF Core · Serilog (consola, fichero y SQL Server) · Swashbuckle/OpenAPI, un documento por versión |
 | **Resiliencia** | Redis vía `IDistributedCache` (*cache-aside*) · rate limiter nativo de ventana fija · AspNetCore.HealthChecks (`/health` y `/health/ui`) — las tres, en versión simplificada |
 | **Tests y CI** | xUnit · NSubstitute · EF Core InMemory · Coverlet · tests de integración con SQL Server real · GitHub Actions con gitleaks y comprobación del build de la imagen Docker |
-| **Contenedores** | Dockerfile *multi-stage* (imagen `aspnet` sin privilegios) · `docker-compose` con API, SQL Server y Redis, con los secretos montados como archivos |
+| **Contenedores** | Dockerfile *multi-stage* (imagen `aspnet` sin privilegios) · `docker-compose` con API, SQL Server y Redis, con los secretos montados como archivos y las claves de Data Protection en un volumen · un segundo compose con SQL Server y Redis para los tests de integración |
 | **Uso de IA** | Copilot · Claude Code, como apoyo para revisar código, detectar fallos y contrastar alternativas. El criterio de arquitectura y de código lo aplica el desarrollador; el porqué de cada decisión está en `docs/` |
 
 ---
@@ -177,11 +178,16 @@ dotnet user-secrets set "ConnectionStrings:EcommerceDb" \
 dotnet user-secrets set "ConnectionStrings:RedisConnection" "localhost:6379" --project Ecommerce
 
 dotnet user-secrets set "Jwt:Key" "<clave aleatoria de 32 bytes o mas>" --project Ecommerce
+
+dotnet user-secrets set "DataProtection:KeysPath" "<carpeta local para las claves>" --project Ecommerce
 ```
 
 La clave JWT no es opcional: HMAC-SHA256 exige 256 bits, y el límite se mide en bytes, no en caracteres.
-En despliegue esos valores llegan por variables de entorno: `ConnectionStrings__EcommerceDb`,
-`ConnectionStrings__RedisConnection` y `Jwt__Key`.
+`DataProtection:KeysPath` tampoco: es la carpeta donde se guardan las claves que cifran nombre y apellido
+del usuario, y sin ella la API no arranca (`AddApplicationServices` lanza al registrar los servicios). Si
+esa carpeta se pierde, lo ya cifrado no se puede descifrar. En despliegue esos valores llegan por variables
+de entorno: `ConnectionStrings__EcommerceDb`, `ConnectionStrings__RedisConnection`, `Jwt__Key` y
+`DataProtection__KeysPath`.
 
 **2. Crea la base de datos.**
 
@@ -208,7 +214,11 @@ SQL Server y Redis. Los secretos se montan como archivos desde una carpeta tuya,
 SECRETS_DIR=<ruta> docker compose -f ../Docker/docker-compose.yml up --build
 ```
 
-La API queda en `http://localhost:8080`.
+La API queda en `http://localhost:8080` y SQL Server se publica en el puerto **1434** del host (el 1433
+queda libre para una instancia local). Las claves de Data Protection viven en el volumen con nombre
+`dataprotection-keys`, montado en `/keys`: sobreviven a recrear el contenedor, pero
+`docker compose down -v` las borra junto con los datos y, con ellas, la posibilidad de descifrar los
+usuarios ya registrados.
 
 > [!NOTE]
 > **Tres comportamientos que son decisión, no fallo**, para que no parezca que algo no funciona:
@@ -225,20 +235,35 @@ La API queda en `http://localhost:8080`.
 >   [*Endpoints*](docs/endpoints.md).
 
 `Ecommerce.slnx` incluye también `Ecommerce.IntegrationTest`, así que `dotnet test` sobre la solución
-completa arrastra sus tests: necesitan la misma SQL Server real de arriba (los aplica con
-`dbContext.Database.Migrate()` al vuelo) y los mismos *user secrets*. Para correr solo la suite unitaria,
+completa arrastra sus tests: necesitan una SQL Server y un Redis reales (las migraciones se aplican con
+`dbContext.Database.Migrate()` al vuelo) y sus propios *user secrets*. Para correr solo la suite unitaria,
 sin esa dependencia, `dotnet test Ecommerce.Test/Ecommerce.Test.csproj`.
+
+**Dependencias de los tests de integración con Docker.**
+[`Docker/Integration Tests/docker-compose.integration-tests.yml`](../Docker/Integration%20Tests/docker-compose.integration-tests.yml)
+levanta SQL Server (puerto **1435**) y Redis (6379) como un proyecto de Compose aparte, con su red y sus
+volúmenes, para no chocar con el del monolito. Monta el `secrets.json` de los *user secrets* de
+`Ecommerce.IntegrationTest` y saca de él la contraseña de `sa`, así que la contraseña vive en un único sitio:
+
+```bash
+# Docker/Integration Tests/.env (no versionado): TESTS_SECRETS_DIR=<carpeta del UserSecretsId>
+# La connection string de esos secrets debe apuntar a Server=localhost,1435
+docker compose -f "../Docker/Integration Tests/docker-compose.integration-tests.yml" up -d --wait
+dotnet test Ecommerce.IntegrationTest
+docker compose -f "../Docker/Integration Tests/docker-compose.integration-tests.yml" down
+```
 
 ---
 
 ## Endpoints
 
-Todos exigen `Authorization: Bearer <token>` salvo `SignUp` y `SignIn`, y todos devuelven la misma
-envoltura `Response<T>`, cuyo `ErrorType` es lo que el controller traduce a 200, 400, 404, 409 o 500.
+Todos exigen `Authorization: Bearer <token>` salvo `SignUp`, `SignIn` y el `Delete` de usuario, y todos
+devuelven la misma envoltura `Response<T>`, cuyo `ErrorType` es lo que el controller traduce a 200, 400,
+401, 404, 409 o 500.
 
 | Recurso | Rutas |
 |---|---|
-| `api/v{1\|2\|3\|4}/UserAuth` | `POST /SignUp` · `POST /SignIn` — v1–v3 **deprecadas**, por el servicio de aplicación; v4 vigente, por commands de MediatR (`SignUpCommand`, `SignInCommand`) |
+| `api/v{1\|2\|3\|4}/UserAuth` | `POST /SignUp` · `POST /SignIn` — v1–v3 **deprecadas**, por el servicio de aplicación; v4 vigente, por commands de MediatR (`SignUpCommand`, `SignInCommand`), y solo en v4 `DELETE /Delete` (`DeleteCommand`, borrado lógico con email y contraseña en el cuerpo) |
 | `api/v{1\|2}/Customer` | `GET /GetAllAsync` · `GET /GetByIdAsync/{id}` · `POST /AddAsync` · `PUT /UpdateAsync{id}` · `POST /UpdateAsyncPost/{id}` · `DELETE /DeleteAsync/{id}` |
 | `api/v{3\|4}/Customer` | Lo mismo, con `AddAsync` renombrado a `Create` y sin `PUT`: la actualización va por `POST /UpdateAsyncPost` con el `Id` en el cuerpo |
 
@@ -250,30 +275,31 @@ probarla (el listado cacheado sin invalidar, y las rutas con el verbo dentro de 
 
 ## Estado actual
 
-Compila sin errores y **421 de 421 tests unitarios en verde**, en local y en la CI. A eso se suma
+Compila sin errores y **427 tests unitarios en verde**, en local y en la CI. A eso se suma
 `Ecommerce.IntegrationTest`, un proyecto aparte con tests de integración de la autenticación —`SignUp → SignIn`
 tanto por el servicio de v1–v3 como por CQRS en v4—, que resuelven el controller real desde el contenedor
 de DI contra una base de datos SQL Server real y con el `DataProtection` real, sin dobles. Los de CQRS
 comprueban lo que un test unitario no puede: que nombre y apellido **llegan cifrados a la tabla** y que
 `SignIn` devuelve el `FullName` descifrado, que una contraseña incorrecta da 401 sin datos y que un email
-ya registrado da `Duplicated`. Hoy **solo corren en local**: la CI de GitHub Actions lo deja fuera a propósito, porque el
-runner no tiene ni SQL Server ni los *user secrets* que necesita (detalle en
-[*Integración continua*](docs/integracion-continua.md)). Hay **27 limitaciones conocidas** (de 34
-anotadas, siete ya resueltas), cada una con su mecanismo explicado en
+ya registrado da `Duplicated`. Sus dependencias (SQL Server y Redis) se levantan con un compose propio,
+pero hoy **solo corren en local**: la CI de GitHub Actions los deja fuera a propósito, porque el runner no
+tiene ni esos servicios ni los *user secrets* que necesitan (detalle en
+[*Integración continua*](docs/integracion-continua.md)). Hay **30 limitaciones conocidas** (de 38
+anotadas, ocho ya resueltas), cada una con su mecanismo explicado en
 [*limitaciones conocidas*](docs/limitaciones.md).
 
 | Área | Pendientes | Las que más pesan |
 |---|---|---|
-| Seguridad | 3 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) |
-| Corrección | 10 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) |
+| Seguridad | 3 | Emails de usuario persistidos en la tabla de logs (nº 19) · al 429 del rate limiter le falta `Retry-After` (nº 23) · un usuario borrado conserva sus datos personales (nº 37) |
+| Corrección | 11 | La caché no se invalida nunca (nº 24) · actualizar con los mismos datos devuelve 500 (nº 4) · tras borrar un usuario su email se puede reutilizar, pero su `UserName` no (nº 36) |
 | Tests | 2 | La frontera HTTP no tiene ni un test de integración (nº 8) · `ConfigureServicesTest` no resuelve `ICustomerReadRepository` ni los handlers de MediatR (nº 31) |
-| Diseño | 8 | El dominio es anémico (nº 12) · se cachea la entidad con una clave sin versionar (nº 27) |
-| Higiene | 4 | Sin paginación en `GetAll`, que además es el endpoint cacheado (nº 18) |
+| Diseño | 9 | El dominio es anémico (nº 12) · se cachea la entidad con una clave sin versionar (nº 27) · el borrado de usuario se autentica con contraseña y no con el JWT (nº 35) |
+| Higiene | 5 | Sin paginación en `GetAll`, que además es el endpoint cacheado (nº 18) |
 
 No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en qué orden pienso resolverlo.
 
 <details>
-<summary>Historial de cambios — los 23 hitos, en el orden en que se construyeron</summary>
+<summary>Historial de cambios — los 26 hitos, en el orden en que se construyeron</summary>
 
 | # | Cambio | Qué resolvió |
 |---|---|---|
@@ -301,6 +327,8 @@ No es una lista de descuidos que se hayan escapado: es lo que sé que falta y en
 | 22 | **Autenticación con CQRS en v4**: `SignUpCommand` y `SignInCommand` con su handler y validador · `ApiResponseControllerBase.ToActionResult` traduce `Response<T>` a 200/404/409/504/500 en un único sitio · controllers de `UserAuth` separados en `v1-3` (las tres versiones pasan a `Deprecated`) y `v4` (la vigente) | La autenticación sigue el mismo camino que `Customer` (controller solo con `IMediator`), y la traducción `ErrorType` → HTTP deja de repetirse en cada acción |
 | 23 | **Datos personales cifrados en base de datos** con `IDataProtector` (propósito centralizado en `ProtectorParameters`): `FirstName` y `LastName` se protegen al registrar y `SignIn` los descifra para devolver `FullName` en el `TokenDto` · migraciones que ajustan el tamaño de las columnas · los handlers de `SignUp` y `SignIn` con tests unitarios por rama (duplicado por email o por usuario, commit sin filas, credenciales inválidas indistinguibles, no desproteger si la contraseña falla) y tres tests de integración contra base de datos real | Un volcado de la tabla `User` ya no expone nombre y apellido en claro. El email **se queda en claro a propósito**: `SignIn` lo usa como clave de búsqueda; se probó cifrarlo y se revirtió (migración `RevertUserEmailLength`) |
 | 24 | **Cobertura de `Infrastructure` y del pipeline**: tests de la caché sin Redis (`CustomerReadRepository` y `CacheConfiguration`) · `LoggingBehaviour` · health check con `Random` inyectable · `EnableSensitiveDataLogging` solo en `Development` · `CompareInfoInDb` · política de caché renombrada a `CustomerAll` (`eCacheKey` y `Cache:Policies:CustomerAll`) | La suite pasa de 291 a **421 tests unitarios** y la lógica de caché deja de ser la única parte de `Infrastructure` sin cubrir |
+| 25 | **Borrado lógico**: `BaseAuditEntity` gana `IsDeleted`, `DeletedAt` y `DeletedBy` · el interceptor de auditoría convierte cada `Deleted` en un `Modified` que marca la fila · filtro global `HasQueryFilter(!IsDeleted)` en `Customer`, `Product` y `User` · índice único de `Email` filtrado a las filas vivas · `DELETE api/v4/UserAuth/Delete` con su command, handler, validador y tests · migraciones `SoftDeletedUpdate` y `FilteredUniqueEmailIndex` | Borrar deja de destruir datos en las tres entidades sin tocar un solo repositorio ni caso de uso: el mismo punto único que rellena la auditoría decide también qué significa borrar |
+| 26 | **Claves de Data Protection persistidas** en `DataProtection:KeysPath` con `SetApplicationName("Ecommerce")` (obligatoria al arrancar) · volumen `dataprotection-keys` en el compose y carpeta `/keys` creada en el Dockerfile para el usuario sin privilegios · `AddEnvironmentVariables()` tras el `secrets.json` montado · **compose propio para los tests de integración** (SQL Server en 1435 y Redis) · SQL Server del compose del monolito al puerto 1434 · `Config:OrinCors` renombrado a `Config:OriginCors` | Recrear el contenedor ya no deja a los usuarios registrados sin poder descifrarse (nº 32), y los tests de integración tienen sus dependencias en un comando sin pisar las del monolito |
 
 </details>
 
@@ -315,7 +343,7 @@ lo que lo publica, porque una vez publicado, cambiarlo es un *breaking change*.
 |---|---|---|
 | **A** | Versionado de la API · limpieza de rutas a REST · healthcheck | 🟡 Versionado y healthcheck hechos; rutas por limpiar |
 | **B** | Unit of Work · middleware global de excepciones · `EnableSensitiveDataLogging` por entorno | 🟢 Cerrado: Unit of Work, middleware al principio del pipeline (nº 1) y `EnableSensitiveDataLogging` solo en desarrollo (nº 2) |
-| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y los tests de integración de la autenticación (`SignUp → SignIn` en v1–v3 y en CQRS v4, con la protección de datos real); el resto de la frontera HTTP y meterlos en la CI |
+| **C** | Tests de `Application` · CQRS con MediatR · *pipeline behaviors* · tests de integración | 🟡 Hechos los tests de `Application`, los behaviours y los tests de integración de la autenticación (`SignUp → SignIn` en v1–v3 y en CQRS v4, con la protección de datos real y sus dependencias en un compose propio); el resto de la frontera HTTP y meterlos en la CI |
 | **D** | Dominio con invariantes · modelado relacional (`Order` → `OrderLine`) · paginación · Postgres | ⬜ |
 | **E** | GitHub Actions · Dockerfile · despliegue en Azure | 🟡 CI y Dockerfile hechos (la CI comprueba que la imagen construye); falta el despliegue |
 | **F** | Rendimiento y resiliencia: caché *cache-aside* · rate limiting · health checks | 🟡 Las tres montadas en versión simplificada; a la caché le falta la invalidación (nº 24) y al rate limiter, ya particionado por IP con política propia para `SignIn`/`SignUp`, le falta `Retry-After` en el 429 (nº 23) |
@@ -331,8 +359,9 @@ Siguientes pasos, por orden:
 3. **Autenticación**: `JwtOptions` validadas al arrancar, `ITokenService` en `Infrastructure`, y `Retry-After`
    en el 429 del rate limiter (nº 23) — el 401 único de `SignIn` ya está cerrado.
 4. **Tests de integración**: ya hay casos de autenticación (`SignUp → SignIn`, v1–v3 y CQRS v4) contra una base de datos real,
-   resolviendo el controller desde el contenedor de DI en vez de con `WebApplicationFactory`; falta
-   extenderlos al CRUD de `Customer` en las cuatro versiones y decidir cómo entran en la CI.
+   resolviendo el controller desde el contenedor de DI en vez de con `WebApplicationFactory`, y sus
+   dependencias ya se levantan con `docker-compose.integration-tests.yml`; falta extenderlos al CRUD de
+   `Customer` en las cuatro versiones y al `Delete` de usuario, y decidir cómo entran en la CI.
 5. **Paginar `GetAll`** (nº 18) y, con la paginación puesta, volver a preguntarse qué caché tiene sentido —la
    respuesta puede ser perfectamente que ninguna.
 6. **Bloque D**: un agregado real (`Order` → `OrderLine`) donde el Unit of Work tenga dos tablas que
