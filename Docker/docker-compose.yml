@@ -15,6 +15,8 @@
 #                     string); aparte porque SQL Server lo lee como archivo
 #                     crudo, no JSON.
 
+name: docker-production
+
 secrets:
   app_secrets:
     file: ${SECRETS_DIR}/secrets.json
@@ -81,7 +83,7 @@ services:
       # Puerto host 1433 porque ese lo usa el SQL Server local de
       # los integration tests; dentro de la red del compose sigue siendo 1433
       # (ver ConnectionStrings:EcommerceDb -> Server=sqlserver,1433).
-      - "1433:1433"
+      - "1434:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:
