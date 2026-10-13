@@ -47,10 +47,18 @@ namespace Ecommerce.Infrastructure.Interceptors
                             auditableEntity.CreatedBy = auditUser;
                             auditableEntity.LastUpdatedAt = DateTime.UtcNow;
                             auditableEntity.LastUpdatedBy = auditUser;
+                            auditableEntity.IsDeleted = false;
                             break;
                         case EntityState.Modified:
                             auditableEntity.LastUpdatedAt = DateTime.UtcNow;
                             auditableEntity.LastUpdatedBy = auditUser;
+                            auditableEntity.IsDeleted = false;
+                            break;
+                        case EntityState.Deleted:
+                            entry.State = EntityState.Modified;
+                            auditableEntity.DeletedAt = DateTime.UtcNow;
+                            auditableEntity.DeletedBy = auditUser;
+                            auditableEntity.IsDeleted = true;
                             break;
                     }
                 }

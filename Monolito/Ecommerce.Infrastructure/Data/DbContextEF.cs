@@ -19,7 +19,7 @@ namespace Ecommerce.Infrastructure.Data
         private readonly IConfiguration _conf;
         private readonly string _connectionString;
 
-        public readonly AuditableEntitySaveChangesInterceptor auditableEntitySaveChangesInterceptor;
+        public readonly AuditableEntitySaveChangesInterceptor _auditableEntitySaveChangesInterceptor;
 
         public DbSet<Customer> Customers { get; set; }
         public DbSet<User> Users { get; set; }
@@ -30,7 +30,7 @@ namespace Ecommerce.Infrastructure.Data
         {
             _conf = configuration;
             _connectionString = _conf.GetConnectionString("EcommerceDb");
-            this.auditableEntitySaveChangesInterceptor = auditableEntitySaveChangesInterceptor;
+            _auditableEntitySaveChangesInterceptor = auditableEntitySaveChangesInterceptor;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,7 +46,7 @@ namespace Ecommerce.Infrastructure.Data
             {
                 optionsBuilder.UseSqlServer(_connectionString, builder => builder.EnableRetryOnFailure());
             }
-            optionsBuilder.AddInterceptors(auditableEntitySaveChangesInterceptor);
+            optionsBuilder.AddInterceptors(_auditableEntitySaveChangesInterceptor);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -30,13 +30,14 @@ try
     // Carga el secret montado por docker-compose.yml (ConnectionStrings:EcommerceDb, Jwt:Key).
     // Debe ir antes de AddInfrastructureServices(), que ya lee la connection string.
     builder.Configuration.AddJsonFile("/run/secrets/secrets.json", optional: true);
+    builder.Configuration.AddEnvironmentVariables();
 
     // Add services to the container.
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
-    builder.Services.AddApplicationServices();
+    builder.Services.AddApplicationServices(builder.Configuration);
 
     // Aplica las migraciones pendientes antes de AddTransversalServices(): ese metodo configura
     // el sink de Serilog en SQL Server, que necesita que la base de datos ya exista.
@@ -94,8 +95,6 @@ try
             {
                 c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
             }
-
-
             c.RoutePrefix = "swagger"; //Esto establece la ruta base para acceder a la interfaz de usuario de Swagger. En este caso, la interfaz estará disponible en /swagger.
             c.DisplayRequestDuration(); //Esto habilita la visualización de la duración de las solicitudes en la interfaz de usuario de Swagger. Muestra cuánto tiempo tarda cada solicitud en completarse, lo que puede ser útil para el rendimiento y la depuración.
             c.EnableDeepLinking();
@@ -109,10 +108,7 @@ try
                 options.DocumentTitle = "Ecommerce Services Api";
                 options.SpecUrl = $"/swagger/{description.GroupName}/swagger.json";
             }
-        }
-
-            
-            );
+        });
         //app.MapOpenApi(): No está del todo maduro y es recomendable seguir usando UseSwagger() y UseSwaggerUI() para tener un control más completo sobre la configuración de Swagger en el entorno de desarrollo.
     }
     

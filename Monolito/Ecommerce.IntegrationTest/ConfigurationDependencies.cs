@@ -15,7 +15,7 @@ namespace Ecommerce.IntegrationTest
             services.AddSingleton(configuration);
             services.AddLogging();
 
-            services.AddApplicationServices();
+            services.AddApplicationServices(configuration);
             services.AddInfrastructureServices(configuration, environment);
 
             services.AddScoped<UserAuthController>();

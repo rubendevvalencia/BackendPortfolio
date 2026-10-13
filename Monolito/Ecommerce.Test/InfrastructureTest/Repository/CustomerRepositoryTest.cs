@@ -275,7 +275,7 @@ namespace Ecommerce.Test.InfrastructureTest.Repository
 
             Assert.True(resultAdd);
             Assert.True(resultDelete);
-            Assert.Null(resultFind);
+            Assert.True(resultFind.IsDeleted);
             Assert.Empty(readContext.Customers);
         }
 

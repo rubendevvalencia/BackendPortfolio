@@ -56,5 +56,9 @@ namespace Ecommerce.Infrastructure.Repository.Jwt
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.UserName == userName);
             return user;
         }
+
+        public void DeleteUser(User user) => _dbContext.Users.Remove(user); //El interceptor lo gestiona automáticamente
+
+        public Task<User?> GetByIdAsync(int id) => _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 }

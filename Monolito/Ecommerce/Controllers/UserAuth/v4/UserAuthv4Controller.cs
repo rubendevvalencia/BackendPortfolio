@@ -1,5 +1,6 @@
 using System.Net;
 using Asp.Versioning;
+using Ecommerce.Application.Feature.Users.Commands.Delete;
 using Ecommerce.Application.Feature.Users.Commands.SignIn;
 using Ecommerce.Application.Feature.Users.Commands.SignUp;
 using Ecommerce.Transversal.Common;
@@ -48,6 +49,20 @@ namespace Ecommerce.Api.Controllers.UserAuth.V4
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
         public async Task<IActionResult> SignInAsync([FromBody] SignInCommand request)
+        {
+            var response = await _mediator.Send(request);
+            return ToActionResult(response);
+        }
+
+        [AllowAnonymous] //Permite el acceso a este método sin necesidad de un jwt válido. Se está registrando para tener token de acceso.
+        [EnableRateLimiting("auth-limited")] //Pisa la politica de la clase: SignIn necesita el limite mas estricto, no el general.
+        [HttpDelete("Delete")]
+        [SwaggerOperation(Summary = "Eimina un usuario almacenado")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Deleted successfully.", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "The signin data is invalid.", typeof(Response<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized", typeof(Response<bool>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal error", typeof(Response<bool>))]
+        public async Task<IActionResult> Delete([FromBody] DeleteCommand request)
         {
             var response = await _mediator.Send(request);
             return ToActionResult(response);
