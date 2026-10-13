@@ -11,6 +11,8 @@ namespace Ecommerce.Domain.Interface.IRepository.Jwt
     {
         Task<User?> GetByEmailAsync(string email);
         Task<User?> GetByUserNameAsync(string userName);
+        void DeleteUser(User user);
+        Task<User?> GetByIdAsync(int id);
 
         Task CreateUserAsync(User user, string password);
 
