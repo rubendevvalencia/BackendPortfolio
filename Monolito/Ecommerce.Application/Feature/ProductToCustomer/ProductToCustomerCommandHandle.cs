@@ -19,8 +19,8 @@ namespace Ecommerce.Application.Feature.ProductToCustomer
         {
             var response = new Response<bool>();
         
-            var customer = await _unitOfWork._customersUoW.GetByIdAsync(request.CustomerId);
-            var product = await _unitOfWork._products.GetByIdAsync(request.ProductId);
+            var customer = await _unitOfWork._customersUoW.GetByIdAsync(request.CustomerId, cancellationToken);
+            var product = await _unitOfWork._products.GetByIdAsync(request.ProductId, cancellationToken);
             if (customer == null || product == null) return Response<bool>.Fail("Product or Customer not found", ErrorType.NotFound);
             
             // Agregar el producto al cliente
