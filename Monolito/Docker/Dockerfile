@@ -46,6 +46,12 @@ EXPOSE 8080
 
 COPY --from=build /app/publish .
 
+# Carpeta de las claves de Data Protection (DataProtection:KeysPath, ver docker-compose.yml).
+# Se crea aqui, con "app" como propietario, antes de cambiar de usuario: un volumen nuevo
+# hereda el propietario de este directorio la primera vez que se crea. Sin esto, el usuario
+# sin privilegios no podria escribir en el volumen y la app fallaria al arrancar.
+RUN mkdir /keys && chown app /keys
+
 # Las imagenes oficiales de aspnet (desde .NET 8) traen creado un usuario sin
 # privilegios llamado "app": se usa en vez de root para reducir el impacto de
 # una posible vulnerabilidad dentro del contenedor.

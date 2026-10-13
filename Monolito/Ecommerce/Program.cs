@@ -30,13 +30,14 @@ try
     // Carga el secret montado por docker-compose.yml (ConnectionStrings:EcommerceDb, Jwt:Key).
     // Debe ir antes de AddInfrastructureServices(), que ya lee la connection string.
     builder.Configuration.AddJsonFile("/run/secrets/secrets.json", optional: true);
+    builder.Configuration.AddEnvironmentVariables();
 
     // Add services to the container.
     builder.Services.AddControllers();
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
-    builder.Services.AddApplicationServices();
+    builder.Services.AddApplicationServices(builder.Configuration);
 
     // Aplica las migraciones pendientes antes de AddTransversalServices(): ese metodo configura
     // el sink de Serilog en SQL Server, que necesita que la base de datos ya exista.

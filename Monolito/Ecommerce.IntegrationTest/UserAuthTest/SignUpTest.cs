@@ -42,8 +42,12 @@ namespace Ecommerce.IntegrationTest.UserAuthTest
                 //Esto te permite instalar y crear las tablas de las migraciones y así no te preocupas de que dé error 400 cuando no toca
                 var dbContext = serviceProvider.GetRequiredService<DbContextEF>();
                 dbContext.Database.Migrate();
-
+                //El borrado es logico y UserName tiene un indice unico sin filtro. 
+                // Generamos un sufijo previo para no tener problemas de que ya existe el dato y recortamos los 8 primeros digitos, así evitamos solampamientos innecesario en segunda ejecución y evita que rompa
+                var sufijo = Guid.NewGuid().ToString("N").Substring(0, 8);
                 SignUpDto data = CreateEntity();
+                data.UserName = "test" + sufijo;
+                data.Email = "test" + sufijo + "@email.com";
                 var signDeparment = serviceProvider.GetRequiredService<UserAuthController>();
 
                 try

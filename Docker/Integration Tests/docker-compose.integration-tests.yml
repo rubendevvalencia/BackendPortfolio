@@ -1,0 +1,79 @@
+# Dependencias para los tests de integracion (Ecommerce.IntegrationTest): SQL Server
+# y Redis en local. Es un proyecto aparte de docker-compose.yml, con su propia red
+# y sus propios volumenes, para que no choque con el compose del monolito.
+#
+# Puertos en el host (los tests se conectan desde fuera de Docker, por localhost):
+#   SQL Server -> 1435 (el compose del monolito publica el suyo en 1434)
+#   Redis      -> 6379
+#
+# Secrets:
+#   Se monta como archivo el secrets.json de User Secrets de Ecommerce.IntegrationTest,
+#   cuya carpeta se pasa en TESTS_SECRETS_DIR (en el .env junto a este archivo,
+#   Docker/Integration Tests/.env, no versionado; ruta de la carpeta, no secreto en si):
+#     TESTS_SECRETS_DIR=<ruta a la carpeta del UserSecretsId>
+#
+#   No hay un archivo sa_password aparte: SQL Server necesita la password como texto
+#   crudo, asi que el arranque la extrae de ConnectionStrings:EcommerceDb (el valor
+#   de "Password=") y asi la contraseña vive en un unico sitio. Esa connection string
+#   debe llevar Server=localhost,1435, y la password cumplir la politica de
+#   complejidad de SQL Server (8+ caracteres, 3 de 4 tipos).
+#
+# Uso (--wait espera al healthcheck antes de devolver el control):
+#   docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" up -d --wait
+#   docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" down
+# El -f es obligatorio: este nombre no es uno de los que Compose busca por defecto
+# y, sin el, desde esta carpeta cogeria el docker-compose.yml de la carpeta superior.
+
+name: integration-tests
+
+secrets:
+  tests_secrets:
+    file: ${TESTS_SECRETS_DIR:?Define TESTS_SECRETS_DIR en el .env}/secrets.json
+
+services:
+  sqlserver:
+    # Fijado a un CU concreto, igual que en docker-compose.yml: la build mas
+    # reciente (RTM-CU27) tenia roto el login de "sa" para cualquier password.
+    image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+    secrets:
+      - source: tests_secrets
+        target: secrets.json
+    # Sustituye el CMD de la imagen (el entrypoint permissions_check.sh se mantiene):
+    # saca la password de la connection string, la exporta como MSSQL_SA_PASSWORD y
+    # arranca sqlservr. El bloque "|" no procesa escapes; "$$" es un "$" literal.
+    command:
+      - /bin/bash
+      - -c
+      - |
+        export MSSQL_SA_PASSWORD="$$(sed -n 's/.*Password=\([^;"]*\).*/\1/p' /run/secrets/secrets.json | head -n 1)"
+        exec /opt/mssql/bin/sqlservr
+    ports:
+      - "1435:1433"
+    volumes:
+      - sqlserver-tests-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q 'SELECT 1' \
+            -P "$$(sed -n 's/.*Password=\([^;"]*\).*/\1/p' /run/secrets/secrets.json | head -n 1)" || exit 1
+      interval: 10s
+      # sqlcmd tarda mas de 5s en esta maquina; con 5s el contenedor quedaba unhealthy.
+      timeout: 15s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sqlserver-tests-data:
