@@ -20,7 +20,13 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         {
             //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
-            var configuration = Substitute.For<IConfiguration>();
+            var keysPath = Path.Combine(Path.GetTempPath(), "BackendPortfolioTests", "DataProtection-Keys");
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["DataProtection:KeysPath"] = keysPath
+                })
+                .Build();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
             services.AddApplicationServices(configuration);
             var provider = services.BuildServiceProvider();
@@ -39,7 +45,13 @@ namespace Ecommerce.Test.ApplicationTest.Common.Behaviours
         {
             //Arrange: LoggingBehaviour pide ILogger<>, aqui basta con el logger nulo.
             var services = new ServiceCollection();
-            var configuration = Substitute.For<IConfiguration>();
+            var keysPath = Path.Combine(Path.GetTempPath(), "BackendPortfolioTests", "DataProtection-Keys");
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["DataProtection:KeysPath"] = keysPath
+                })
+                .Build();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
             services.AddApplicationServices(configuration);
             var provider = services.BuildServiceProvider();
