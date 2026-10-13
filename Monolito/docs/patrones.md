@@ -42,9 +42,11 @@ Data Protection añade cabecera, IV y firma y lo pasa a base64. El mapeo está d
 | **Strategy (política configurable)** | Permite elegir qué regla se aplica a cada endpoint con solo un atributo. | Rate limiting `user-limited` y `auth-limited`; timeouts `DefaultPolicy` y `CustomPolicy` |
 | **API Versioning por URL** | Mantiene varias versiones del contrato a la vez, visibles en la ruta (`api/v4/...`). | `Asp.Versioning` con un Swagger por versión; ver [*Versionado*](versionado-api.md) |
 | **Health Check** | Expone el estado de la app y de sus dependencias (SQL, Redis) para monitorización. | [`HealthCheckCustome`](../Ecommerce.Infrastructure/HealthCheck/HealthCheckCustome.cs), `/health` y `/health/ui` |
-| **Data Protection** | Cifra datos personales del usuario y guarda las contraseñas como hash con salt. | `IDataProtector` en `SignUp/SignInCommandHandle`; `IPasswordHasher<User>` en [`UserRepository`](../Ecommerce.Infrastructure/Repository/Jwt/UserRepository.cs) |
+| **Data Protection** | Cifra datos personales del usuario y guarda las contraseñas como hash con salt. Las claves se persisten en disco para sobrevivir a reinicios. | `IDataProtector` en `SignUp/SignInCommandHandle`; `PersistKeysToFileSystem` en [`ConfigureServices`](../Ecommerce.Application/ConfigureServices.cs); `IPasswordHasher<User>` en [`UserRepository`](../Ecommerce.Infrastructure/Repository/Jwt/UserRepository.cs) |
+| **Soft delete** | Borrar marca la fila en lugar de eliminarla, y se resuelve en el interceptor, no en cada repositorio. | `EntityState.Deleted` → `Modified` en [`AuditableEntitySaveChangesInterceptor`](../Ecommerce.Infrastructure/Interceptors/AuditableEntitySaveChangesInterceptor.cs) |
+| **Global query filter** | Añade una condición a toda consulta de una entidad para que lo borrado no aparezca. | `HasQueryFilter(x => !x.IsDeleted)` en `CustomerConfiguration`, `ProductConfiguration` y `UserConfiguration` |
 | **Retry / resiliencia** | Reintenta solo ante fallos transitorios de la base de datos. | `EnableRetryOnFailure()` en [`ConfigureServices`](../Ecommerce.Infrastructure/ConfigureServices.cs) |
-| **Herencia para auditoría** | Las entidades heredan los campos de auditoría de una clase base común. | [`BaseAuditEntity`](../Ecommerce.Domain/Entities/Audit/BaseAuditEntity.cs) |
+| **Herencia para auditoría** | Las entidades heredan los campos de auditoría y de borrado lógico de una clase base común. | [`BaseAuditEntity`](../Ecommerce.Domain/Entities/Audit/BaseAuditEntity.cs) |
 
 ## Testing
 
@@ -56,7 +58,7 @@ Data Protection añade cabecera, IV y firma y lo pasa a base64. El mapeo está d
 | **Test del composition root** | Resuelve todo el grafo de DI con `validateScopes: true` para cazar dependencias mal registradas. |
 | **Costura para el test** | Un constructor alternativo (o un parámetro como `IHostEnvironment`) permite controlar lo no determinista sin tocar el comportamiento en producción. | `HealthCheckCustome(Random)` y `AddInfrastructureServices(configuration, environment)` |
 | **Factorías de datos** | `NewCustomerDto` y `NewSignUpDto` en la clase base evitan repetir la construcción de datos de prueba. |
-| **Tests de integración** | [`Ecommerce.IntegrationTest`](../Ecommerce.IntegrationTest) usa el contenedor de DI real para recorrer el flujo SignUp → SignIn. |
+| **Tests de integración** | [`Ecommerce.IntegrationTest`](../Ecommerce.IntegrationTest) usa el contenedor de DI real para recorrer el flujo SignUp → SignIn, con SQL Server y Redis levantados por un compose propio. |
 
 Detalle en [*Tests*](tests.md).
 
@@ -68,6 +70,8 @@ Detalle en [*Tests*](tests.md).
 | **Secret scanning** (gitleaks) | Impide que entre una credencial nueva en el repositorio. |
 | **Permisos mínimos** | El `GITHUB_TOKEN` nace de solo lectura y solo se eleva donde hace falta. |
 | **Secrets montados en Docker** | `Program.cs` carga `/run/secrets/secrets.json`, y las credenciales quedan fuera de la imagen y del repo. |
+| **Volumen con nombre para estado** | Las claves de Data Protection viven en `dataprotection-keys`, fuera del contenedor, y sobreviven a recrearlo. |
+| **Compose por propósito** | Un compose para el monolito y otro, con su propia red, volúmenes y puertos, para las dependencias de los tests de integración. |
 
 Detalle en [*Integración continua*](integracion-continua.md).
 

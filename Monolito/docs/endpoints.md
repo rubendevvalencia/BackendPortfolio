@@ -7,7 +7,8 @@ Referencia completa de la API. En local, la base es `https://localhost:7051` y S
 
 ## Autenticación
 
-Los dos endpoints de `UserAuth` son `[AllowAnonymous]`. **Todo lo demás exige un JWT válido**:
+Los endpoints de `UserAuth` (`SignUp`, `SignIn` y, en v4, `Delete`) son `[AllowAnonymous]`. **Todo lo
+demás exige un JWT válido**:
 
 ```http
 Authorization: Bearer <access_token>
@@ -52,13 +53,14 @@ la contraseña falla.
 ## `UserAuth` — `api/v{1|2|3|4}/UserAuth`
 
 Hay dos controllers: `UserAuthController` (servicio de aplicación) sirve **v1, v2 y v3, las tres `Deprecated`**,
-y `UserAuthControllerCqrs` (commands de MediatR) sirve la **v4, la vigente**. Un cliente nuevo se autentica
+y `UserAuthv4Controller` (commands de MediatR) sirve la **v4, la vigente**. Un cliente nuevo se autentica
 contra `api/v4/UserAuth`.
 
-| Verbo | Ruta | Cuerpo | Devuelve |
-|---|---|---|---|
-| `POST` | `/SignUp` | `SignUpDto` | `Response<bool>` |
-| `POST` | `/SignIn` | `SignInDto` | `Response<TokenDto>` |
+| Verbo | Ruta | Cuerpo | Devuelve | Versiones |
+|---|---|---|---|---|
+| `POST` | `/SignUp` | `SignUpDto` | `Response<bool>` | v1–v4 |
+| `POST` | `/SignIn` | `SignInDto` | `Response<TokenDto>` | v1–v4 |
+| `DELETE` | `/Delete` | `DeleteCommand` | `Response<bool>` | solo v4 |
 
 ```jsonc
 // SignUpDto
@@ -70,10 +72,21 @@ contra `api/v4/UserAuth`.
 
 // TokenDto, dentro de data
 { "accessToken": "eyJhbGciOi...", "tokenType": "Bearer", "expiresIn": 3600, "fullName": "Ada Lovelace" }
+
+// DeleteCommand
+{ "email": "ada@example.com", "password": "<contraseña>" }
 ```
 
 > Un email inexistente y una contraseña incorrecta dan hoy el mismo mensaje ("Invalid credentials") y el
-> mismo **401**, así que `SignIn` ya no permite enumerar usuarios (pendiente nº 3, resuelto).
+> mismo **401**, así que `SignIn` ya no permite enumerar usuarios (pendiente nº 3, resuelto). `Delete`
+> sigue la misma regla.
+
+**`Delete` es un borrado lógico.** Comprueba email y contraseña como `SignIn`, marca al usuario con
+`IsDeleted` (lo hace el interceptor de auditoría, no el handler) y responde 200 con `data: true`. Desde
+ese momento el filtro global de EF lo oculta: no puede iniciar sesión y su email queda libre para un alta
+nueva, pero su `UserName` no (pendiente nº 36). Si el commit no escribe filas responde 500 (`Unexpected`).
+Usa la política de rate limit estricta, `auth-limited`, igual que `SignIn` y `SignUp`. Que se autentique
+con la contraseña en el cuerpo de un `DELETE` y no con el JWT es el pendiente nº 35.
 
 ## `Customer` — las cuatro versiones
 
@@ -94,6 +107,11 @@ Dos diferencias de forma que no son descuidos:
 - **v3 y v4 renombran `AddAsync` a `Create`** y **no exponen `PUT`**: la actualización va solo por `POST`
   con el `Id` dentro del cuerpo, no en la ruta.
 - **v1 no detecta duplicados** —es el antipatrón a propósito—, así que nunca responde 409. v2, v3 y v4 sí.
+
+**`DeleteAsync` es un borrado lógico en las cuatro versiones**, sin que ningún caso de uso haya cambiado:
+lo decide el interceptor de auditoría, que convierte el `DELETE` en un `UPDATE` que marca `IsDeleted`. El
+cliente desaparece de `GetByIdAsync` y del listado por el filtro global (en el listado, cuando caduque la
+caché: nº 24), pero la fila se queda en la tabla.
 
 ```jsonc
 // CustomerDto: el cuerpo de creación y actualización, y lo que devuelve el listado
