@@ -80,3 +80,11 @@ Orden de carga (el último gana):
 
 Abrir [`RegistroPerf.slnx`](RegistroPerf.slnx) en Visual Studio y lanzar `RegistroPerf`. Solo Windows. La API
 debe estar levantada en la URL configurada.
+
+## Solución independiente
+
+- `RegistroPerf.slnx` es la única solución que contiene este proyecto. No se añade a `Monolito/Ecommerce.slnx`
+  ni a la de ningún microservicio: el CI del monolito corre en Linux y no puede compilar WPF.
+- No hay `ProjectReference` hacia la API: el prototipo solo la consume por HTTP.
+- `Directory.Build.props` y `Directory.Packages.props` están vacíos a propósito: cortan la herencia de
+  cualquier configuración de build que se ponga en la raíz para los servicios en `net10.0`.

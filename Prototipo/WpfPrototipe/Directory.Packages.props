@@ -1,0 +1,9 @@
+<Project>
+  <!--
+    Barrera: si la raiz activa Central Package Management, el prototipo sigue fijando sus
+    versiones en el csproj (sus paquetes son de net48 y no comparten version con los servicios).
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
