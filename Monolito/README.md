@@ -205,13 +205,13 @@ Swagger queda en `https://localhost:7051/swagger`, con el desplegable de version
 misma documentación, en formato de lectura con ReDoc, está en `https://localhost:7051/api-docs` (solo
 muestra la última versión, la v4). Los tests, con `dotnet test`.
 
-**Con Docker en vez de local.** [`Docker/docker-compose.yml`](../Docker/docker-compose.yml) levanta la API,
+**Con Docker en vez de local.** [`Docker/docker-compose.yml`](Docker/docker-compose.yml) levanta la API,
 SQL Server y Redis. Los secretos se montan como archivos desde una carpeta tuya, fuera del repo:
 
 ```bash
 # SECRETS_DIR debe contener secrets.json ({ "Jwt:Key": "...", "ConnectionStrings:EcommerceDb": "..." })
 # y sa_password (la contraseña de sa en texto plano, la misma que en la cadena de conexión)
-SECRETS_DIR=<ruta> docker compose -f ../Docker/docker-compose.yml up --build
+SECRETS_DIR=<ruta> docker compose -f Docker/docker-compose.yml up --build
 ```
 
 La API queda en `http://localhost:8080` y SQL Server se publica en el puerto **1434** del host (el 1433
@@ -240,18 +240,23 @@ completa arrastra sus tests: necesitan una SQL Server y un Redis reales (las mig
 sin esa dependencia, `dotnet test Ecommerce.Test/Ecommerce.Test.csproj`.
 
 **Dependencias de los tests de integración con Docker.**
-[`Docker/Integration Tests/docker-compose.integration-tests.yml`](../Docker/Integration%20Tests/docker-compose.integration-tests.yml)
+[`Docker/Integration Tests/docker-compose.integration-tests.yml`](Docker/Integration%20Tests/docker-compose.integration-tests.yml)
 levanta SQL Server (puerto **1435**) y Redis (6379) como un proyecto de Compose aparte, con su red y sus
-volúmenes, para no chocar con el del monolito. Monta el `secrets.json` de los *user secrets* de
+volúmenes. Monta el `secrets.json` de los *user secrets* de
 `Ecommerce.IntegrationTest` y saca de él la contraseña de `sa`, así que la contraseña vive en un único sitio:
 
 ```bash
 # Docker/Integration Tests/.env (no versionado): TESTS_SECRETS_DIR=<carpeta del UserSecretsId>
 # La connection string de esos secrets debe apuntar a Server=localhost,1435
-docker compose -f "../Docker/Integration Tests/docker-compose.integration-tests.yml" up -d --wait
+docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" up -d --wait
 dotnet test Ecommerce.IntegrationTest
-docker compose -f "../Docker/Integration Tests/docker-compose.integration-tests.yml" down
+docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" down
 ```
+
+> [!NOTE]
+> **Este compose y el de la API no pueden estar levantados a la vez.** Tienen red y volúmenes propios, y
+> SQL Server no choca (1434 frente a 1435), pero los dos publican Redis en el puerto **6379**. Para pasar
+> de uno a otro, para el que esté en marcha antes de levantar el otro.
 
 ---
 

@@ -1,8 +1,6 @@
-# Orquestacion de ejemplo para levantar el sistema en local: el monolito (Ecommerce)
-# junto con sus dependencias (SQL Server, Redis). El servicio de Identity se deja
-# comentado como ejemplo: todavia es una carpeta reservada sin codigo ni Dockerfile
-# (ver Microservicios/Identity/README.md); cuando exista, se activa igual que
-# ecommerce-api.
+# Orquestacion para levantar el monolito (Ecommerce) en local junto con sus
+# dependencias (SQL Server, Redis). Los microservicios tienen su propio compose en
+# Microservicios/.
 #
 # Secrets:
 #   Se montan como archivos via SECRETS_DIR (ruta a tu carpeta de secrets, no
@@ -36,7 +34,7 @@ secrets:
 services:
   ecommerce-api:
     build:
-      context: ../Monolito
+      context: ..
       dockerfile: Docker/Dockerfile
     ports:
       - "8080:8080"
@@ -64,19 +62,6 @@ services:
         condition: service_started
     networks:
       - ecommerce-net
-
-  # identity-api:
-  #   Pendiente de construir (ver Microservicios/Identity/README.md). Cuando tenga
-  #   su propio Dockerfile, se añade aqui con el mismo patron que ecommerce-api:
-  #
-  #   build:
-  #     context: ../Microservicios/Identity
-  #     dockerfile: Dockerfile
-  #   depends_on:
-  #     sqlserver:
-  #       condition: service_healthy
-  #   networks:
-  #     - ecommerce-net
 
   sqlserver:
     # Fijado a un CU concreto (no ":2022-latest"): la build mas reciente en su

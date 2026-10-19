@@ -97,7 +97,7 @@ para fijar el estado que devuelve cada tramo de tiempo de respuesta, sin depende
 
 **Tests de integración.** `Ecommerce.IntegrationTest` es un proyecto aparte, con 4 tests de autenticación contra
 SQL Server real y con `DataProtection` real. Sus dependencias se levantan con
-[`docker-compose.integration-tests.yml`](../../Docker/Integration%20Tests/docker-compose.integration-tests.yml):
+[`docker-compose.integration-tests.yml`](../Docker/Integration%20Tests/docker-compose.integration-tests.yml):
 SQL Server en el puerto 1435 y Redis en el 6379, con la contraseña de `sa` sacada de los propios *user
 secrets* del proyecto. Como el borrado es lógico y el índice de `UserName` no está filtrado (nº 36),
 `SignUpTest` genera un usuario y un email con un sufijo aleatorio en cada ejecución, para no chocar con

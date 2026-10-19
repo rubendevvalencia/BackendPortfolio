@@ -366,3 +366,12 @@ debe confundirse con una.
 Todo `Program.cs` está envuelto en un `try/catch` que escribe en `stderr`, registra con `Log.Fatal` y fija
 `Environment.ExitCode = 1`. Sin eso, un fallo de arranque —un puerto ocupado, los User Secrets sin
 configurar— acababa en un proceso que salía con código 0 y sin rastro en la consola.
+
+### Un `docker-compose` por conjunto, no uno global
+
+Los archivos de Compose viven en [`Monolito/Docker/`](../Docker), junto al Dockerfile: uno levanta la API con
+SQL Server y Redis, y otro solo las dependencias de los tests de integración. Los microservicios tendrán su
+propio compose en `Microservicios/`. No hay una carpeta `Docker/` en la raíz del repo: cada conjunto tiene su
+red, sus volúmenes y sus puertos, y se puede levantar sin arrastrar al otro. El precio es que dos conjuntos
+no pueden usar el mismo puerto del host a la vez (hoy, el 6379 de Redis entre el compose de la API y el de
+los tests).
