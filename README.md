@@ -8,7 +8,6 @@ reescritura de golpe.
 |---|---|---|
 | [`Monolito/`](Monolito/README.md) | API Ecommerce en .NET, Clean Architecture. El laboratorio de aprendizaje original: cuatro versiones del mismo recurso conviviendo. | Vigente, es la referencia mientras dura la migración |
 | [`Microservicios/`](Microservicios/) | La arquitectura de destino. Cada subcarpeta es un microservicio independiente. | Empezando por [`Identity/`](Microservicios/Identity/README.md), pendiente de construir |
-| [`Docker/`](Docker/docker-compose.yml) | `docker-compose.yml` levanta el monolito con SQL Server y Redis; `Integration Tests/` tiene un compose aparte con las dependencias de los tests de integración. | Vigente, solo para local |
 | [`Prototipo/WpfPrototipe/`](Prototipo/WpfPrototipe/README.md) | Cliente de escritorio WPF para consumir la API. | Prototipo, ya consume la API (registro e inicio de sesión con token); las URLs salen de `appsettings.json` |
 
 ## Cómo se construye

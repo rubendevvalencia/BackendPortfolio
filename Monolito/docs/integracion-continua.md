@@ -35,7 +35,7 @@ gratis y que dejará de salirlo con los tests de integración con `WebApplicatio
 (pendiente nº 8): o levantan sus dependencias como *services* del job —contenedores de SQL Server y de
 Redis— o el job deja de ser autosuficiente. Conviene decidirlo entonces, y no descubrirlo. Los tests de
 integración que ya existen tienen ese inventario hecho en
-[`docker-compose.integration-tests.yml`](../../Docker/Integration%20Tests/docker-compose.integration-tests.yml),
+[`docker-compose.integration-tests.yml`](../Docker/Integration%20Tests/docker-compose.integration-tests.yml),
 que es el punto de partida para llevarlos a la CI; lo que falta es dar al runner los *user secrets* que
 ese compose y los tests leen.
 

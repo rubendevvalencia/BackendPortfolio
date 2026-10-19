@@ -9,7 +9,7 @@
 # Secrets:
 #   Se monta como archivo el secrets.json de User Secrets de Ecommerce.IntegrationTest,
 #   cuya carpeta se pasa en TESTS_SECRETS_DIR (en el .env junto a este archivo,
-#   Docker/Integration Tests/.env, no versionado; ruta de la carpeta, no secreto en si):
+#   Monolito/Docker/Integration Tests/.env, no versionado; ruta de la carpeta, no secreto en si):
 #     TESTS_SECRETS_DIR=<ruta a la carpeta del UserSecretsId>
 #
 #   No hay un archivo sa_password aparte: SQL Server necesita la password como texto
@@ -21,8 +21,9 @@
 # Uso (--wait espera al healthcheck antes de devolver el control):
 #   docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" up -d --wait
 #   docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" down
-# El -f es obligatorio: este nombre no es uno de los que Compose busca por defecto
-# y, sin el, desde esta carpeta cogeria el docker-compose.yml de la carpeta superior.
+# (rutas relativas a Monolito/). El -f es obligatorio: este nombre no es uno de los que
+# Compose busca por defecto y, sin el, desde esta carpeta cogeria el docker-compose.yml
+# de la carpeta superior.
 
 name: integration-tests
 
