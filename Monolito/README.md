@@ -242,7 +242,7 @@ sin esa dependencia, `dotnet test Ecommerce.Test/Ecommerce.Test.csproj`.
 **Dependencias de los tests de integración con Docker.**
 [`Docker/Integration Tests/docker-compose.integration-tests.yml`](Docker/Integration%20Tests/docker-compose.integration-tests.yml)
 levanta SQL Server (puerto **1435**) y Redis (6379) como un proyecto de Compose aparte, con su red y sus
-volúmenes, para no chocar con el del monolito. Monta el `secrets.json` de los *user secrets* de
+volúmenes. Monta el `secrets.json` de los *user secrets* de
 `Ecommerce.IntegrationTest` y saca de él la contraseña de `sa`, así que la contraseña vive en un único sitio:
 
 ```bash
@@ -252,6 +252,11 @@ docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml
 dotnet test Ecommerce.IntegrationTest
 docker compose -f "Docker/Integration Tests/docker-compose.integration-tests.yml" down
 ```
+
+> [!NOTE]
+> **Este compose y el de la API no pueden estar levantados a la vez.** Tienen red y volúmenes propios, y
+> SQL Server no choca (1434 frente a 1435), pero los dos publican Redis en el puerto **6379**. Para pasar
+> de uno a otro, para el que esté en marcha antes de levantar el otro.
 
 ---
 
