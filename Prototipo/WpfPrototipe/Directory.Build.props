@@ -1,0 +1,7 @@
+<Project>
+  <!--
+    Barrera: MSBuild usa el primer Directory.Build.props que encuentra subiendo carpetas.
+    Este archivo vacio impide que el prototipo (net48) herede uno futuro de la raiz o de
+    Prototipo/ pensado para los servicios en net10.0. La configuracion del WPF va en su csproj.
+  -->
+</Project>
