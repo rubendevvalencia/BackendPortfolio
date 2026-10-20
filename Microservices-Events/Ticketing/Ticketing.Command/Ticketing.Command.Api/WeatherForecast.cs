@@ -1,4 +1,4 @@
-namespace Ticketing
+namespace Ticketing.Command.Api
 {
     public class WeatherForecast
     {
