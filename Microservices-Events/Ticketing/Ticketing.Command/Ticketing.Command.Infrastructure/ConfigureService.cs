@@ -5,7 +5,11 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Command.Infrastructure.Data;
+using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Interface;
+using Ticketing.Command.Infrastructure.Interface.Session;
+using Ticketing.Command.Infrastructure.Session;
+using Ticketing.Command.Infrastructure.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Repository.EventModelRepository;
 using Ticketing.Command.Infrastructure.Repository.MongoRepository;
 using Ticketing.Common.Events;
@@ -33,8 +37,11 @@ namespace Ticketing.Command.Infrastructure
                 return new MongoDbContext(client, databaseName);
             });                                                //Reintenta automáticamente ante fallos transitorios
 
-            services.AddScoped(typeof(IMongoBaseRepository<>), typeof(MongoRepository<>));
-            services.AddTransient<IEventModelRepository, EventModelRepository>();
+            services.AddScoped<IMongoSessionContext, MongoSessionContext>();
+            services.AddScoped<ISession, MongoSession>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddScoped<IEventModelRepository, EventModelRepository>();
           
             BsonClassMap.RegisterClassMap<EventBase>();
             BsonClassMap.RegisterClassMap<TicketCreatedEvent>();

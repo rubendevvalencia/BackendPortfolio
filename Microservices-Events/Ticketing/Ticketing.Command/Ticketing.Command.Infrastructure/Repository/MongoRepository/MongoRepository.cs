@@ -1,48 +1,35 @@
-using System.Reflection.Metadata.Ecma335;
 using MongoDB.Driver;
-using Ticketing.Command.Domain.Common;
 using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Infrastructure.Interface;
 
 namespace Ticketing.Command.Infrastructure.Repository.MongoRepository
 {
-    public class MongoRepository<TDocument> : IMongoBaseRepository<TDocument>
+    public class MongoRepository<TDocument> : IMongoRepository<TDocument>
     {
-        private readonly MongoDbContext _mongoDbContext;
         private readonly IMongoCollection<TDocument> _mongoCollection;
-       
-        public MongoRepository()
+        private readonly IMongoSessionContext _sessionContext;
+
+        public MongoRepository(MongoDbContext mongoDbContext, IMongoSessionContext sessionContext)
         {
-            
+            _mongoCollection = mongoDbContext.GetCollection<TDocument>();
+            _sessionContext = sessionContext;
         }
+
         public IQueryable<TDocument> AsQueryable()
         {
-            throw new NotImplementedException();
+            return _mongoCollection.AsQueryable();
         }
 
-        public async Task<IClientSessionHandle> BeginSessionAsync(CancellationToken cancellationToken)
+        public async Task InsertOneAsync(TDocument document, CancellationToken cancellationToken)
         {
-            var option = new ClientSessionOptions();
-            option.DefaultTransactionOptions = new TransactionOptions();
-            return await _mongoCollection.Database.Client.StartSessionAsync();
-        }
+            IClientSessionHandle? session = _sessionContext.Current;
+            if (session is null)
+            {
+                await _mongoCollection.InsertOneAsync(document, null, cancellationToken);
+                return;
+            }
 
-        public void BeginTransaction(IClientSessionHandle clientSessionHandle) => clientSessionHandle.StartTransaction();
-        public Task CommitTransactionAsync(IClientSessionHandle clientSessionHandle, CancellationToken cancellationToken) => clientSessionHandle.CommitTransactionAsync(cancellationToken);
-        public void DisposeSession(IClientSessionHandle clientSessionHandle) => clientSessionHandle.Dispose();
-        public async Task InsertOneAsync(TDocument document, IClientSessionHandle clientSessionHandle, CancellationToken cancellationToken)
-        {
-            await _mongoCollection.InsertOneAsync(clientSessionHandle, document, null, cancellationToken);
-        }
-
-        public Task RollbackTransactionAsync(IClientSessionHandle clientSessionHandle, CancellationToken cancellationToken) => clientSessionHandle.AbortTransactionAsync(cancellationToken);
-    
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            throw new Exception();
+            await _mongoCollection.InsertOneAsync(session, document, null, cancellationToken);
         }
     }
-        
 }
-
-

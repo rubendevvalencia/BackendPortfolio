@@ -10,4 +10,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ticketing.Command.Application\Ticketing.Command.Application.csproj" />
+    <ProjectReference Include="..\Ticketing.Command.Infrastructure\Ticketing.Command.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
