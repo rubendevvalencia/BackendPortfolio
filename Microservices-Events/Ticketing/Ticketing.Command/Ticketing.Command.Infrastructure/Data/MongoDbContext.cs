@@ -42,5 +42,10 @@ namespace Ticketing.Command.Infrastructure.Data
 
             return collectionName;
         }
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return null;
+        }
     }
 }
