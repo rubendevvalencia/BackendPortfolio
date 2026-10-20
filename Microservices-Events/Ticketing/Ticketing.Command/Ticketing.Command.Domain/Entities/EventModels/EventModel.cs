@@ -6,7 +6,7 @@ using Ticketing.Common.Events;
 namespace Ticketing.Command.Domain.Entities
 {
     [BsonCollection("eventStores")] //He declarado el atributo en common
-    public class EventModelBase : DocumentBase //Modelo base para los eventos
+    public class EventModel : DocumentBase //Modelo base para los eventos
     {
         [BsonElement("timestamp")]
         public DateTime TimeStamp {get; set;} = DateTime.UtcNow;

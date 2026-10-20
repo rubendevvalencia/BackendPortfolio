@@ -5,7 +5,7 @@ namespace Ticketing.Common.Messages
     public abstract class Message
     {
         [BsonId]
-        public string Id {get; set;} 
+        public required string Id {get; set;} 
 
         protected Message(){}
 

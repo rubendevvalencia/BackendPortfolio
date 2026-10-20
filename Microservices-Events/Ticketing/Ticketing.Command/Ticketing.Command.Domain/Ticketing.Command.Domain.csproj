@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MongoDB.Bson" Version="3.12.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ticketing.Core\Ticketing.Common\Ticketing.Common.csproj" />
