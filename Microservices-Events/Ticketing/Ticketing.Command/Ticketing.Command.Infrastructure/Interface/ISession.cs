@@ -1,6 +1,6 @@
 using MongoDB.Driver;
 
-namespace Ticketing.Command.Domain.Interface.Session
+namespace Ticketing.Command.Infrastructure.Interface.Session
 {
     public interface ISession
     {
