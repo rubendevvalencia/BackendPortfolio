@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Core/" />
+  <Project Path="../Microservices-Events/Ticketing/Ticketing.Command/Ticketing.Command.Domain/Ticketing.Command.Domain.csproj" />
   <Project Path="Ecommerce.Application/Ecommerce.Application.csproj" />
   <Project Path="Ecommerce.Domain/Ecommerce.Domain.csproj" />
   <Project Path="Ecommerce.Infrastructure/Ecommerce.Infrastructure.csproj" />

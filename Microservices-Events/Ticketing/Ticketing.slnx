@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Ticketing.Command/">
+    <Project Path="Ticketing.Command/Ticketing.Command.Api/Ticketing.Command.Api.csproj" Id="1522c10e-5174-4e3d-976a-f3c935f70815" />
+    <Project Path="Ticketing.Command/Ticketing.Command.Application/Ticketing.Command.Application.csproj" Id="9501350b-0e9f-43ea-961c-a89f54e02f41" />
+    <Project Path="Ticketing.Command/Ticketing.Command.Domain/Ticketing.Command.Domain.csproj" Id="b60edeab-e958-451c-81ce-4d7c2e3b7997" />
+    <Project Path="Ticketing.Command/Ticketing.Command.Infrastructure/Ticketing.Command.Infrastructure.csproj" Id="013387f4-b9b8-4e90-8c67-d12348a5ba50" />
+    <Project Path="Ticketing.Command/Ticketing.Command.UnitTest/Ticketing.Command.UnitTest.csproj" Id="83100494-40a5-4ec9-ba43-9e3a92aded75" />
+  </Folder>
+  <Folder Name="/Ticketing.Query/">
+    <Project Path="Ticketing.Query/Ticketing.Query.Api/Ticketing.Query.Api.csproj" Id="ea788276-9e7f-43ab-bf90-7e69300f76a9" />
+  </Folder>
+  <Project Path="Ticketing.Core/Ticketing.Common/Ticketing.Common.csproj" Id="714d1c70-1cb5-4d33-827e-4db28b832244" />
+</Solution>
