@@ -8,6 +8,7 @@ reescritura de golpe.
 |---|---|---|
 | [`Monolito/`](Monolito/README.md) | API Ecommerce en .NET, Clean Architecture. El laboratorio de aprendizaje original: cuatro versiones del mismo recurso conviviendo. | Vigente, es la referencia mientras dura la migración |
 | [`Microservicios/`](Microservicios/) | La arquitectura de destino. Cada subcarpeta es un microservicio independiente. | Empezando por [`Identity/`](Microservicios/Identity/README.md), pendiente de construir |
+| [`Microservices-Events/`](Microservices-Events/) | Proyecto independiente de microservicios dirigidos por eventos (ticketing, MongoDB). No forma parte de la migración del monolito. | En construcción: servicio `Ticketing` y compose de MongoDB |
 | [`Prototipo/WpfPrototipe/`](Prototipo/WpfPrototipe/README.md) | Cliente de escritorio WPF para consumir la API. | Prototipo, ya consume la API (registro e inicio de sesión con token); las URLs salen de `appsettings.json` |
 
 ## Cómo se construye
@@ -15,6 +16,9 @@ reescritura de golpe.
 1. `Monolito/` no se reescribe: se usa como referencia y se van extrayendo piezas.
 2. Cada pieza extraída nace como su propio microservicio dentro de `Microservicios/`.
 3. Cuando todas las piezas relevantes estén fuera, `Monolito/` se retira o se reduce a lo que quede sin migrar.
+
+La migración Strangler Fig afecta a `Monolito/` y `Microservicios/`. `Microservices-Events/` es un proyecto
+aparte, con su propia solución y su propio Docker.
 
 ## CI
 
