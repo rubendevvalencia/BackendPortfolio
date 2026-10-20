@@ -5,15 +5,15 @@ using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Domain.Entities.EventModels
 {
-    [BsonCollection("eventStore")]
+    [BsonCollection("eventStore")] //Esto es una collection personalizada, no tiene que ver con MongoDb
     public class EventModel //Modelo base para los eventos
     {
         public int Id {get; set; }
         public DateTime TimeStamp {get; set;} = DateTime.UtcNow;
         public required string AggregateIdentifier {get; set;} = string.Empty;
-        public string AggregateType {get; set;} = string.Empty;
+        public eAggregateType AggregateType {get; set;}
         public int Version {get; set;} = 0;
-        public EventType Type {get; set; }
+        public eEventType EventType {get; set; }
         public EventBase? EventData {get; set; } //Los datos vendrán por aquí de forma dinámica
     }
 }

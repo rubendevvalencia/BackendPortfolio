@@ -1,6 +1,6 @@
 namespace Ticketing.Command.Domain.Enum
 {
-    public enum EventType
+    public enum eEventType
     {
         TicketCreatedEvent = 1,
     }

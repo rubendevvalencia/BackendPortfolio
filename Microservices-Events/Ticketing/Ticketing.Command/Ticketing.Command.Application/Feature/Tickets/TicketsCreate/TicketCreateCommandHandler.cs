@@ -29,9 +29,9 @@ namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
             {
                 TimeStamp = DateTime.UtcNow,
                 AggregateIdentifier = Guid.CreateVersion7(DateTimeOffset.UtcNow).ToString(),
-                AggregateType = "TicketAggregate",
+                AggregateType = eAggregateType.TicketAggregate,
                 Version = 1,
-                Type = EventType.TicketCreatedEvent,
+                EventType = eEventType.TicketCreatedEvent,
                 EventData = _mapper.Map<TicketCreatedEvent>(request)
             };
 
