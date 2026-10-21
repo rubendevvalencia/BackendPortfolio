@@ -48,8 +48,8 @@ namespace Ticketing.Command.Infrastructure.Mapping
             
             BsonClassMap.RegisterClassMap<EventBase>(map =>
             {
+                //AutoMap también mapea Message (clase base); su propiedad Id se toma como _id por convención
                 map.AutoMap();
-                map.MapIdMember(eventBase => eventBase.Id);
 
                 //Clase raíz: Mongo guarda el campo "_t" con el tipo concreto del evento
                 map.SetIsRootClass(true);
