@@ -1,6 +1,6 @@
-using Ecommerce.Transversal.Common.Enums;
+using Ticketing.Common.Response.Enums;
 
-namespace Ecommerce.Transversal.Common
+namespace Ticketing.Common.Response
 {
     //Cara no genérica de Response<T>. Un interceptor de pipeline recibe la respuesta como un TResponse genérico
     //y no puede preguntar "¿es un Response<T>?" sin conocer el T concreto (bool en un handler, CustomerDto en otro).

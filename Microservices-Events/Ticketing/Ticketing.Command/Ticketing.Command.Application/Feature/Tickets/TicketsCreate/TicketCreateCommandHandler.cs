@@ -1,11 +1,11 @@
 using AutoMapper;
-using Ecommerce.Transversal.Common;
 using MediatR;
 using Ticketing.Command.Domain.Entities.EventModels;
 using Ticketing.Command.Domain.Enum;
 using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
 using Ticketing.Common.Events;
+using Ticketing.Common.Response;
 
 namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
 {

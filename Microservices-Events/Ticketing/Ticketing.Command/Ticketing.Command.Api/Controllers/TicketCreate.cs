@@ -1,0 +1,39 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.Mvc;
+using Ticketing.Command.Application.Feature.Tickets.TicketsCreate;
+using MediatR;
+
+namespace Ticketing.Command.Api.Controllers
+{
+    
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido.
+    //[EnableRateLimiting("user-limited")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
+    //[SwaggerTag("Controller for managing customer operations.")]
+    public class TicketCreate : ApiResponseControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public TicketCreate(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("CreateTicket")]
+        //[RequestTimeout("CustomPolicy")]
+        //[SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]
+        //[SwaggerResponse(StatusCodes.Status200OK, "Customer added successfully.", typeof(Response<bool>))]
+        //[SwaggerResponse(StatusCodes.Status400BadRequest, "The customer data is invalid.", typeof(Response<object>))]
+        //[SwaggerResponse(StatusCodes.Status409Conflict, "Customer is already registered", typeof(Response<bool>))]
+        public async Task<IActionResult> Create([FromBody] TicketCreateCommand command, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(command, cancellationToken);
+            return ToActionResult(response);
+        }
+    }
+}

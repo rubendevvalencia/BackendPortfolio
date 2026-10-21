@@ -1,5 +1,5 @@
-using Ecommerce.Transversal.Common;
 using MediatR;
+using Ticketing.Common.Response;
 
 namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
 {
