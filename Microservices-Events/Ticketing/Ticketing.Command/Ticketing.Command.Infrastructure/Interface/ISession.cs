@@ -1,9 +1,8 @@
 using MongoDB.Driver;
-using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
 
 namespace Ticketing.Command.Infrastructure.Interface.Session
 {
-    public interface ISession : IUnitOfWork
+    public interface IMongoSession
     {
         Task<IClientSessionHandle> BeginSessionAsync(CancellationToken cancellationToken);
         void BeginTransaction(IClientSessionHandle clientSessionHandle);
@@ -12,5 +11,3 @@ namespace Ticketing.Command.Infrastructure.Interface.Session
         void DisposeSession(IClientSessionHandle clientSessionHandle);
     }
 }
-
-

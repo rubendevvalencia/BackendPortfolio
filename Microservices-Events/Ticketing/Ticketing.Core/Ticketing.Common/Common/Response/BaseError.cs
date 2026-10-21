@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Transversal.Common
+namespace Ticketing.Common.Response
 {
     public  class BaseError
     {

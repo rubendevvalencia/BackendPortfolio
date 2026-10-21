@@ -1,14 +1,17 @@
 using System.Collections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Command.Infrastructure.Data;
+using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Interface;
+using Ticketing.Command.Infrastructure.Interface.Session;
+using Ticketing.Command.Infrastructure.Session;
+using Ticketing.Command.Infrastructure.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Repository.EventModelRepository;
 using Ticketing.Command.Infrastructure.Repository.MongoRepository;
-using Ticketing.Common.Events;
+using Ticketing.Command.Infrastructure.Mapping;
 
 namespace Ticketing.Command.Infrastructure
 {
@@ -32,12 +35,14 @@ namespace Ticketing.Command.Infrastructure
                 IMongoClient client = sp.GetRequiredService<IMongoClient>();
                 return new MongoDbContext(client, databaseName);
             });                                                //Reintenta automáticamente ante fallos transitorios
-
-            services.AddScoped(typeof(IMongoBaseRepository<>), typeof(MongoRepository<>));
-            services.AddTransient<IEventModelRepository, EventModelRepository>();
-          
-            BsonClassMap.RegisterClassMap<EventBase>();
-            BsonClassMap.RegisterClassMap<TicketCreatedEvent>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IMongoSessionContext, MongoSessionContext>();
+            services.AddScoped<IMongoSession, MongoSession>();
+            services.AddScoped<IEventModelRepository, EventModelRepository>();
+            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+           
+           //Mapea a mongoDb para evitar tener problemas
+            MongoClassMaps.Register();
 
             return services;
         }

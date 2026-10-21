@@ -1,12 +1,12 @@
 using System.Security.Cryptography.X509Certificates;
-using Ecommerce.Transversal.Common.Enums;
 using Microsoft.Extensions.Logging;
+using Ticketing.Common.Response.Enums;
 
-namespace Ecommerce.Transversal.Common
+namespace Ticketing.Common.Response
 {
     public class Response<T> : IResponse
     {
-        public T Data { get; set; }
+        public T? Data { get; set; }
         public bool IsSuccess { get; set; } = false;
         public string Message { get; set; } = string.Empty; //Solo se rellena en caso de error, si IsSuccess es false
 
