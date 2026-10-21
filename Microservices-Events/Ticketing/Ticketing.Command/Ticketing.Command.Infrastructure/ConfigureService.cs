@@ -36,12 +36,12 @@ namespace Ticketing.Command.Infrastructure
                 IMongoClient client = sp.GetRequiredService<IMongoClient>();
                 return new MongoDbContext(client, databaseName);
             });                                                //Reintenta automáticamente ante fallos transitorios
-
-            services.AddScoped<IMongoSessionContext, MongoSessionContext>();
-            services.AddScoped<ISession, MongoSession>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddScoped<IMongoSessionContext, MongoSessionContext>();
+            services.AddScoped<IMongoSession, MongoSession>();
             services.AddScoped<IEventModelRepository, EventModelRepository>();
+            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+           
           
             BsonClassMap.RegisterClassMap<EventBase>();
             BsonClassMap.RegisterClassMap<TicketCreatedEvent>();

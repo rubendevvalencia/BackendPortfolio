@@ -7,10 +7,10 @@ namespace Ticketing.Command.Infrastructure.Repository.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork, IDisposable
     {
-        private readonly ISession _session;
+        private readonly IMongoSession _session;
         private readonly IMongoSessionContext _sessionContext;
 
-        public UnitOfWork(ISession session, IMongoSessionContext sessionContext)
+        public UnitOfWork(IMongoSession session, IMongoSessionContext sessionContext)
         {
             _session = session;
             _sessionContext = sessionContext;

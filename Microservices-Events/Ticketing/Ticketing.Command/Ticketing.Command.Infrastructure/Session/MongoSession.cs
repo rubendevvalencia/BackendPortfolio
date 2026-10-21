@@ -3,7 +3,7 @@ using Ticketing.Command.Infrastructure.Interface.Session;
 
 namespace Ticketing.Command.Infrastructure.Session
 {
-    public class MongoSession : ISession
+    public class MongoSession : IMongoSession
     {
         private readonly IMongoClient _mongoClient;
 

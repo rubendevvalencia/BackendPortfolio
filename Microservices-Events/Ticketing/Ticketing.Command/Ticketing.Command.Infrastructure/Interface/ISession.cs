@@ -2,7 +2,7 @@ using MongoDB.Driver;
 
 namespace Ticketing.Command.Infrastructure.Interface.Session
 {
-    public interface ISession
+    public interface IMongoSession
     {
         Task<IClientSessionHandle> BeginSessionAsync(CancellationToken cancellationToken);
         void BeginTransaction(IClientSessionHandle clientSessionHandle);

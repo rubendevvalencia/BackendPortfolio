@@ -13,11 +13,10 @@ namespace Ticketing.Command.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddMediatR(cfg =>
-                {
-                    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-                });
+            {
+                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+            });
 
-            services.AddSingleton<IMapper, Mapper>(); 
             services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>()); //Documentacion Automapper: https://docs.automapper.io/en/latest/Dependency-injection.html
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
