@@ -8,7 +8,6 @@ namespace Ticketing.Common.Events
         {
             Type = type;
         }
-        public int Version {get;set;}
         public string Type {get; set; }
     }
 }

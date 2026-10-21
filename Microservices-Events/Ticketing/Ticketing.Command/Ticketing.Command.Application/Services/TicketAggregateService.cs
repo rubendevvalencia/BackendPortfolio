@@ -1,0 +1,53 @@
+using Ticketing.Command.Domain.Entities.Aggregates;
+using Ticketing.Common.Events;
+
+namespace Ticketing.Command.Application.Services
+{
+    public class TicketAggregateService : AggregateService<TicketAggregate>, ITicketAggregateService
+    {
+        public TicketAggregate Create(string? userName, string? errorType, string? errorDetail)
+        {
+            string id = Guid.CreateVersion7().ToString();
+
+            TicketCreatedEvent ticketCreatedEvent = new TicketCreatedEvent
+            {
+                Id = id,
+                UserName = userName,
+                TyperError = errorType,
+                DetailError = errorDetail
+            };
+
+            List<EventBase> noChanges = new List<EventBase>();
+            TicketAggregate emptyTicket = new TicketAggregate(string.Empty, 0, noChanges, false);
+            TicketAggregate ticket = RaiseEvent(emptyTicket, ticketCreatedEvent);
+
+            return ticket;
+        }
+
+        protected override TicketAggregate ApplyEvent(TicketAggregate aggregate, EventBase @event)
+        {
+            switch (@event)
+            {
+                case TicketCreatedEvent ticketCreatedEvent:
+                    TicketAggregate applied = Apply(aggregate, ticketCreatedEvent);
+                    return applied;
+                default:
+                    throw new InvalidOperationException($"El servicio no sabe aplicar el evento {@event.GetType().Name}.");
+            }
+        }
+
+        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, IReadOnlyList<EventBase> uncommittedChanges)
+        {
+            TicketAggregate rebuilt = new TicketAggregate(aggregate.Id, version, uncommittedChanges, aggregate.Active);
+
+            return rebuilt;
+        }
+
+        private TicketAggregate Apply(TicketAggregate aggregate, TicketCreatedEvent @event)
+        {
+            TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, aggregate.UncommittedChanges, true);
+
+            return applied;
+        }
+    }
+}
