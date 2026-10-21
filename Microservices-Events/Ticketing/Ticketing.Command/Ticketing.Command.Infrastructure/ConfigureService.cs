@@ -1,7 +1,6 @@
 using System.Collections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Command.Infrastructure.Data;
@@ -12,7 +11,7 @@ using Ticketing.Command.Infrastructure.Session;
 using Ticketing.Command.Infrastructure.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Repository.EventModelRepository;
 using Ticketing.Command.Infrastructure.Repository.MongoRepository;
-using Ticketing.Common.Events;
+using Ticketing.Command.Infrastructure.Mapping;
 
 namespace Ticketing.Command.Infrastructure
 {
@@ -42,9 +41,8 @@ namespace Ticketing.Command.Infrastructure
             services.AddScoped<IEventModelRepository, EventModelRepository>();
             services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
            
-          
-            BsonClassMap.RegisterClassMap<EventBase>();
-            BsonClassMap.RegisterClassMap<TicketCreatedEvent>();
+           //Mapea a mongoDb para evitar tener problemas
+            MongoClassMaps.Register();
 
             return services;
         }

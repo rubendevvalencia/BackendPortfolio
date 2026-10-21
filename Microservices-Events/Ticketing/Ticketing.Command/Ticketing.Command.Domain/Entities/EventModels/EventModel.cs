@@ -8,7 +8,7 @@ namespace Ticketing.Command.Domain.Entities.EventModels
     [BsonCollection("eventStore")] //Esto es una collection personalizada, no tiene que ver con MongoDb
     public class EventModel //Modelo base para los eventos
     {
-        public int Id {get; set; }
+        public string Id {get; set; } = string.Empty; //Vacío al crear: Mongo genera el ObjectId al insertar, si se usa int mongodb no autoincrementa
         public DateTime TimeStamp {get; set;} = DateTime.UtcNow;
         public required string AggregateIdentifier {get; set;} = string.Empty;
         public eAggregateType AggregateType {get; set;}
