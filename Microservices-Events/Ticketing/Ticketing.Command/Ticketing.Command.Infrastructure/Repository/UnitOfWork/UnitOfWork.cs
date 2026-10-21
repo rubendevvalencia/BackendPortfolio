@@ -23,22 +23,19 @@ namespace Ticketing.Command.Infrastructure.Repository.UnitOfWork
             _sessionContext.Current = clientSession;
         }
 
-        public async Task CommitAsync(CancellationToken cancellationToken = default)
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
         {
             IClientSessionHandle? clientSession = _sessionContext.Current;
             if (clientSession is null) throw new InvalidOperationException("No hay una transacción iniciada.");
             
-            try { await _session.CommitTransactionAsync(clientSession, cancellationToken);}
-            finally { CloseSession(); }
+            await _session.CommitTransactionAsync(clientSession, cancellationToken);
         }
 
         public async Task RollbackAsync(CancellationToken cancellationToken = default)
         {
             IClientSessionHandle? clientSession = _sessionContext.Current;
             if (clientSession is null) return;
-            
-            try { await _session.RollbackTransactionAsync(clientSession, cancellationToken); }
-            finally{ CloseSession(); }
+            await _session.RollbackTransactionAsync(clientSession, cancellationToken); 
         }
 
         public void Dispose() => CloseSession();

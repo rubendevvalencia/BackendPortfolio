@@ -38,14 +38,17 @@ namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try
             {
-                await _eventModelRepo.InsertAsync(eventModel, cancellationToken);
-                await _unitOfWork.CommitAsync(cancellationToken);
+                await _eventModelRepo.InsertOneAsync(eventModel, cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                _unitOfWork.Dispose();
             }
             catch
             {
                 await _unitOfWork.RollbackAsync(cancellationToken);
+                _unitOfWork.Dispose();
                 throw;
             }
+          
 
             response.Data = true;
             response.IsSuccess = true;

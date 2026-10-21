@@ -17,7 +17,7 @@ namespace Ticketing.Command.Infrastructure.Repository.EventModelRepository
             _sessionContext = sessionContext;
         }
 
-        public async Task InsertAsync(EventModel eventModel, CancellationToken cancellationToken)
+        public async Task InsertOneAsync(EventModel eventModel, CancellationToken cancellationToken)
         {
             IClientSessionHandle? session = _sessionContext.Current;
             if (session is null)
