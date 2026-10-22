@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
+namespace Ticketing.Command.Application.Features.Tickets.Create
 {
     public class TicketCreateValidator : AbstractValidator<TicketCreateCommand>
     {
@@ -8,15 +8,15 @@ namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
         {
             RuleFor(x => x.UserName)
                 .NotEmpty().WithMessage("Product name is required.")
-                .MaximumLength(100).WithMessage("Product name cannot exceed 100 characters.");
+                .MaximumLength(100).WithMessage("UserName name cannot exceed 100 characters.");
 
             RuleFor(x => x.ErrorType)
                 .NotEmpty().WithMessage("Product name is required.")
-                .MaximumLength(100).WithMessage("Product name cannot exceed 100 characters.");
+                .MaximumLength(100).WithMessage("ErrorType name cannot exceed 100 characters.");
 
             RuleFor(x => x.ErrorDetail)
                 .NotEmpty().WithMessage("Product name is required.")
-                .MaximumLength(400).WithMessage("Product name cannot exceed 100 characters.");
+                .MaximumLength(400).WithMessage("ErrorDetail name cannot exceed 100 characters.");
         }
     }
 }

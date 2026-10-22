@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Entities.EventModels;
-using Ticketing.Command.Domain.Interface.EventModels;
+using Ticketing.Command.Domain.Exceptions;
+using Ticketing.Command.Domain.Interfaces.Events;
 using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Infrastructure.Interface;
 
@@ -20,29 +21,26 @@ namespace Ticketing.Command.Infrastructure.Repository.EventModelRepository
         public async Task InsertOneAsync(EventModel eventModel, CancellationToken cancellationToken)
         {
             IClientSessionHandle? session = _sessionContext.Current;
-            if (session is null)
-            {
-                await _collection.InsertOneAsync(eventModel, null, cancellationToken);
-                return;
-            }
 
-            await _collection.InsertOneAsync(session, eventModel, null, cancellationToken);
+            //El índice único (agregado, versión) rechaza un evento con una versión que ya existe: el dominio lo conoce como concurrencia
+            try
+            {
+                if (session is null) await _collection.InsertOneAsync(eventModel, null, cancellationToken);
+                else await _collection.InsertOneAsync(session, eventModel, null, cancellationToken);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            {
+                throw new ConcurrencyException(eventModel.AggregateIdentifier, ex);
+            }
         }
 
         public async Task<List<EventModel>> FindByAggregateIdAsync(string aggregateIdentifier, CancellationToken cancellationToken)
         {
-            FilterDefinition<EventModel> filter = Builders<EventModel>.Filter.Eq(e => e.AggregateIdentifier, aggregateIdentifier);
             IClientSessionHandle? session = _sessionContext.Current;
 
             IFindFluent<EventModel, EventModel> query;
-            if (session is null)
-            {
-                query = _collection.Find(filter);
-            }
-            else
-            {
-                query = _collection.Find(session, filter);
-            }
+            if (session is null) query = _collection.Find(e => e.AggregateIdentifier == aggregateIdentifier);
+            else query = _collection.Find(session, e => e.AggregateIdentifier == aggregateIdentifier);
 
             List<EventModel> events = await query.ToListAsync(cancellationToken);
             return events;

@@ -1,4 +1,4 @@
-namespace Ticketing.Command.Domain.Interface.Repository.UnitOfWork
+namespace Ticketing.Command.Domain.Interfaces
 {
     public interface IUnitOfWork
     {

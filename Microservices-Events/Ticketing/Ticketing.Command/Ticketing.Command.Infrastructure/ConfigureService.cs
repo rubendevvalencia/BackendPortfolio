@@ -2,16 +2,16 @@ using System.Collections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Command.Infrastructure.Data;
-using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
+using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Command.Infrastructure.Interface;
-using Ticketing.Command.Infrastructure.Interface.Session;
 using Ticketing.Command.Infrastructure.Session;
 using Ticketing.Command.Infrastructure.Repository.UnitOfWork;
 using Ticketing.Command.Infrastructure.Repository.EventModelRepository;
 using Ticketing.Command.Infrastructure.Repository.MongoRepository;
 using Ticketing.Command.Infrastructure.Mapping;
+using Ticketing.Command.Domain.Interfaces.Events;
+using Ticketing.Command.Infrastructure.Persistence;
 
 namespace Ticketing.Command.Infrastructure
 {
@@ -35,11 +35,15 @@ namespace Ticketing.Command.Infrastructure
                 IMongoClient client = sp.GetRequiredService<IMongoClient>();
                 return new MongoDbContext(client, databaseName);
             });                                                //Reintenta automáticamente ante fallos transitorios
+            services.AddSingleton(new ClientSessionOptions
+            {
+                DefaultTransactionOptions = new TransactionOptions()
+            });
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IMongoSessionContext, MongoSessionContext>();
-            services.AddScoped<IMongoSession, MongoSession>();
             services.AddScoped<IEventModelRepository, EventModelRepository>();
-            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddScoped<IEventStore, EventStore>();
+            services.AddScoped(typeof(IMongoBaseRepository<>), typeof(MongoRepository<>));
            
            //Mapea a mongoDb para evitar tener problemas
             MongoClassMaps.Register();

@@ -1,6 +1,6 @@
 using System.Diagnostics.Tracing;
 using Ticketing.Command.Domain.Common;
-using Ticketing.Command.Domain.Enum;
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Domain.Entities.EventModels

@@ -1,6 +1,6 @@
 using Ticketing.Command.Domain.Entities.EventModels;
 
-namespace Ticketing.Command.Domain.Interface.EventModels
+namespace Ticketing.Command.Domain.Interfaces.Events
 {
     public interface IEventModelRepository
     {

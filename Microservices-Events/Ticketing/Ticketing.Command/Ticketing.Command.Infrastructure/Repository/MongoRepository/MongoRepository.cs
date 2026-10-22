@@ -4,7 +4,7 @@ using Ticketing.Command.Infrastructure.Interface;
 
 namespace Ticketing.Command.Infrastructure.Repository.MongoRepository
 {
-    public class MongoRepository<TDocument> : IMongoRepository<TDocument>
+    public class MongoRepository<TDocument> : IMongoBaseRepository<TDocument>
     {
         private readonly IMongoCollection<TDocument> _mongoCollection;
         private readonly IMongoSessionContext _sessionContext;
