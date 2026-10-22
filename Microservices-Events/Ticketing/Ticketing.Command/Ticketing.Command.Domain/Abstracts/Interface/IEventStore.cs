@@ -1,3 +1,4 @@
+using Ticketing.Command.Domain.Enum;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Domain.Abstracts
@@ -6,7 +7,7 @@ namespace Ticketing.Command.Domain.Abstracts
     {
         Task<List<EventBase>> GetEventsAsync(string aggregateId, CancellationToken cancellationToken);
 
-        Task SaveEventsAsync(string aggregateId, IEnumerable<EventBase> events, int expectedVersion, CancellationToken cancellationToken);
+        Task SaveEventsAsync(string aggregateId, eAggregateType aggregateType, IEnumerable<EventBase> events, int expectedVersion, CancellationToken cancellationToken);
 
     }
     

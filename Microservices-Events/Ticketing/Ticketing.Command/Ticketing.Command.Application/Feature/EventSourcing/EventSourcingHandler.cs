@@ -1,18 +1,17 @@
 using Ticketing.Command.Application.Aggregates;
-using Ticketing.Command.Domain.Entities.EventModels;
+using Ticketing.Command.Domain.Abstracts;
 using Ticketing.Command.Domain.Enum;
-using Ticketing.Command.Domain.Interface.EventModels;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Application.Services
 {
     public class EventSourcingHandler<TAggregate> : IEventSourcingHandler<TAggregate> where TAggregate : AggregateRoot
     {
-        private readonly IEventModelRepository _eventModelRepo;
+        private readonly IEventStore _eventStore;
 
-        public EventSourcingHandler(IEventModelRepository eventModelRepository)
+        public EventSourcingHandler(IEventStore eventStore)
         {
-            _eventModelRepo = eventModelRepository;
+            _eventStore = eventStore;
         }
 
         public Task<TAggregate> GetByIdAsync(string aggregateId, CancellationToken cancellationToken)
@@ -26,27 +25,12 @@ namespace Ticketing.Command.Application.Services
             IReadOnlyCollection<EventBase> changes = aggregate.UncommittedChanges;
 
             //Versión previa al primer cambio pendiente: la del agregado menos los eventos aún sin guardar
-            int version = aggregate.Version - changes.Count;
+            int expectedVersion = aggregate.Version - changes.Count;
 
             //El nombre de la clase del agregado coincide con el valor del enum
             eAggregateType aggregateType = Enum.Parse<eAggregateType>(typeof(TAggregate).Name);
 
-            foreach (EventBase change in changes)
-            {
-                version++;
-
-                var eventModel = new EventModel
-                {
-                    TimeStamp = DateTime.UtcNow,
-                    AggregateIdentifier = aggregate.Id,
-                    AggregateType = aggregateType,
-                    Version = version,
-                    EventType = Enum.Parse<eEventType>(change.Type), //El nombre del evento coincide con el valor del enum
-                    EventData = change
-                };
-
-                await _eventModelRepo.InsertOneAsync(eventModel, cancellationToken);
-            }
+            await _eventStore.SaveEventsAsync(aggregate.Id, aggregateType, changes, expectedVersion, cancellationToken);
         }
     }
 }

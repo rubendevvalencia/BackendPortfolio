@@ -31,18 +31,11 @@ namespace Ticketing.Command.Infrastructure.Repository.EventModelRepository
 
         public async Task<List<EventModel>> FindByAggregateIdAsync(string aggregateIdentifier, CancellationToken cancellationToken)
         {
-            FilterDefinition<EventModel> filter = Builders<EventModel>.Filter.Eq(e => e.AggregateIdentifier, aggregateIdentifier);
             IClientSessionHandle? session = _sessionContext.Current;
 
             IFindFluent<EventModel, EventModel> query;
-            if (session is null)
-            {
-                query = _collection.Find(filter);
-            }
-            else
-            {
-                query = _collection.Find(session, filter);
-            }
+            if (session is null) query = _collection.Find(e => e.AggregateIdentifier == aggregateIdentifier);
+            else query = _collection.Find(session, e => e.AggregateIdentifier == aggregateIdentifier);
 
             List<EventModel> events = await query.ToListAsync(cancellationToken);
             return events;

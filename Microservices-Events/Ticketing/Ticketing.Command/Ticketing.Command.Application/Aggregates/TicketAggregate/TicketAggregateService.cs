@@ -49,5 +49,22 @@ namespace Ticketing.Command.Application.Services
             TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, changes, true);
             return applied;
         }
+
+        //Reconstruye el estado aplicando los eventos guardados, en orden. Sube la versión pero no los añade a los cambios pendientes
+        public TicketAggregate ReplayEvents(TicketAggregate aggregate, IEnumerable<EventBase> events)
+        {
+            TicketAggregate current = aggregate;
+
+            foreach (EventBase @event in events)
+            {
+                TicketAggregate applied = ApplyEvent(current, @event);
+
+                int version = current.Version + 1;
+                List<EventBase> noChanges = new List<EventBase>();
+                current = Rebuild(applied, version, noChanges);
+            }
+
+            return current;
+        }
     }
 }

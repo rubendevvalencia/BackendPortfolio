@@ -39,7 +39,8 @@ namespace Ticketing.Command.Infrastructure
             services.AddScoped<IMongoSessionContext, MongoSessionContext>();
             services.AddScoped<IMongoSession, MongoSession>();
             services.AddScoped<IEventModelRepository, EventModelRepository>();
-            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddScoped<IEventStore, EventStore>();
+            services.AddScoped(typeof(IMongoBaseRepository<>), typeof(MongoRepository<>));
            
            //Mapea a mongoDb para evitar tener problemas
             MongoClassMaps.Register();
