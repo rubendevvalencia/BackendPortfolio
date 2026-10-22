@@ -64,7 +64,7 @@ root* (`Program.cs`); el resto del código de `Api` no la usa.
    contexto: si hay una, inserta dentro de la transacción; si no, inserta sin ella.
 5. **`CommitTransactionAsync`** confirma y el handler cierra la sesión (`Dispose`). Si algo falla, hace
    `RollbackAsync`, cierra la sesión y **relanza** la excepción.
-6. El handler devuelve `Response<bool>` con `IsSuccess = true`, y el controller lo traduce con
+6. El handler devuelve `Response<string>.Success(ticket.Id)`, con el id del ticket creado en `Data`, y el controller lo traduce con
    `ToActionResult` (200 si va bien; si no, según `ErrorType`).
 
 ```mermaid

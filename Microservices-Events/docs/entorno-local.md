@@ -70,10 +70,10 @@ Content-Type: application/json
 }
 ```
 
-Respuesta esperada (200):
+Respuesta esperada (200), con el id del ticket creado en `data`:
 
 ```json
-{ "data": true, "isSuccess": true, "message": "", "errors": {}, "errorType": 1 }
+{ "data": "019...-....", "isSuccess": true, "message": "", "errors": {}, "errorType": 1 }
 ```
 
 Y el documento en Mongo:

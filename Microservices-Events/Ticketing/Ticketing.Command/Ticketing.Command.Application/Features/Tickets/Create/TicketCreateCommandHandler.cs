@@ -6,7 +6,7 @@ using Ticketing.Common.Response;
 
 namespace Ticketing.Command.Application.Features.Tickets.Create
 {
-    public class TicketCreateCommandHandler : IRequestHandler<TicketCreateCommand, Response<bool>>
+    public class TicketCreateCommandHandler : IRequestHandler<TicketCreateCommand, Response<string>>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITicketAggregateService _ticketAggregateService;
@@ -18,10 +18,8 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
             _ticketAggregateService = ticketAggregateService;
             _eventSourcingHandler = eventSourcingHandler;
         }
-        public async Task<Response<bool>> Handle(TicketCreateCommand request, CancellationToken cancellationToken)
+        public async Task<Response<string>> Handle(TicketCreateCommand request, CancellationToken cancellationToken)
         {
-            var response = new Response<bool>();
-
             TicketAggregate ticket = _ticketAggregateService.Create(request.UserName, request.ErrorType, request.ErrorDetail);
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -38,11 +36,7 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
                 _unitOfWork.Dispose();
                 throw;
             }
-
-            response.Data = true;
-            response.IsSuccess = true;
-
-            return response;
+            return Response<string>.Success(ticket.Id);
         }
     }
 
