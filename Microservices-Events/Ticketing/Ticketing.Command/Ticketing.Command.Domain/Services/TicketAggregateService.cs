@@ -51,7 +51,7 @@ namespace Ticketing.Command.Domain.Services
         }
 
         //Devuelve una copia del ticket con la versión, la versión previa y los cambios pendientes indicados. El resto del estado (Id, Active) se copia igual
-        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, int versionBeforeChanges, List<EventBase> uncommittedChanges)
+        protected override TicketAggregate CopyWith(TicketAggregate aggregate, int version, int versionBeforeChanges, List<EventBase> uncommittedChanges)
         {
             TicketAggregate rebuilt = new TicketAggregate(aggregate.Id, version, versionBeforeChanges, uncommittedChanges, aggregate.Active);
 

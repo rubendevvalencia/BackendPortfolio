@@ -36,7 +36,7 @@ namespace Ticketing.Command.Application.EventSourcing
 
             //El nombre de la clase del agregado coincide con el valor del enum
             eAggregateType aggregateType = Enum.Parse<eAggregateType>(typeof(TAggregate).Name);
-
+            //Aquí se hace el guardado físico
             await _eventStore.SaveEventsAsync(aggregate.Id, aggregateType, changes, expectedVersion, cancellationToken);
         }
     }

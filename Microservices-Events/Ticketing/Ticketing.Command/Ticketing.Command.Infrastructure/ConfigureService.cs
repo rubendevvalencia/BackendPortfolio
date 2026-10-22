@@ -11,7 +11,7 @@ using Ticketing.Command.Infrastructure.Repository.EventModelRepository;
 using Ticketing.Command.Infrastructure.Repository.MongoRepository;
 using Ticketing.Command.Infrastructure.Mapping;
 using Ticketing.Command.Domain.Interfaces.Events;
-using Ticketing.Command.Domain.Services;
+using Ticketing.Command.Infrastructure.Persistence;
 
 namespace Ticketing.Command.Infrastructure
 {
