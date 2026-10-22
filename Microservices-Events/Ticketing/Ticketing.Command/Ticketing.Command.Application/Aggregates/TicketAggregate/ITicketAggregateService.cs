@@ -1,4 +1,4 @@
-using Ticketing.Command.Domain.Entities.Aggregates;
+using Ticketing.Command.Application.Aggregates;
 
 namespace Ticketing.Command.Application.Services
 {

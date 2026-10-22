@@ -1,6 +1,6 @@
 using MediatR;
+using Ticketing.Command.Application.Aggregates;
 using Ticketing.Command.Application.Services;
-using Ticketing.Command.Domain.Entities.Aggregates;
 using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
 using Ticketing.Common.Response;
 

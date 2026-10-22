@@ -1,4 +1,4 @@
-using Ticketing.Command.Domain.Entities.Aggregates;
+using Ticketing.Command.Application.Aggregates;
 using Ticketing.Command.Domain.Entities.EventModels;
 using Ticketing.Command.Domain.Enum;
 using Ticketing.Command.Domain.Interface.EventModels;
@@ -14,6 +14,12 @@ namespace Ticketing.Command.Application.Services
         {
             _eventModelRepo = eventModelRepository;
         }
+
+        public Task<TAggregate> GetByIdAsync(string aggregateId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public async Task SaveAsync(TAggregate aggregate, CancellationToken cancellationToken)
         {

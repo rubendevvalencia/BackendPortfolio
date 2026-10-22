@@ -1,4 +1,4 @@
-using Ticketing.Command.Domain.Entities.Aggregates;
+using Ticketing.Command.Application.Aggregates;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Application.Services
@@ -36,7 +36,7 @@ namespace Ticketing.Command.Application.Services
             }
         }
 
-        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, IReadOnlyList<EventBase> uncommittedChanges)
+        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, List<EventBase> uncommittedChanges)
         {
             TicketAggregate rebuilt = new TicketAggregate(aggregate.Id, version, uncommittedChanges, aggregate.Active);
 
@@ -45,8 +45,8 @@ namespace Ticketing.Command.Application.Services
 
         private TicketAggregate Apply(TicketAggregate aggregate, TicketCreatedEvent @event)
         {
-            TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, aggregate.UncommittedChanges, true);
-
+            List<EventBase> changes = new List<EventBase>(aggregate.UncommittedChanges);
+            TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, changes, true);
             return applied;
         }
     }

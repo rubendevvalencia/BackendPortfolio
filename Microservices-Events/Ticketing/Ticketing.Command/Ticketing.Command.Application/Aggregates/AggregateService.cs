@@ -1,4 +1,4 @@
-using Ticketing.Command.Domain.Entities.Aggregates;
+using Ticketing.Command.Application.Aggregates;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Application.Services
@@ -30,6 +30,6 @@ namespace Ticketing.Command.Application.Services
         protected abstract TAggregate ApplyEvent(TAggregate aggregate, EventBase @event);
 
         //Copia del agregado con otra versión y otros cambios pendientes, sin tocar el resto del estado
-        protected abstract TAggregate Rebuild(TAggregate aggregate, int version, IReadOnlyList<EventBase> uncommittedChanges);
+        protected abstract TAggregate Rebuild(TAggregate aggregate, int version, List<EventBase> uncommittedChanges);
     }
 }
