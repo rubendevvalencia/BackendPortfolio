@@ -50,7 +50,8 @@ flowchart RL
 
 `Ticketing.Command.Domain` no tiene un solo `PackageReference`: los puertos viven ahí, en quien los *usa*, e
 `Infrastructure` los implementa con el driver de MongoDB. Los componentes uno a uno, con el recorrido de la
-petición, están en [*Arquitectura*](docs/arquitectura.md#vista-de-componentes).
+petición, están en [*Arquitectura*](docs/arquitectura.md#vista-de-componentes). También como imagen: el
+[resumen por capas](docs/img/arquitectura-resumen.png).
 
 ## Estructura
 

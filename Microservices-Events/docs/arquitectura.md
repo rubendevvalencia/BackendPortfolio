@@ -39,6 +39,8 @@ punteadas unen un puerto con la clase que lo implementa. Los puertos (`I...`) vi
 `Application` solo habla con ellos y `Infrastructure` los implementa. `Ticketing.Common` (eventos y
 `Response<T>`) lo usan `Api`, `Application` y `Domain` y no se dibuja para no cruzar todas las flechas.
 
+**[Abrir el resumen como imagen →](img/arquitectura-resumen.png)** (el mismo diagrama, a tamaño completo)
+
 ```mermaid
 flowchart LR
     Client([Cliente HTTP])
@@ -122,6 +124,15 @@ flowchart LR
   único de `eventStore` rechaza dos eventos con el mismo (agregado, versión).
 - **`Ticketing.Common`** es el contrato compartido: eventos y `Response<T>`, sin dependencias de MongoDB ni
   de ASP.NET.
+
+### Cómo regenerar la imagen
+
+`img/arquitectura-resumen.png` sale de `img/arquitectura-resumen.mmd`, que es el diagrama de arriba. Tras un
+cambio en el código, desde `docs/`:
+
+```bash
+npx @mermaid-js/mermaid-cli -i img/arquitectura-resumen.mmd -o img/arquitectura-resumen.png -s 2 -w 2400 -b white
+```
 
 ## Proyectos y dependencias
 
