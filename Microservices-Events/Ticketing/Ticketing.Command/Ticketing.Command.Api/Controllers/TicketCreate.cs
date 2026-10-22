@@ -24,7 +24,6 @@ namespace Ticketing.Command.Api.Controllers
         {
             _mediator = mediator;
         }
-
         [HttpPost("CreateTicket")]
         //[RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]

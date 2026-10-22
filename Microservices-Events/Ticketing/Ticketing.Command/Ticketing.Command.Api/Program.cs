@@ -16,10 +16,6 @@ builder.Services.AddVersioning();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 
-
-
-
-
 var app = builder.Build();
 
 //Crea los índices de Mongo (idempotente); sin el índice único de versión no hay control de concurrencia real
