@@ -1,25 +1,26 @@
 using MongoDB.Driver;
-using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
+using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Command.Infrastructure.Interface;
-using Ticketing.Command.Infrastructure.Interface.Session;
 
 namespace Ticketing.Command.Infrastructure.Repository.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork, IDisposable
     {
-        private readonly IMongoSession _session;
+        private readonly IMongoClient _mongoClient;
+        private readonly ClientSessionOptions _sessionOptions;
         private readonly IMongoSessionContext _sessionContext;
 
-        public UnitOfWork(IMongoSession session, IMongoSessionContext sessionContext)
+        public UnitOfWork(IMongoClient mongoClient, ClientSessionOptions sessionOptions, IMongoSessionContext sessionContext)
         {
-            _session = session;
+            _mongoClient = mongoClient;
+            _sessionOptions = sessionOptions;
             _sessionContext = sessionContext;
         }
 
         public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
-            IClientSessionHandle clientSession = await _session.BeginSessionAsync(cancellationToken);
-            _session.BeginTransaction(clientSession);
+            IClientSessionHandle clientSession = await _mongoClient.StartSessionAsync(_sessionOptions, cancellationToken);
+            clientSession.StartTransaction();
             _sessionContext.Current = clientSession;
         }
 
@@ -27,15 +28,15 @@ namespace Ticketing.Command.Infrastructure.Repository.UnitOfWork
         {
             IClientSessionHandle? clientSession = _sessionContext.Current;
             if (clientSession is null) throw new InvalidOperationException("No hay una transacción iniciada.");
-            
-            await _session.CommitTransactionAsync(clientSession, cancellationToken);
+
+            await clientSession.CommitTransactionAsync(cancellationToken);
         }
 
         public async Task RollbackAsync(CancellationToken cancellationToken = default)
         {
             IClientSessionHandle? clientSession = _sessionContext.Current;
             if (clientSession is null) return;
-            await _session.RollbackTransactionAsync(clientSession, cancellationToken); 
+            await clientSession.AbortTransactionAsync(cancellationToken);
         }
 
         public void Dispose() => CloseSession();
@@ -44,7 +45,7 @@ namespace Ticketing.Command.Infrastructure.Repository.UnitOfWork
         {
             IClientSessionHandle? clientSession = _sessionContext.Current;
             if (clientSession is null) return;
-            _session.DisposeSession(clientSession);
+            clientSession.Dispose();
             _sessionContext.Current = null;
         }
     }

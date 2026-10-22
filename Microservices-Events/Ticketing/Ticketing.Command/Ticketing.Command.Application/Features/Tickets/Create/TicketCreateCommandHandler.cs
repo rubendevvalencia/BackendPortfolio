@@ -1,10 +1,10 @@
 using MediatR;
-using Ticketing.Command.Application.Aggregates;
-using Ticketing.Command.Application.Services;
-using Ticketing.Command.Domain.Interface.Repository.UnitOfWork;
+using Ticketing.Command.Domain.Aggregates.Tickets;
+using Ticketing.Command.Domain.Interfaces;
+using Ticketing.Command.Domain.Interfaces.Events;
 using Ticketing.Common.Response;
 
-namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
+namespace Ticketing.Command.Application.Features.Tickets.Create
 {
     public class TicketCreateCommandHandler : IRequestHandler<TicketCreateCommand, Response<bool>>
     {

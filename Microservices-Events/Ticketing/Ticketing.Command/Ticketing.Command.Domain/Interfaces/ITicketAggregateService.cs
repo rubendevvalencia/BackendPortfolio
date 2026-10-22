@@ -1,6 +1,7 @@
-using Ticketing.Command.Application.Aggregates;
+using Ticketing.Command.Domain.Aggregates;
+using Ticketing.Command.Domain.Aggregates.Tickets;
 
-namespace Ticketing.Command.Application.Services
+namespace Ticketing.Command.Domain.Interfaces
 {
     public interface ITicketAggregateService : IAggregateService<TicketAggregate>
     {

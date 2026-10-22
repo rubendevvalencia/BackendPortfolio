@@ -1,7 +1,7 @@
-using Ticketing.Command.Domain.Enum;
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
-namespace Ticketing.Command.Domain.Abstracts
+namespace Ticketing.Command.Domain.Interfaces.Events
 {
     public interface IEventStore
     {

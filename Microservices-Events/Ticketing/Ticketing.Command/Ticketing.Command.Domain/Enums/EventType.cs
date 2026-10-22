@@ -1,4 +1,4 @@
-namespace Ticketing.Command.Domain.Enum
+namespace Ticketing.Command.Domain.Enums
 {
     public enum eEventType
     {

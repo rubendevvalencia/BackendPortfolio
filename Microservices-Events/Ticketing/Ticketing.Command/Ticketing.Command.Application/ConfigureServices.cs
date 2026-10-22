@@ -1,7 +1,10 @@
 using System.Reflection;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using Ticketing.Command.Application.Services;
+using Ticketing.Command.Application.EventSourcing;
+using Ticketing.Command.Domain.Interfaces;
+using Ticketing.Command.Domain.Interfaces.Events;
+using Ticketing.Command.Domain.Services;
 
 namespace Ticketing.Command.Application
 {

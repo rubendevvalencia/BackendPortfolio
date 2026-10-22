@@ -1,12 +1,11 @@
 using System.Reflection.Metadata;
-using Ticketing.Command.Application.Services;
-using Ticketing.Command.Domain.Abstracts;
+using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Command.Domain.Entities.EventModels;
-using Ticketing.Command.Domain.Enum;
-using Ticketing.Command.Domain.Interface.EventModels;
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
+using Ticketing.Command.Domain.Interfaces.Events;
 
-namespace Ticketing.Command.Infrastructure.Persistence
+namespace Ticketing.Command.Domain.Services
 {
     public class EventStore : IEventStore
     {
@@ -18,7 +17,8 @@ namespace Ticketing.Command.Infrastructure.Persistence
 
             if(eventStream is null || !eventStream.Any()) throw new Exception("El aggregate no tiene eventos");
 
-            return eventStream.OrderBy(o => o.Version).Select(o => o.EventData).ToList();
+            var list = eventStream.OrderBy(o => o.Version).Select(o => o.EventData).ToList();
+            return list;
         }
 
         public async Task SaveEventsAsync(string aggregateId, eAggregateType aggregateType, IEnumerable<EventBase> events, int expectedVersion, CancellationToken cancellationToken)

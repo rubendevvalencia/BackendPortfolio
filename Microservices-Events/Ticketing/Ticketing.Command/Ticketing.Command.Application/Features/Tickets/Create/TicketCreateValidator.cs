@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Ticketing.Command.Application.Feature.Tickets.TicketsCreate
+namespace Ticketing.Command.Application.Features.Tickets.Create
 {
     public class TicketCreateValidator : AbstractValidator<TicketCreateCommand>
     {

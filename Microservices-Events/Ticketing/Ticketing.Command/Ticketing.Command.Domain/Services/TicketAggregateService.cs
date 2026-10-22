@@ -1,12 +1,16 @@
-using Ticketing.Command.Application.Aggregates;
+using Ticketing.Command.Domain.Aggregates;
+using Ticketing.Command.Domain.Aggregates.Tickets;
+using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Common.Events;
 
-namespace Ticketing.Command.Application.Services
+namespace Ticketing.Command.Domain.Services
 {
     public class TicketAggregateService : AggregateService<TicketAggregate>, ITicketAggregateService
     {
+        //Crea un ticket nuevo: lanza un TicketCreatedEvent sobre un ticket vacío. El resultado queda en versión 1 con ese evento como cambio pendiente
         public TicketAggregate Create(string? userName, string? errorType, string? errorDetail)
         {
+            //El id del ticket lo genera el servicio y viaja dentro del evento
             string id = Guid.CreateVersion7().ToString();
 
             TicketCreatedEvent ticketCreatedEvent = new TicketCreatedEvent
@@ -17,13 +21,15 @@ namespace Ticketing.Command.Application.Services
                 DetailError = errorDetail
             };
 
+            //Punto de partida: ticket sin id, inactivo, en versión 0 y sin cambios
             List<EventBase> noChanges = new List<EventBase>();
-            TicketAggregate emptyTicket = new TicketAggregate(string.Empty, 0, noChanges, false);
+            TicketAggregate emptyTicket = new TicketAggregate(string.Empty, 0, 0, noChanges, false);
             TicketAggregate ticket = RaiseEvent(emptyTicket, ticketCreatedEvent);
 
             return ticket;
         }
 
+        //Elige cómo cambia el ticket según el tipo de evento. Un evento nuevo del ticket añade aquí un case; uno desconocido lanza error
         protected override TicketAggregate ApplyEvent(TicketAggregate aggregate, EventBase @event)
         {
             switch (@event)
@@ -36,35 +42,20 @@ namespace Ticketing.Command.Application.Services
             }
         }
 
-        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, List<EventBase> uncommittedChanges)
+        //Devuelve una copia del ticket con la versión, la versión previa y los cambios pendientes indicados. El resto del estado (Id, Active) se copia igual
+        protected override TicketAggregate Rebuild(TicketAggregate aggregate, int version, int versionBeforeChanges, List<EventBase> uncommittedChanges)
         {
-            TicketAggregate rebuilt = new TicketAggregate(aggregate.Id, version, uncommittedChanges, aggregate.Active);
+            TicketAggregate rebuilt = new TicketAggregate(aggregate.Id, version, versionBeforeChanges, uncommittedChanges, aggregate.Active);
 
             return rebuilt;
         }
 
+        //Cambia el estado del ticket con TicketCreatedEvent: toma el Id del evento y lo marca como activo. La versión y los cambios los fija después Rebuild
         private TicketAggregate Apply(TicketAggregate aggregate, TicketCreatedEvent @event)
         {
             List<EventBase> changes = new List<EventBase>(aggregate.UncommittedChanges);
-            TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, changes, true);
+            TicketAggregate applied = new TicketAggregate(@event.Id, aggregate.Version, aggregate.VersionBeforeChanges, changes, true);
             return applied;
-        }
-
-        //Reconstruye el estado aplicando los eventos guardados, en orden. Sube la versión pero no los añade a los cambios pendientes
-        public TicketAggregate ReplayEvents(TicketAggregate aggregate, IEnumerable<EventBase> events)
-        {
-            TicketAggregate current = aggregate;
-
-            foreach (EventBase @event in events)
-            {
-                TicketAggregate applied = ApplyEvent(current, @event);
-
-                int version = current.Version + 1;
-                List<EventBase> noChanges = new List<EventBase>();
-                current = Rebuild(applied, version, noChanges);
-            }
-
-            return current;
         }
     }
 }

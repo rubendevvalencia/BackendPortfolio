@@ -1,9 +1,10 @@
-using Ticketing.Command.Application.Aggregates;
-using Ticketing.Command.Domain.Abstracts;
-using Ticketing.Command.Domain.Enum;
+using Ticketing.Command.Domain.Aggregates;
+using Ticketing.Command.Domain.Interfaces;
+using Ticketing.Command.Domain.Interfaces.Events;
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
-namespace Ticketing.Command.Application.Services
+namespace Ticketing.Command.Application.EventSourcing
 {
     public class EventSourcingHandler<TAggregate> : IEventSourcingHandler<TAggregate> where TAggregate : AggregateRoot
     {
@@ -24,8 +25,8 @@ namespace Ticketing.Command.Application.Services
         {
             IReadOnlyCollection<EventBase> changes = aggregate.UncommittedChanges;
 
-            //Versión previa al primer cambio pendiente: la del agregado menos los eventos aún sin guardar
-            int expectedVersion = aggregate.Version - changes.Count;
+            //La versión que el agregado tenía en el almacén antes de los cambios pendientes
+            int expectedVersion = aggregate.VersionBeforeChanges;
 
             //El nombre de la clase del agregado coincide con el valor del enum
             eAggregateType aggregateType = Enum.Parse<eAggregateType>(typeof(TAggregate).Name);

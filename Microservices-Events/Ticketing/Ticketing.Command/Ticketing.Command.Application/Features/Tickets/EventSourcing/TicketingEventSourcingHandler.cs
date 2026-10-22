@@ -1,9 +1,10 @@
 using Microsoft.VisualBasic;
-using Ticketing.Command.Application.Aggregates;
-using Ticketing.Command.Application.Services;
-using Ticketing.Command.Domain.Abstracts;
+using Ticketing.Command.Domain.Aggregates.Tickets;
+using Ticketing.Command.Application.EventSourcing;
+using Ticketing.Command.Domain.Interfaces;
+using Ticketing.Command.Domain.Interfaces.Events;
 
-namespace Ticketing.Command.Application.Feature.Tickets.EventSourcing
+namespace Ticketing.Command.Application.Features.Tickets.EventSourcing
 {
     public class TicketingEventSourcingHandler : IEventSourcingHandler<TicketAggregate>
     {

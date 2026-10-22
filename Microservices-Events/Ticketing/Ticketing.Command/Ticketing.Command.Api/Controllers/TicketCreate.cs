@@ -2,7 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
-using Ticketing.Command.Application.Feature.Tickets.TicketsCreate;
+using Ticketing.Command.Application.Features.Tickets.Create;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
 using Ticketing.Common.Response;

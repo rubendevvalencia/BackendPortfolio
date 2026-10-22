@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.IdGenerators;
 using MongoDB.Bson.Serialization.Serializers;
 using Ticketing.Command.Domain.Entities.EventModels;
-using Ticketing.Command.Domain.Enum;
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Infrastructure.Mapping

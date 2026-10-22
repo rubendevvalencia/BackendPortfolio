@@ -1,6 +1,6 @@
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Entities.EventModels;
-using Ticketing.Command.Domain.Interface.EventModels;
+using Ticketing.Command.Domain.Interfaces.Events;
 using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Infrastructure.Interface;
 

@@ -1,6 +1,6 @@
-using Ticketing.Command.Application.Aggregates;
+using Ticketing.Command.Domain.Aggregates;
 
-namespace Ticketing.Command.Application.Services
+namespace Ticketing.Command.Domain.Interfaces.Events
 {
     public interface IEventSourcingHandler<T> where T : AggregateRoot
     {
