@@ -11,7 +11,6 @@ namespace Ticketing.Command.Api.Controllers
 {
     
     [ApiController]
-    [Route("api/[controller]")]
     //[Authorize] //Protege el controlador completo: cualquier endpoint requiere un token JWT válido.
     //[EnableRateLimiting("user-limited")]
     [Route("api/v{version:apiVersion}/[controller]")]

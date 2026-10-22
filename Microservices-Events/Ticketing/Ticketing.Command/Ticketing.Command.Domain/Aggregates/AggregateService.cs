@@ -9,7 +9,6 @@ namespace Ticketing.Command.Domain.Aggregates
         {
             List<EventBase> noChanges = new List<EventBase>();
             TAggregate committed = CopyWith(aggregate, aggregate.Version, aggregate.Version, noChanges);
-
             return committed;
         }
 
@@ -50,7 +49,7 @@ namespace Ticketing.Command.Domain.Aggregates
             //Copia los cambios pendientes que ya había y añade el nuevo
             int version = aggregate.Version + 1;
             List<EventBase> changes = new List<EventBase>(aggregate.UncommittedChanges);
-            changes.Add(@event);
+            changes.Add(@event);//Agrego que evento se ha producido en los cambios
 
             TAggregate raised = CopyWith(applied, version, aggregate.VersionBeforeChanges, changes);
 
