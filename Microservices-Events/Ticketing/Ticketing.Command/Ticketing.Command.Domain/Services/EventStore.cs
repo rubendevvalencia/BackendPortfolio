@@ -2,6 +2,7 @@ using System.Reflection.Metadata;
 using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Command.Domain.Entities.EventModels;
 using Ticketing.Command.Domain.Enums;
+using Ticketing.Command.Domain.Exceptions;
 using Ticketing.Common.Events;
 using Ticketing.Command.Domain.Interfaces.Events;
 
@@ -15,7 +16,7 @@ namespace Ticketing.Command.Domain.Services
         {
             List<EventModel> eventStream = await _eventModelRepository.FindByAggregateIdAsync(aggregateId, cancellationToken);
 
-            if(eventStream is null || !eventStream.Any()) throw new Exception("El aggregate no tiene eventos");
+            if(eventStream is null || !eventStream.Any()) throw new AggregateNotFoundException(aggregateId);
 
             var list = eventStream.OrderBy(o => o.Version).Select(o => o.EventData).ToList();
             return list;
@@ -28,7 +29,7 @@ namespace Ticketing.Command.Domain.Services
             //Un agregado sin eventos parte de la versión 0
             int lastVersion = 0;
             if (eventStream.Any()) lastVersion = eventStream.Max(o => o.Version);
-            if (lastVersion != expectedVersion) throw new Exception("Concurrence Error");
+            if (lastVersion != expectedVersion) throw new ConcurrencyException(aggregateId);
 
             int version = expectedVersion;
             foreach (EventBase @event in events)

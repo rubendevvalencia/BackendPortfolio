@@ -21,12 +21,20 @@ namespace Ticketing.Command.Domain.Services
                 DetailError = errorDetail
             };
 
-            //Punto de partida: ticket sin id, inactivo, en versión 0 y sin cambios
-            List<EventBase> noChanges = new List<EventBase>();
-            TicketAggregate emptyTicket = new TicketAggregate(string.Empty, 0, 0, noChanges, false);
+            //Punto de partida: ticket vacío
+            TicketAggregate emptyTicket = CreateEmpty();
             TicketAggregate ticket = RaiseEvent(emptyTicket, ticketCreatedEvent);
 
             return ticket;
+        }
+
+        //Ticket sin id, inactivo, en versión 0 y sin cambios pendientes
+        protected override TicketAggregate CreateEmpty()
+        {
+            List<EventBase> noChanges = new List<EventBase>();
+            TicketAggregate emptyTicket = new TicketAggregate(string.Empty, 0, 0, noChanges, false);
+
+            return emptyTicket;
         }
 
         //Elige cómo cambia el ticket según el tipo de evento. Un evento nuevo del ticket añade aquí un case; uno desconocido lanza error

@@ -32,6 +32,15 @@ namespace Ticketing.Command.Domain.Aggregates
             return current;
         }
 
+        //Parte de un agregado vacío (CreateEmpty) y reproduce sobre él los eventos guardados
+        public TAggregate ReplayEvents(IEnumerable<EventBase> events)
+        {
+            TAggregate empty = CreateEmpty();
+            TAggregate replayed = ReplayEvents(empty, events);
+
+            return replayed;
+        }
+
         //Lanza un evento nuevo: cambia el estado, sube la versión y añade el evento a los cambios pendientes. La versión previa se conserva
         protected TAggregate RaiseEvent(TAggregate aggregate, EventBase @event)
         {
@@ -47,6 +56,9 @@ namespace Ticketing.Command.Domain.Aggregates
 
             return raised;
         }
+
+        //Cada servicio sabe construir su agregado en el punto de partida: sin id, versión 0 y sin cambios
+        protected abstract TAggregate CreateEmpty();
 
         //Cada servicio decide cómo cambia el estado de su agregado con cada evento. Devuelve un agregado nuevo
         protected abstract TAggregate ApplyEvent(TAggregate aggregate, EventBase @event);

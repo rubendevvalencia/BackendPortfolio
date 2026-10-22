@@ -9,15 +9,21 @@ namespace Ticketing.Command.Application.EventSourcing
     public class EventSourcingHandler<TAggregate> : IEventSourcingHandler<TAggregate> where TAggregate : AggregateRoot
     {
         private readonly IEventStore _eventStore;
+        private readonly IAggregateService<TAggregate> _aggregateService;
 
-        public EventSourcingHandler(IEventStore eventStore)
+        public EventSourcingHandler(IEventStore eventStore, IAggregateService<TAggregate> aggregateService)
         {
             _eventStore = eventStore;
+            _aggregateService = aggregateService;
         }
 
-        public Task<TAggregate> GetByIdAsync(string aggregateId, CancellationToken cancellationToken)
+        public async Task<TAggregate> GetByIdAsync(string aggregateId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            //El almacén devuelve los eventos ordenados por versión; el servicio del dominio los reproduce
+            List<EventBase> events = await _eventStore.GetEventsAsync(aggregateId, cancellationToken);
+            TAggregate aggregate = _aggregateService.ReplayEvents(events);
+
+            return aggregate;
         }
 
 

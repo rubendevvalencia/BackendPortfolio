@@ -9,5 +9,8 @@ namespace Ticketing.Command.Domain.Aggregates
 
         //Reconstruye el estado aplicando los eventos guardados, en orden. Sube la versión pero no los añade a los cambios pendientes
         T ReplayEvents(T aggregate, IEnumerable<EventBase> events);
+
+        //Igual que la anterior, pero parte de un agregado vacío que crea el propio servicio. Es la que usa quien carga un agregado por su id
+        T ReplayEvents(IEnumerable<EventBase> events);
     }
 }
