@@ -1,0 +1,70 @@
+flowchart LR
+    Client([Cliente HTTP])
+
+    subgraph API["Api"]
+        direction TB
+        Ctrl["TicketCreate<br/>POST api/v1/TicketCreate/CreateTicket"]
+    end
+
+    subgraph APP["Application"]
+        direction TB
+        Handler["TicketCreateCommandHandler<br/>fija la transacción"]
+        ESH["EventSourcingHandler"]
+    end
+
+    subgraph DOM["Domain"]
+        direction TB
+        TAS["TicketAggregateService<br/>crea el TicketAggregate"]
+        subgraph PORTS["Puertos"]
+            direction TB
+            IUoW["IUnitOfWork"]
+            IES["IEventStore"]
+            IEMR["IEventModelRepository"]
+        end
+    end
+
+    subgraph INF["Infrastructure"]
+        direction TB
+        UoW["UnitOfWork"]
+        Ctx["MongoSessionContext"]
+        ES["EventStore<br/>versión y concurrencia"]
+        Repo["EventModelRepository"]
+        DbCtx["MongoDbContext"]
+    end
+
+    subgraph DB["MongoDB 7 · replica set rs0"]
+        direction TB
+        Coll[("ticketingApp.eventStore")]
+        Idx["índice único<br/>AggregateIdentifier + Version"]
+    end
+
+    Client -->|JSON| Ctrl
+    Ctrl -->|MediatR Send| Handler
+    Handler -->|Create| TAS
+    Handler -->|Begin / Commit / Rollback| IUoW
+    Handler -->|SaveAsync| ESH
+    ESH -->|SaveEventsAsync| IES
+
+    IUoW -.-|implementado por| UoW
+    IES -.-|implementado por| ES
+    IEMR -.-|implementado por| Repo
+
+    UoW -->|publica sesión| Ctx
+    Repo -->|lee sesión| Ctx
+    ES -->|usa| Repo
+    Repo --> DbCtx
+
+    UoW -->|sesión + transacción| Coll
+    DbCtx -->|insertOne / find| Coll
+    Coll --- Idx
+
+    classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
+    classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
+    classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
+    classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
+    classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
+    class Ctrl api
+    class Handler,ESH app
+    class TAS,IUoW,IES,IEMR dom
+    class UoW,Ctx,ES,Repo,DbCtx inf
+    class Coll,Idx db
