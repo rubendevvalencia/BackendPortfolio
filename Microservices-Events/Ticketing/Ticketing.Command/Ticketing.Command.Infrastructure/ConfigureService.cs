@@ -12,6 +12,8 @@ using Ticketing.Command.Infrastructure.Repository.MongoRepository;
 using Ticketing.Command.Infrastructure.Mapping;
 using Ticketing.Command.Domain.Interfaces.Events;
 using Ticketing.Command.Infrastructure.Persistence;
+using Confluent.Kafka;
+using Ticketing.Common.Common.Producers.Interface;
 
 namespace Ticketing.Command.Infrastructure
 {
@@ -20,15 +22,11 @@ namespace Ticketing.Command.Infrastructure
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
             string? connectionString = configuration.GetConnectionString("MongoDbConnection");
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException("Falta ConnectionStrings:MongoDbConnection.");
-            }
+            if (string.IsNullOrWhiteSpace(connectionString)) throw new InvalidOperationException("Falta ConnectionStrings:MongoDbConnection.");
+            
             string? databaseName = configuration["MongoSettings:Database"];
-            if (string.IsNullOrWhiteSpace(databaseName))
-            {
-                throw new InvalidOperationException("Falta MongoSettings:Database.");
-            }
+            if (string.IsNullOrWhiteSpace(databaseName)) throw new InvalidOperationException("Falta MongoSettings:Database.");
+            
             services.AddSingleton<IMongoClient>(new MongoClient(connectionString));
             services.AddSingleton<MongoDbContext>(sp =>
             {
@@ -39,6 +37,23 @@ namespace Ticketing.Command.Infrastructure
             {
                 DefaultTransactionOptions = new TransactionOptions()
             });
+
+           
+            string? kafkaHostName = configuration["KafkaSettings:HostName"];
+            if (string.IsNullOrWhiteSpace(kafkaHostName)) throw new InvalidOperationException("Falta KafkaSettings:HostName.");
+            
+            string? kafkaPort = configuration["KafkaSettings:Port"];
+            if (string.IsNullOrWhiteSpace(kafkaPort)) throw new InvalidOperationException("Falta KafkaSettings:Port.");
+            
+            ProducerConfig producerConfig = new ProducerConfig
+            {
+                BootstrapServers = $"{kafkaHostName}:{kafkaPort}"
+            };
+
+            services.AddSingleton(producerConfig);
+            services.AddSingleton<IEventProducer, TicketEventProducer>();
+
+
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IMongoSessionContext, MongoSessionContext>();
             services.AddScoped<IEventModelRepository, EventModelRepository>();
