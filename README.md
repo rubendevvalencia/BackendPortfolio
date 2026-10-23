@@ -8,7 +8,7 @@ reescritura de golpe.
 |---|---|---|
 | [`Monolito/`](Monolito/README.md) | API Ecommerce en .NET, Clean Architecture. El laboratorio de aprendizaje original: cuatro versiones del mismo recurso conviviendo. | Vigente, es la referencia mientras dura la migración |
 | [`Microservicios/`](Microservicios/) | La arquitectura de destino. Cada subcarpeta es un microservicio independiente. | Empezando por [`Identity/`](Microservicios/Identity/README.md), pendiente de construir |
-| [`Microservices-Events/`](Microservices-Events/README.md) | Proyecto independiente de microservicios dirigidos por eventos: servicio `Ticketing` con CQRS (Command/Query), Event Sourcing y transacciones sobre MongoDB. No forma parte de la migración del monolito. | En construcción: lado de escritura con un caso de uso, documentado en [`docs/`](Microservices-Events/docs/arquitectura.md) |
+| [`Microservices-Events/`](Microservices-Events/README.md) | Proyecto independiente de microservicios dirigidos por eventos: servicio `Ticketing` con CQRS (Command/Query), Event Sourcing, transacciones sobre MongoDB y publicación de eventos en Kafka. No forma parte de la migración del monolito. | En construcción: lado de escritura con un caso de uso que publica en Kafka (sin consumidor aún), documentado en [`docs/`](Microservices-Events/docs/arquitectura.md) |
 | [`Prototipo/WpfPrototipe/`](Prototipo/WpfPrototipe/README.md) | Cliente de escritorio WPF para consumir la API. | Prototipo, ya consume la API (registro e inicio de sesión con token); las URLs salen de `appsettings.json` |
 
 ## Cómo se construye

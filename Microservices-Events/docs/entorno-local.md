@@ -2,7 +2,7 @@
 
 [← Volver al README](../README.md)
 
-Cómo levantar el proyecto y probar el único endpoint que existe hoy.
+Cómo levantar el proyecto (MongoDB y Kafka) y probar el único endpoint que existe hoy.
 
 ## Requisitos
 
@@ -17,6 +17,9 @@ Desde la raíz del repo:
 ```bash
 docker compose -f Microservices-Events/Docker/docker-compose.yml up -d
 ```
+
+Ese comando levanta también Zookeeper, Kafka y Kafka UI (ver el [apartado 2](#2-kafka-y-su-interfaz)). Para
+arrancar solo MongoDB: `... up -d mongodb`.
 
 | Elemento | Valor |
 |---|---|
@@ -41,13 +44,37 @@ docker ps --filter name=mongodb          # STATUS debe ser "healthy"
 docker exec mongodb mongosh --quiet --eval "rs.status().ok"   # 1
 ```
 
-**Para parar sin perder los contenedores**, usa `docker compose -f ... stop`. `down` los elimina.
+**Para parar sin perder los contenedores**, usa `docker compose -f ... stop`. `down` los elimina. Vale para
+los cuatro servicios.
 
 > El replica set anuncia su miembro como `host.docker.internal:27017`. En Docker Desktop (Windows y macOS)
 > ese nombre resuelve desde el host. En un Linux sin Docker Desktop hay que añadirlo a `/etc/hosts`
 > apuntando a `127.0.0.1`, o el driver no encontrará el primario aunque `localhost:27017` responda.
 
-## 2. Configuración de la API
+## 2. Kafka y su interfaz
+
+Los levanta el mismo `docker compose ... up -d`. Detalle de cada servicio, de los listeners y de cómo se
+publica en [*Mensajería con Kafka*](mensajeria-kafka.md).
+
+| Servicio | Contenedor | Puerto en el host | Para qué |
+|---|---|---|---|
+| Zookeeper | `zookeper` | `2181` | Coordina el broker |
+| Kafka | `kafka` | `29092` (la API) y `9092` (otros contenedores) | Broker de un solo nodo |
+| Kafka UI | `kafkaui` | `8080` | `http://localhost:8080`: topics y mensajes |
+
+Los tres tardan unos segundos en estar listos. Comprobación:
+
+```bash
+docker ps --filter name=kafka --filter name=zookeper     # kafka, kafkaui y zookeper en "Up"
+```
+
+Después, en Kafka UI, el cluster `local` debe aparecer *online*. El topic no hace falta crearlo: se crea al
+publicar el primer evento.
+
+> Las imágenes de Zookeeper y Kafka son de `bitnamilegacy`. Bitnami retiró las imágenes `bitnami/*` de
+> Docker Hub y las dejó archivadas ahí, sin actualizaciones. Vale para desarrollo local, no para producción.
+
+## 3. Configuración de la API
 
 [`appsettings.json`](../Ticketing/Ticketing.Command/Ticketing.Command.Api/appsettings.json) ya apunta al
 compose:
@@ -56,25 +83,31 @@ compose:
 |---|---|---|
 | `ConnectionStrings:MongoDbConnection` | `mongodb://localhost:27017/?replicaSet=rs0` | Conexión al replica set |
 | `MongoSettings:Database` | `ticketingApp` | Base de datos donde vive `eventStore` |
+| `KafkaSettings:HostName` | `localhost` | Host del broker |
+| `KafkaSettings:Port` | `29092` | Puerto del listener externo de Kafka |
+| `KafkaSettings:Topic` | `KAFKA_TOPIC` | Topic al que se publican los eventos |
 
-Si falta cualquiera de las dos primeras, `AddInfrastructureServices` lanza `InvalidOperationException` al
-arrancar (falla rápido, no en la primera petición).
+Si falta cualquiera de las dos de Mongo o `HostName`/`Port` de Kafka, `AddInfrastructureServices` lanza
+`InvalidOperationException` al arrancar (falla rápido, no en la primera petición). `Topic` no se valida al
+arrancar: si falta, falla al guardar el primer evento.
 
 `appsettings.Development.json` solo ajusta los niveles de log.
 
 > La cadena de conexión no lleva credenciales porque MongoDB del compose arranca sin autenticación. Es solo
 > para desarrollo local; si algún día se añade usuario, va a *User Secrets*, no a `appsettings.json`.
 
-## 3. Ejecutar
+## 4. Ejecutar
 
-Con MongoDB ya *healthy*:
+Con MongoDB ya *healthy* y Kafka en marcha:
 
 ```bash
 dotnet run --project Microservices-Events/Ticketing/Ticketing.Command/Ticketing.Command.Api
 ```
 
 Antes de aceptar peticiones, la API crea el índice `ux_aggregate_version` (y con él la colección). Si Mongo
-no responde, se queda esperando unos 30 s y termina con error.
+no responde, se queda esperando unos 30 s y termina con error. Kafka no se comprueba al arrancar: la API
+arranca sin él, pero `CreateTicket` no funcionará (ver
+[*Limitaciones*](mensajeria-kafka.md#limitaciones-actuales)).
 
 | Perfil (`launchSettings.json`) | URLs |
 |---|---|
@@ -83,7 +116,7 @@ no responde, se queda esperando unos 30 s y termina con error.
 
 Los dos arrancan en `Development`. Swagger (solo en `Development`): `http://localhost:5166/swagger`.
 
-## 4. Probar el endpoint
+## 5. Probar el endpoint
 
 ```http
 POST http://localhost:5166/api/v1/TicketCreate/CreateTicket
@@ -107,6 +140,13 @@ Y el documento en Mongo, junto con sus índices:
 ```bash
 docker exec mongodb mongosh --quiet ticketingApp --eval "db.eventStore.find().pretty()"
 docker exec mongodb mongosh --quiet ticketingApp --eval "db.eventStore.getIndexes()"
+```
+
+Y el mismo evento publicado en Kafka: en `http://localhost:8080`, *Topics* → el valor de
+`KafkaSettings:Topic` → *Messages*. O desde la consola del broker:
+
+```bash
+docker exec kafka kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic KAFKA_TOPIC --from-beginning
 ```
 
 ## Tests y CI
