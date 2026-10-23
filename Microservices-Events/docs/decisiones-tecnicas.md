@@ -33,8 +33,8 @@ sesión del contexto en vez de recibirla. Detalle en
 
 `UnitOfWork` habla directamente con `IMongoClient`, y `Application` no conoce el driver.
 
-> Al crear un ticket, la transacción envuelve una lectura del historial y **un único `InsertOne`**, que ya
-> es atómico por sí solo. Es un ejercicio de la técnica, igual que la caché del monolito, no una necesidad
+> Al crear un ticket, la transacción envuelve una lectura del historial y **un único `AddAsync`**
+> (un `insertOne`), que ya es atómico por sí solo. Es un ejercicio de la técnica, igual que la caché del monolito, no una necesidad
 > medida.
 
 ### Agregado inmutable con las reglas en un servicio de dominio
@@ -128,9 +128,30 @@ servicios.
 
 ### Validación de configuración al arrancar
 
-`AddInfrastructureServices` comprueba la cadena de conexión y el nombre de la base de datos antes de
-registrar nada, y `Program.cs` crea los índices antes de `app.Run()`. Un error de configuración o un Mongo
-caído se ven al arrancar, no en la primera petición.
+`AddInfrastructureServices` comprueba la cadena de conexión, el nombre de la base de datos y el host y puerto
+de Kafka antes de registrar nada, y `Program.cs` crea los índices antes de `app.Run()`. Un error de
+configuración o un Mongo caído se ven al arrancar, no en la primera petición.
+
+Dos huecos conocidos: `KafkaSettings:Topic` se lee al guardar, no al arrancar, y no se comprueba que el
+broker responda (el productor se conecta en el primer envío).
+
+### Kafka para publicar los eventos; Mongo sigue siendo la fuente de verdad
+
+Cada evento guardado en el event store se publica también en un topic de Kafka, para que otros servicios (el
+de consulta, a futuro) reaccionen sin leer la base de datos del servicio de escritura. Kafka no sustituye al
+event store: si hubiera que reconstruir un agregado, se hace desde Mongo.
+
+- **Un broker con Zookeeper**, en el compose. Basta para aprender el flujo; un cluster pide más brokers y
+  réplicas.
+- **Clave del mensaje = id del agregado**, para que con varias particiones los eventos de un mismo ticket
+  mantengan el orden.
+- **`IEventProducer` en `Common` y no en `Domain`**: a diferencia de los demás puertos, queda a la vista de
+  los dos servicios. A cambio, `Common` referencia `Confluent.Kafka`.
+- **La publicación va dentro del bucle de guardado, antes del `Commit`.** Es lo más simple y hace que un
+  fallo de Kafka aborte la transacción de Mongo, pero deja una ventana: si falla el `Commit` después de
+  enviar, hay un evento en Kafka que Mongo no tiene. La salida habitual es un *outbox*; está sin decidir.
+
+Detalle y limitaciones en [*Mensajería con Kafka*](mensajeria-kafka.md).
 
 ### Un servicio por responsabilidad, una solución
 

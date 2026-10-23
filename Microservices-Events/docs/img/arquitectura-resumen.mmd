@@ -30,12 +30,22 @@ flowchart LR
         ES["EventStore<br/>versión y concurrencia"]
         Repo["EventModelRepository"]
         DbCtx["MongoDbContext"]
+        Prod["TicketEventProducer"]
+    end
+
+    subgraph COMMON["Common"]
+        IEP["IEventProducer"]
     end
 
     subgraph DB["MongoDB 7 · replica set rs0"]
         direction TB
         Coll[("ticketingApp.eventStore")]
         Idx["índice único<br/>AggregateIdentifier + Version"]
+    end
+
+    subgraph BROKER["Kafka · 1 broker"]
+        direction TB
+        Topic[["topic KafkaSettings:Topic"]]
     end
 
     Client -->|JSON| Ctrl
@@ -52,11 +62,14 @@ flowchart LR
     UoW -->|publica sesión| Ctx
     Repo -->|lee sesión| Ctx
     ES -->|usa| Repo
+    ES -->|ProduceAsync| IEP
+    IEP -.-|implementado por| Prod
     Repo --> DbCtx
 
     UoW -->|sesión + transacción| Coll
     DbCtx -->|insertOne / find| Coll
     Coll --- Idx
+    Prod -->|JSON| Topic
 
     classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
     classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
@@ -66,5 +79,6 @@ flowchart LR
     class Ctrl api
     class Handler,ESH app
     class TAS,IUoW,IES,IEMR dom
-    class UoW,Ctx,ES,Repo,DbCtx inf
-    class Coll,Idx db
+    class UoW,Ctx,ES,Repo,DbCtx,Prod inf
+    class IEP dom
+    class Coll,Idx,Topic db

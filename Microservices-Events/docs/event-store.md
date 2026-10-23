@@ -2,15 +2,16 @@
 
 [← Volver al README](../README.md)
 
-Cómo se representa un evento y cómo acaba en MongoDB. De dónde salen los eventos (el agregado) está en
-[*Agregados y event sourcing*](agregados.md).
+Cómo se representa un evento y cómo acaba en MongoDB (y en Kafka). De dónde salen los eventos (el agregado)
+está en [*Agregados y event sourcing*](agregados.md).
 
 ## Idea
 
 En lugar de guardar "el ticket" y modificarlo, se guarda **cada cosa que le pasó** como un documento
 inmutable. El estado actual de un ticket se obtiene reproduciendo sus eventos en orden. Todos los eventos
 de todos los agregados viven en una única colección, `eventStore`, de la base de datos `ticketingApp`. El
-event store **solo añade**: nunca modifica ni borra un evento guardado.
+event store **solo añade**: nunca modifica ni borra un evento guardado. Cada evento guardado se publica
+además en Kafka; la fuente de verdad sigue siendo Mongo.
 
 ## Las tres capas de un evento
 
@@ -75,7 +76,12 @@ agregado, siempre dentro de la transacción que abrió el caso de uso.
    con `TimeStamp = DateTime.UtcNow`, el agregado, la versión y `EventType = Enum.Parse<eEventType>(event.Type)`.
    **Convención:** el `Type` del evento debe coincidir con un valor de `eEventType`, o falla en tiempo de
    ejecución.
-5. Inserta cada `EventModel` con `IEventModelRepository.InsertOneAsync`.
+5. Inserta cada `EventModel` con `IEventModelRepository.AddAsync`.
+6. Justo después de cada inserción, publica ese mismo evento en Kafka con `IEventProducer.ProduceAsync`,
+   en el topic de `KafkaSettings:Topic` (si falta, lanza `Exception("No se encontró el topic")`). Se hace
+   dentro de la transacción y antes del `Commit`: si el envío falla, la transacción se aborta; si falla el
+   `Commit`, el evento ya está en Kafka. Detalle y límites en
+   [*Mensajería con Kafka*](mensajeria-kafka.md#cuándo-se-publica).
 
 ## Control de concurrencia
 
@@ -161,6 +167,8 @@ Orientativo, según el mapeo anterior:
    `Register()` y añadirlo con `AddKnownType` en el mapeo de `EventBase`.
 4. Su `case` en el `ApplyEvent` del servicio del agregado (ver [*Agregados*](agregados.md)).
 5. Command, handler y validador en `Application/Features/<Agregado>/<Orden>/`.
+
+La publicación en Kafka no necesita cambios: `TicketEventProducer` serializa el evento con su tipo concreto.
 
 Un **agregado** nuevo necesita además su valor en `eAggregateType`, con el mismo nombre que la clase (lo
 exige `Enum.Parse` en `EventSourcingHandler`), y su registro en DI.
