@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ticketing.Common.Response
+namespace Ticketing.Common.Common.Response
 {
     public  class BaseError
     {

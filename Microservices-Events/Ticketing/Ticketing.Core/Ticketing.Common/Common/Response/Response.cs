@@ -1,8 +1,8 @@
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
-using Ticketing.Common.Response.Enums;
+using Ticketing.Common.Common.Response.Enums;
 
-namespace Ticketing.Common.Response
+namespace Ticketing.Common.Common.Response
 {
     public class Response<T> : IResponse
     {

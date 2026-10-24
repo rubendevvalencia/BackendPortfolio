@@ -1,4 +1,4 @@
-namespace Ticketing.Common.Response.Enums
+namespace Ticketing.Common.Common.Response.Enums
 {
     //Clasifica el motivo del fallo para que la capa de presentacion (Api) pueda traducirlo
     //al codigo HTTP correcto sin conocer los detalles del caso de uso.

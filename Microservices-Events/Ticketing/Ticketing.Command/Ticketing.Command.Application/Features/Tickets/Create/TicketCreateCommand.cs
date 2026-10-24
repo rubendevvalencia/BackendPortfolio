@@ -1,5 +1,5 @@
 using MediatR;
-using Ticketing.Common.Response;
+using Ticketing.Common.Common.Response;
 
 namespace Ticketing.Command.Application.Features.Tickets.Create
 {
