@@ -66,6 +66,30 @@ services:
     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     
+  postgres:
+    image: postgres:16.0
+    container_name: postgresql
+    restart: always
+    environment:
+     - POSTGRES_USER=postgresqlsa
+     - POSTGRES_DB=eventspostgres
+    secrets:
+     - source: postgres_secrets
+       target: secrets.json
+    # Saca la password de la connection string, la exporta y delega en el entrypoint de la imagen.
+    # "$$" es un "$" literal; el bloque "|" no procesa escapes.
+    entrypoint:
+     - /bin/bash
+     - -c
+     - |
+       export POSTGRES_PASSWORD="$$(grep PostgresConnection /run/secrets/secrets.json | sed -n 's/.*Password=\([^;"]*\).*/\1/p')"
+       exec docker-entrypoint.sh postgres
+    
+    volumes:
+     - postgres_data:/var/lib/postgresql/data
+    ports:
+     - 5432:5432
+
 
 volumes: #configuración de data de forma local, guardado físico
   mongodb_data:
@@ -76,8 +100,14 @@ volumes: #configuración de data de forma local, guardado físico
     driver: local
   zookeeper_data:
     driver: local
+  postgres_data:
+    driver: local
 
 
 networks:
   default: 
     name: microserviceNetwork
+
+secrets:
+  postgres_secrets:
+    file: ${POSTGRES_SECRETS_DIR:?Define POSTGRES_SECRETS_DIR en el .env}/secrets.json
