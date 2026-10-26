@@ -1,7 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Ticketing.Common.Response;
-using Ticketing.Common.Response.Enums;
+using Ticketing.Common.Common.Response;
+using Ticketing.Common.Common.Response.Enums;
 
 namespace Ticketing.Command.Api.Controllers
 {

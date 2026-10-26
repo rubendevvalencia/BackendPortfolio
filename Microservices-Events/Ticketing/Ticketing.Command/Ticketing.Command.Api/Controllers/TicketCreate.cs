@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ticketing.Command.Application.Features.Tickets.Create;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
-using Ticketing.Common.Response;
+using Ticketing.Common.Common.Response;
 
 namespace Ticketing.Command.Api.Controllers
 {

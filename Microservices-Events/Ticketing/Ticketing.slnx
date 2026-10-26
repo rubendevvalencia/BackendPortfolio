@@ -8,6 +8,10 @@
   </Folder>
   <Folder Name="/Ticketing.Query/">
     <Project Path="Ticketing.Query/Ticketing.Query.Api/Ticketing.Query.Api.csproj" Id="ea788276-9e7f-43ab-bf90-7e69300f76a9" />
+    <Project Path="Ticketing.Query/Ticketing.Query.Application/Ticketing.Query.Application.csproj" Id="26298fd7-0177-4b9d-a1ff-7ff3eaf3d43e" />
+    <Project Path="Ticketing.Query/Ticketing.Query.Domain/Ticketing.Query.Domain.csproj" Id="6098b15b-ae1b-4a61-8aaa-db3d7e1b7d43" />
+    <Project Path="Ticketing.Query/Ticketing.Query.Infrastructure/Ticketing.Query.Infrastructure.csproj" Id="72d121de-91dc-4027-8e28-f1e766976109" />
+    <Project Path="Ticketing.Query/Ticketing.Query.UnitTest/Ticketing.Query.UnitTest.csproj" Id="1156f92b-037f-4607-a2da-763358b0d9df" />
   </Folder>
   <Project Path="Ticketing.Core/Ticketing.Common/Ticketing.Common.csproj" Id="714d1c70-1cb5-4d33-827e-4db28b832244" />
 </Solution>

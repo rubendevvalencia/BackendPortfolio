@@ -2,7 +2,7 @@ using MediatR;
 using Ticketing.Command.Domain.Aggregates.Tickets;
 using Ticketing.Command.Domain.Interfaces;
 using Ticketing.Command.Domain.Interfaces.Events;
-using Ticketing.Common.Response;
+using Ticketing.Common.Common.Response;
 
 namespace Ticketing.Command.Application.Features.Tickets.Create
 {
