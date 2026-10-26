@@ -48,6 +48,17 @@ flowchart LR
         Topic[["topic KafkaSettings:Topic"]]
     end
 
+    subgraph QUERY["Ticketing.Query · lectura"]
+        direction TB
+        QApi["Query.Api<br/>GET api/v1/TicketCreate/ReadTicket"]
+        QInf["Query.Infrastructure<br/>TicketDbContext (EF Core)"]
+    end
+
+    subgraph PG["PostgreSQL 16 · eventspostgres"]
+        direction TB
+        Tables[("tickets · employees<br/>ticket_types · ticket_employees")]
+    end
+
     Client -->|JSON| Ctrl
     Ctrl -->|MediatR Send| Handler
     Handler -->|Create| TAS
@@ -70,15 +81,17 @@ flowchart LR
     DbCtx -->|insertOne / find| Coll
     Coll --- Idx
     Prod -->|JSON| Topic
+    QApi -->|registra servicios| QInf
+    QInf -->|Npgsql · Migrate| Tables
 
     classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
     classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
     classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
     classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
     classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
-    class Ctrl api
+    class Ctrl,QApi api
     class Handler,ESH app
     class TAS,IUoW,IES,IEMR dom
-    class UoW,Ctx,ES,Repo,DbCtx,Prod inf
+    class UoW,Ctx,ES,Repo,DbCtx,Prod,QInf inf
     class IEP dom
-    class Coll,Idx,Topic db
+    class Coll,Idx,Topic,Tables db

@@ -100,6 +100,7 @@ erDiagram
 entidad se descubren con `ApplyConfigurationsFromAssembly`.
 
 La cadena `PostgresConnection` no se versiona: `appsettings.json` la declara vacía y se aporta por secretos.
+Cómo levantar PostgreSQL y la API, en [*Entorno local*](entorno-local.md#6-postgresql-y-ticketingquery).
 
 ## Migraciones
 
@@ -120,5 +121,6 @@ dotnet ef migrations add NombreMigracion \
 
 - Registrar MediatR y los validadores en `AddApplicationServices()`.
 - Implementar `ReadTicket` (el handler lanza `NotImplementedException`).
-- Consumidor de Kafka que proyecte `TicketCreatedEvent` sobre `tickets`.
+- Consumidor de Kafka que proyecte `TicketCreatedEvent` sobre `tickets` (el productor está en
+  [*Mensajería con Kafka*](mensajeria-kafka.md)).
 - Tests de `Ticketing.Query.UnitTest`.
