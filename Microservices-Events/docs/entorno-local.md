@@ -2,7 +2,8 @@
 
 [← Volver al README](../README.md)
 
-Cómo levantar el proyecto (MongoDB y Kafka) y probar el único endpoint que existe hoy.
+Cómo levantar el proyecto (MongoDB, Kafka y PostgreSQL) y probar el endpoint de `Ticketing.Command`. El
+servicio de consulta y su base de datos tienen su propio apartado: [PostgreSQL y `Ticketing.Query`](#6-postgresql-y-ticketingquery).
 
 ## Requisitos
 
@@ -18,8 +19,9 @@ Desde la raíz del repo:
 docker compose -f Microservices-Events/Docker/docker-compose.yml up -d
 ```
 
-Ese comando levanta también Zookeeper, Kafka y Kafka UI (ver el [apartado 2](#2-kafka-y-su-interfaz)). Para
-arrancar solo MongoDB: `... up -d mongodb`.
+Ese comando levanta también Zookeeper, Kafka y Kafka UI (ver el [apartado 2](#2-kafka-y-su-interfaz)) y
+PostgreSQL (ver el [apartado 6](#6-postgresql-y-ticketingquery)). Para arrancar solo MongoDB:
+`... up -d mongodb`.
 
 | Elemento | Valor |
 |---|---|
@@ -148,6 +150,32 @@ Y el mismo evento publicado en Kafka: en `http://localhost:8080`, *Topics* → e
 ```bash
 docker exec kafka kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic KAFKA_TOPIC --from-beginning
 ```
+
+## 6. PostgreSQL y Ticketing.Query
+
+PostgreSQL lo levanta el mismo compose y es la base del servicio de consulta.
+
+| Elemento | Valor |
+|---|---|
+| Contenedor | `postgresql`, imagen `postgres:16.0` |
+| Puerto en el host | `5432` |
+| Base de datos y usuario | `eventspostgres` y `postgresqlsa` |
+| Volumen con nombre | `postgres_data` (`/var/lib/postgresql/data`) |
+
+La contraseña no está en el compose: el contenedor la extrae de un `secrets.json` que contiene la cadena
+`PostgresConnection`. El compose exige la variable `POSTGRES_SECRETS_DIR` en `Docker/.env`, con la carpeta
+donde está ese fichero; sin ella `docker compose up` falla.
+
+Para arrancar la API de consulta, con PostgreSQL en marcha:
+
+```bash
+dotnet run --project Microservices-Events/Ticketing/Ticketing.Query/Ticketing.Query.Api
+```
+
+La cadena `ConnectionStrings:PostgresConnection` va vacía en `appsettings.json`: se aporta por *User Secrets*
+(o por `secrets.json`/variables de entorno) y debe coincidir con la contraseña del contenedor. Al arrancar,
+la API aplica las migraciones y crea las tablas. Perfiles y puertos:
+`Ticketing.Query/Ticketing.Query.Api/Properties/launchSettings.json`.
 
 ## Tests y CI
 

@@ -153,7 +153,9 @@ proceso. No está implementado ni decidido; se anota aquí para no olvidar que l
 - **Un productor por mensaje.** `TicketEventProducer` construye y destruye un `IProducer` en cada
   `ProduceAsync`. Funciona, pero abre una conexión nueva por evento; el uso habitual es un productor de
   larga vida registrado como *singleton*.
-- **Sin consumidor.** Nada lee el topic todavía; `Ticketing.Query.Api` no usa Kafka.
+- **Sin consumidor.** Nada lee el topic todavía; `Ticketing.Query.Api` no usa Kafka. El consumidor que
+  proyecte los eventos sobre PostgreSQL es lo pendiente en
+  [*Estructura de Ticketing.Query*](query-estructura.md#pendiente).
 - **Con Kafka caído**, la petición no termina bien (el envío falla o espera al *timeout* del cliente) y,
   como la transacción de Mongo sigue abierta, no se guarda nada. No está probado el tiempo de espera.
 - **Sin pruebas automáticas** del productor ni de `EventStore` con Kafka.

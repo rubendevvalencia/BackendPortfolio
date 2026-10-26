@@ -1,6 +1,6 @@
 # Microservices-Events — Ticketing
 
-Proyecto de microservicios **dirigidos por eventos** en **.NET 10** con **MongoDB** y **Kafka**. Es un proyecto de
+Proyecto de microservicios **dirigidos por eventos** en **.NET 10** con **MongoDB**, **Kafka** y **PostgreSQL**. Es un proyecto de
 aprendizaje independiente del monolito: no forma parte de la migración Strangler Fig, tiene su propia
 solución y su propio Docker.
 
@@ -22,8 +22,8 @@ suelen explicarse solo en teoría:
 |---|---|
 | `Ticketing.Command` (Api, Application, Domain, Infrastructure) | Lado de escritura: `POST api/v1/TicketCreate/CreateTicket` crea un ticket, guarda su `TicketCreatedEvent` en el event store dentro de una transacción y lo publica en Kafka |
 | `Ticketing.Common` | Contratos compartidos entre servicios: `Message`, `EventBase`, los eventos, `Response<T>`, `ErrorType` e `IEventProducer` |
-| `Ticketing.Query.Api` | API del servicio de consulta (sin consumidor de Kafka todavía) |
-| Docker | MongoDB 7 como replica set de un nodo; Zookeeper, un broker de Kafka 3.7 y Kafka UI (`localhost:8080`) |
+| `Ticketing.Query` (Api, Application, Domain, Infrastructure) | Lado de lectura: modelo relacional en PostgreSQL con EF Core, migración `Initial` y el esqueleto del caso de uso `ReadTicket` (sin consumidor de Kafka todavía). Ver [*Estructura de Ticketing.Query*](docs/query-estructura.md) |
+| Docker | MongoDB 7 como replica set de un nodo; Zookeeper, un broker de Kafka 3.7 y Kafka UI (`localhost:8080`); PostgreSQL 16 |
 | CI | `ci-micro-events.yaml`: restaura, compila y ejecuta el proyecto de tests |
 
 ## Arquitectura
@@ -61,7 +61,7 @@ petición, están en [*Arquitectura*](docs/arquitectura.md#vista-de-componentes)
 
 ```
 Microservices-Events/
-├── Docker/docker-compose.yml          MongoDB (replica set rs0), Zookeeper, Kafka y Kafka UI
+├── Docker/docker-compose.yml          MongoDB (replica set rs0), Zookeeper, Kafka, Kafka UI y PostgreSQL
 ├── docs/                              Documentación (ver tabla siguiente)
 └── Ticketing/
     ├── Ticketing.slnx
@@ -74,7 +74,11 @@ Microservices-Events/
     │   ├── Ticketing.Command.Infrastructure/  MongoDB: contexto, sesión, UoW, repositorio, EventStore, mapeos, índices; productor de Kafka
     │   └── Ticketing.Command.UnitTest/
     └── Ticketing.Query/
-        └── Ticketing.Query.Api/
+        ├── Ticketing.Query.Api/             Controller, versionado, composition root; Migrate() al arrancar
+        ├── Ticketing.Query.Application/     Feature ReadTicket (MediatR, FluentValidation)
+        ├── Ticketing.Query.Domain/          Entidades, BaseAudit y value object Address
+        ├── Ticketing.Query.Infrastructure/  TicketDbContext, configuraciones de entidad y migraciones (PostgreSQL)
+        └── Ticketing.Query.UnitTest/
 ```
 
 ## Documentación
@@ -82,6 +86,7 @@ Microservices-Events/
 | Documento | Qué cuenta |
 |---|---|
 | [Arquitectura](docs/arquitectura.md) | Proyectos y dependencias, arranque, registro en DI y recorrido completo de una petición |
+| [Estructura de Ticketing.Query](docs/query-estructura.md) | Proyectos y dependencias del lado de lectura, modelo de datos en PostgreSQL, migraciones y lo que queda pendiente |
 | [Agregados y event sourcing](docs/agregados.md) | Cómo se modela un ticket como agregado inmutable, qué significan sus versiones y cómo se reproduce desde sus eventos |
 | [Event store y modelo de eventos](docs/event-store.md) | Cómo se guarda (y publica) un evento, el control de concurrencia, el mapeo a MongoDB y cómo añadir un evento nuevo |
 | [Mensajería con Kafka](docs/mensajeria-kafka.md) | El compose de Kafka, los dos listeners, el productor, cuándo se publica cada evento y las limitaciones actuales |
@@ -90,7 +95,7 @@ Microservices-Events/
 
 ## Stack
 
-.NET 10 · ASP.NET Core (controllers) · MongoDB 7 + `MongoDB.Driver` 3.12 · Kafka 3.7 + `Confluent.Kafka` 2.16 ·
+.NET 10 · ASP.NET Core (controllers) · MongoDB 7 + `MongoDB.Driver` 3.12 · Kafka 3.7 + `Confluent.Kafka` 2.16 · PostgreSQL 16 + EF Core 10 + `Npgsql.EntityFrameworkCore.PostgreSQL` 10 ·
 MediatR 14 · FluentValidation 12 · Asp.Versioning 10 · Swashbuckle 10 · xUnit.
 
 ## Puesta en marcha rápida

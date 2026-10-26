@@ -17,20 +17,23 @@ flowchart LR
         Infra[Infrastructure] --> Dom
         Api --> Infra
     end
-    Query[Ticketing.Query.Api]
+    Query[Ticketing.Query<br/>Api · Application · Domain · Infrastructure]
     Common[(Ticketing.Common<br/>Message · eventos · Response · ErrorType)]
     Mongo[(MongoDB<br/>ticketingApp.eventStore)]
+    Postgres[(PostgreSQL<br/>eventspostgres)]
     Kafka[[Kafka<br/>topic de eventos]]
 
     Client -->|POST| Api
     Infra --> Mongo
     Infra --> Kafka
+    Query --> Postgres
     App --> Common
     Dom --> Common
 ```
 
 - **`Ticketing.Command`** recibe órdenes y las convierte en eventos. Es el único lado con lógica.
-- **`Ticketing.Query.Api`** es la API del servicio de consulta, un proyecto independiente.
+- **`Ticketing.Query`** es el servicio de consulta: cuatro capas propias y un modelo relacional en
+  PostgreSQL. Estructura y modelo de datos en [*Estructura de Ticketing.Query*](query-estructura.md).
 - **`Ticketing.Common`** (`Ticketing.Core/`) es lo que ambos servicios deben entender igual: la jerarquía
   de eventos, el contrato de respuesta y el puerto `IEventProducer`. No conoce MongoDB ni ASP.NET.
 - **Kafka** recibe cada evento que se guarda en Mongo. Hoy solo lo escribe `Ticketing.Command`; ningún
@@ -97,6 +100,17 @@ flowchart LR
         Topic[["topic KafkaSettings:Topic"]]
     end
 
+    subgraph QUERY["Ticketing.Query · lectura"]
+        direction TB
+        QApi["Query.Api<br/>GET api/v1/TicketCreate/ReadTicket"]
+        QInf["Query.Infrastructure<br/>TicketDbContext (EF Core)"]
+    end
+
+    subgraph PG["PostgreSQL 16 · eventspostgres"]
+        direction TB
+        Tables[("tickets · employees<br/>ticket_types · ticket_employees")]
+    end
+
     Client -->|JSON| Ctrl
     Ctrl -->|MediatR Send| Handler
     Handler -->|Create| TAS
@@ -119,18 +133,20 @@ flowchart LR
     DbCtx -->|insertOne / find| Coll
     Coll --- Idx
     Prod -->|JSON| Topic
+    QApi -->|registra servicios| QInf
+    QInf -->|Npgsql · Migrate| Tables
 
     classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
     classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
     classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
     classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
     classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
-    class Ctrl api
+    class Ctrl,QApi api
     class Handler,ESH app
     class TAS,IUoW,IES,IEMR dom
-    class UoW,Ctx,ES,Repo,DbCtx,Prod inf
+    class UoW,Ctx,ES,Repo,DbCtx,Prod,QInf inf
     class IEP dom
-    class Coll,Idx,Topic db
+    class Coll,Idx,Topic,Tables db
 ```
 
 **Cómo leerlo**
@@ -168,7 +184,11 @@ La dependencia apunta siempre hacia dentro (hacia `Domain`):
 | `Ticketing.Command.Infrastructure` | Los **adaptadores**: los de MongoDB (contexto, sesión, Unit of Work, repositorio, `EventStore`, mapeos BSON e índices) y el productor de Kafka (`TicketEventProducer`). | `Domain` | `MongoDB.Driver` y `MongoDB.Bson` 3.12.0, `Microsoft.Extensions.Configuration.Abstractions`, `Microsoft.Extensions.Options`; `Confluent.Kafka` llega transitivo desde `Common` |
 | `Ticketing.Command.UnitTest` | Proyecto de tests. | — | xUnit 2.9.3, coverlet |
 | `Ticketing.Common` | Contratos compartidos: eventos, `Response<T>`, `ErrorType` e `IEventProducer`. | — | `Confluent.Kafka` 2.16.0, `Microsoft.Extensions.Logging.Abstractions` |
-| `Ticketing.Query.Api` | API del servicio de consulta. | — | `Microsoft.AspNetCore.OpenApi` |
+| `Ticketing.Query.Api` | HTTP del servicio de consulta: controller, versionado, Swagger. *Composition root*; ejecuta `Migrate()` al arrancar. | `Application`, `Infrastructure`, `Common` | `Asp.Versioning.Mvc` y `.ApiExplorer` 10.2.1, `Swashbuckle.AspNetCore` y `.Annotations` 10.3.1, `MediatR` 14.2.0, `Microsoft.AspNetCore.OpenApi` 10.0.11 |
+| `Ticketing.Query.Application` | Caso de uso `ReadTicket`: comando, handler (MediatR) y validador (FluentValidation). | `Common` | `MediatR` 14.2.0, `FluentValidation` y `.DependencyInjectionExtensions` 12.2.0, `AutoMapper` 16.2.0 |
+| `Ticketing.Query.Domain` | Entidades (`Ticket`, `TicketType`, `Employee`), `BaseAudit` y el value object `Address`. | — | — |
+| `Ticketing.Query.Infrastructure` | `TicketDbContext`, configuraciones de entidad y migraciones de PostgreSQL. | `Domain` | `Microsoft.EntityFrameworkCore` 10.0.14, `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 |
+| `Ticketing.Query.UnitTest` | Proyecto de tests. | — | — |
 
 `Application` solo ve interfaces de `Domain`; nunca `MongoDB.Driver`. Eso es lo que permite que el handler
 sea el mismo si mañana el event store deja de ser MongoDB.
