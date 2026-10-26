@@ -1,9 +1,11 @@
-# Estructura de Ticketing.Query
+# Arquitectura de Ticketing.Query
 
-[← Volver al README](../README.md)
+[← Volver al README](../../README.md) · [Arquitectura general](../arquitectura.md)
 
-Estructura del lado de consulta (`Ticketing.Query`), la parte de **lectura** del CQRS. No usa event sourcing:
-el estado vive en tablas relacionales de PostgreSQL.
+Microservicio de **lectura**, independiente de `Ticketing.Command`: tiene sus propias capas, su propio
+`Program.cs` y su propia base de datos (PostgreSQL), y no referencia ningún proyecto del otro servicio. No usa
+event sourcing: el estado vive en tablas relacionales. Cómo encaja con `Command`, en la
+[arquitectura general](../arquitectura.md); las decisiones, en [*Decisiones técnicas*](decisiones-tecnicas.md).
 
 ## Qué hay
 
@@ -40,6 +42,67 @@ flowchart RL
 - `Application` referencia solo `Ticketing.Common`.
 - `Microsoft.EntityFrameworkCore.Design` está en `Api` (proyecto de inicio) e `Infrastructure`, con
   `PrivateAssets=all`, para que `dotnet ef` funcione con las migraciones en `Infrastructure`.
+
+## Vista de componentes
+
+Cada recuadro es una clase o un conjunto de clases reales de `Ticketing.Query`. El handler de `ReadTicket`
+todavía no usa `TicketDbContext`: hoy la base de datos solo se toca al arrancar, con `Migrate()`.
+
+```mermaid
+flowchart LR
+    Client([Cliente HTTP])
+
+    subgraph API["Api"]
+        direction TB
+        Ctrl["TicketCreate<br/>GET api/v1/TicketCreate/ReadTicket"]
+        Prog["Program.cs<br/>Migrate() al arrancar"]
+    end
+
+    subgraph APP["Application"]
+        direction TB
+        Cmd["ReadTicketCommand"]
+        Handler["ReadTicketCommandHandler<br/>sin implementar"]
+        Val["ReadTicketValidator"]
+    end
+
+    subgraph DOM["Domain"]
+        direction TB
+        Ent["Ticket · TicketType · Employee<br/>BaseAudit · Address"]
+    end
+
+    subgraph INF["Infrastructure"]
+        direction TB
+        Ctx["TicketDbContext"]
+        Cfg["TicketConfiguration · EmployeeConfiguration<br/>TicketTypeConfiguration"]
+        Mig["Migrations<br/>Initial"]
+    end
+
+    subgraph DB["PostgreSQL 16 · eventspostgres"]
+        direction TB
+        Tables[("tickets · employees<br/>ticket_types · ticket_employees")]
+    end
+
+    Client -->|JSON| Ctrl
+    Ctrl -->|MediatR Send| Cmd
+    Cmd --> Handler
+    Val -.->|valida| Cmd
+    Prog -->|Migrate| Ctx
+    Ctx -->|ApplyConfigurationsFromAssembly| Cfg
+    Cfg -->|mapea| Ent
+    Mig -->|crea el esquema| Tables
+    Ctx -->|Npgsql| Tables
+
+    classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
+    classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
+    classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
+    classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
+    classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
+    class Ctrl,Prog api
+    class Cmd,Handler,Val app
+    class Ent dom
+    class Ctx,Cfg,Mig inf
+    class Tables db
+```
 
 ## Árbol de carpetas
 
@@ -100,7 +163,7 @@ erDiagram
 entidad se descubren con `ApplyConfigurationsFromAssembly`.
 
 La cadena `PostgresConnection` no se versiona: `appsettings.json` la declara vacía y se aporta por secretos.
-Cómo levantar PostgreSQL y la API, en [*Entorno local*](entorno-local.md#6-postgresql-y-ticketingquery).
+Cómo levantar PostgreSQL y la API, en [*Entorno local*](../entorno-local.md#3-ticketingquery).
 
 ## Migraciones
 
@@ -122,5 +185,5 @@ dotnet ef migrations add NombreMigracion \
 - Registrar MediatR y los validadores en `AddApplicationServices()`.
 - Implementar `ReadTicket` (el handler lanza `NotImplementedException`).
 - Consumidor de Kafka que proyecte `TicketCreatedEvent` sobre `tickets` (el productor está en
-  [*Mensajería con Kafka*](mensajeria-kafka.md)).
+  [*Mensajería con Kafka*](../mensajeria-kafka.md)).
 - Tests de `Ticketing.Query.UnitTest`.

@@ -1,6 +1,6 @@
 # Event store y modelo de eventos
 
-[← Volver al README](../README.md)
+[← Volver al README](../../README.md)
 
 Cómo se representa un evento y cómo acaba en MongoDB (y en Kafka). De dónde salen los eventos (el agregado)
 está en [*Agregados y event sourcing*](agregados.md).
@@ -81,7 +81,7 @@ agregado, siempre dentro de la transacción que abrió el caso de uso.
    en el topic de `KafkaSettings:Topic` (si falta, lanza `Exception("No se encontró el topic")`). Se hace
    dentro de la transacción y antes del `Commit`: si el envío falla, la transacción se aborta; si falla el
    `Commit`, el evento ya está en Kafka. Detalle y límites en
-   [*Mensajería con Kafka*](mensajeria-kafka.md#cuándo-se-publica).
+   [*Mensajería con Kafka*](../mensajeria-kafka.md#cuándo-se-publica).
 
 ## Control de concurrencia
 
