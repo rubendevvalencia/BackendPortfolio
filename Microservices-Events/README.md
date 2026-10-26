@@ -31,6 +31,30 @@ suelen explicarse solo en teoría:
 Clean Architecture con la misma regla que el monolito: **las dependencias apuntan siempre hacia dentro**,
 hacia `Domain`.
 
+### Visión general
+
+```mermaid
+flowchart LR
+    Client([Cliente HTTP])
+    CMD["<b>Ticketing.Command</b><br/>escritura · event sourcing"]
+    QRY["<b>Ticketing.Query</b><br/>lectura · modelo relacional"]
+    COM["<b>Ticketing.Common</b><br/>eventos · Response&lt;T&gt; · IEventProducer"]
+    MONGO[("<b>MongoDB 7</b><br/>eventStore")]
+    KAFKA[["<b>Kafka</b><br/>topic de eventos"]]
+    PG[("<b>PostgreSQL 16</b><br/>tickets · employees")]
+
+    Client -->|POST CreateTicket| CMD
+    Client -->|GET ReadTicket| QRY
+    CMD --> MONGO
+    CMD -->|publica eventos| KAFKA
+    KAFKA -.->|consumidor pendiente| QRY
+    QRY --> PG
+    CMD --> COM
+    QRY --> COM
+```
+
+### Ticketing.Command
+
 ```mermaid
 flowchart RL
     API["<b>Ticketing.Command.Api</b><br/>Controller · versionado · Swagger<br/>Composition root<br/><i>la única capa que conoce HTTP</i>"]
@@ -54,8 +78,28 @@ flowchart RL
 
 `Ticketing.Command.Domain` no tiene un solo `PackageReference`: los puertos viven ahí, en quien los *usa*, e
 `Infrastructure` los implementa con el driver de MongoDB. Los componentes uno a uno, con el recorrido de la
-petición, están en [*Arquitectura*](docs/arquitectura.md#vista-de-componentes). También como imagen: el
-[resumen por capas](docs/img/arquitectura-resumen.png).
+petición, están en [*Arquitectura*](docs/arquitectura.md#vista-de-componentes).
+
+### Ticketing.Query
+
+```mermaid
+flowchart RL
+    API["<b>Ticketing.Query.Api</b><br/>Controller · composition root<br/>Migrate() al arrancar"]
+    APP["<b>Ticketing.Query.Application</b><br/>Feature ReadTicket<br/>MediatR · FluentValidation"]
+    DOM["<b>Ticketing.Query.Domain</b><br/>Ticket · TicketType · Employee<br/>BaseAudit · Address"]
+    INF["<b>Ticketing.Query.Infrastructure</b><br/>TicketDbContext · configuraciones<br/>Migrations · Npgsql"]
+    COM["<b>Ticketing.Common</b><br/>Response&lt;T&gt;"]
+    PG[("<b>PostgreSQL 16</b><br/>eventspostgres")]
+
+    API --> APP
+    API -.->|solo para registrar servicios| INF
+    API --> COM
+    APP --> COM
+    INF --> DOM
+    INF --> PG
+```
+
+Estructura, modelo de datos y migraciones en [*Estructura de Ticketing.Query*](docs/query-estructura.md).
 
 ## Estructura
 
