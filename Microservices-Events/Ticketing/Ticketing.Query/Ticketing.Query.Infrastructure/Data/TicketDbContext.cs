@@ -24,10 +24,10 @@ namespace Ticketing.Query.Infrastructure.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //Si AddDbContext ya configuró el proveedor (DI o herramientas de EF), no lo volvemos a configurar.
-           //if (!optionsBuilder.IsConfigured)
-           //{
-           //    optionsBuilder.UseApplicationServiceProvider(_connectionString, builder => builder.EnableRetryOnFailure());
-           //}
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseNpgsql(_connectionString, builder => builder.EnableRetryOnFailure());
+            }
            //optionsBuilder.AddInterceptors(_auditableEntitySaveChangesInterceptor);
         } 
     }

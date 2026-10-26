@@ -1,10 +1,20 @@
+using Ticketing.Query.Infrastructure;
+using Ticketing.Query.Application;
+
 var builder = WebApplication.CreateBuilder(args);
+//Secrets
+builder.Configuration.AddJsonFile("/run/secrets/secrets.json", optional: true);
+builder.Configuration.AddEnvironmentVariables();
+
 
 // Add services to the container.
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

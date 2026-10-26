@@ -12,4 +12,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.3.1" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ticketing.Query.Infrastructure\Ticketing.Query.Infrastructure.csproj" />
+    <ProjectReference Include="..\Ticketing.Query.Application\Ticketing.Query.Application.csproj" />
+  </ItemGroup>
 </Project>
