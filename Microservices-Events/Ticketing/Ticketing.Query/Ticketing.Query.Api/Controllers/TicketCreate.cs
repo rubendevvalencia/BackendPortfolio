@@ -2,10 +2,10 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
-using Ticketing.Command.Application.Features.Tickets.Create;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
 using Ticketing.Common.Common.Response;
+using Ticketing.Query.Application.Feature.ReadTicket;
 
 namespace Ticketing.Query.Api.Controllers
 {
@@ -24,11 +24,11 @@ namespace Ticketing.Query.Api.Controllers
         {
             _mediator = mediator;
         }
-        [HttpPost("CreateTicket")]
+        [HttpGet("ReadTicket")]
         //[RequestTimeout("CustomPolicy")]
-        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Ticket created successfully.", typeof(Response<string>))]
-        public async Task<IActionResult> Create([FromBody] TicketCreateCommand command, CancellationToken cancellationToken)
+        [SwaggerOperation(Summary = "Read a new ticket.", Description = "Read a new ticket to the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Ticket readed successfully.", typeof(Response<bool>))]
+        public async Task<IActionResult> Create([FromBody] ReadTicketCommand command, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(command, cancellationToken);
             return ToActionResult(response);
