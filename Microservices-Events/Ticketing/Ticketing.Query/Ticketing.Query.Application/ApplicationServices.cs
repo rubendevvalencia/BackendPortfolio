@@ -4,7 +4,7 @@ namespace Ticketing.Query.Application
 {
     public static class ApplicationServiceRegistration
     {
-        public static IServiceCollection ApplicationServices(this IServiceCollection services)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services;
         }

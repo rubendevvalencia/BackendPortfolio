@@ -1,5 +1,4 @@
 using Ticketing.Query.Domain.Entities.Audit;
-using Ticketing.Query.Domain.Events;
 
 namespace Ticketing.Query.Domain.Entities
 {
