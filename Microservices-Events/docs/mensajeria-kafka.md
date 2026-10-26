@@ -4,8 +4,8 @@
 
 Cómo se publican los eventos del event store en Kafka. Hoy solo existe el **lado productor**, en
 `Ticketing.Command`: `Ticketing.Query` todavía no consume nada. El guardado en MongoDB está en
-[*Event store*](event-store.md); el recorrido completo de la petición, en
-[*Arquitectura*](arquitectura.md#recorrido-de-una-petición).
+[*Event store*](command/event-store.md); el recorrido completo de la petición, en
+[*Arquitectura*](command/arquitectura.md#recorrido-de-una-petición).
 
 ## Idea
 
@@ -155,7 +155,7 @@ proceso. No está implementado ni decidido; se anota aquí para no olvidar que l
   larga vida registrado como *singleton*.
 - **Sin consumidor.** Nada lee el topic todavía; `Ticketing.Query.Api` no usa Kafka. El consumidor que
   proyecte los eventos sobre PostgreSQL es lo pendiente en
-  [*Estructura de Ticketing.Query*](query-estructura.md#pendiente).
+  [*Arquitectura de Ticketing.Query*](query/arquitectura.md#pendiente).
 - **Con Kafka caído**, la petición no termina bien (el envío falla o espera al *timeout* del cliente) y,
   como la transacción de Mongo sigue abierta, no se guarda nada. No está probado el tiempo de espera.
 - **Sin pruebas automáticas** del productor ni de `EventStore` con Kafka.
@@ -164,7 +164,7 @@ proceso. No está implementado ni decidido; se anota aquí para no olvidar que l
 
 ## Probarlo
 
-Con el compose levantado (ver [*Entorno local*](entorno-local.md#2-kafka-y-su-interfaz)), la API en marcha
+Con el compose levantado (ver [*Entorno local*](entorno-local.md#kafka-y-su-interfaz)), la API en marcha
 y un `POST` a `CreateTicket`:
 
 1. Abrir Kafka UI en `http://localhost:8080`.

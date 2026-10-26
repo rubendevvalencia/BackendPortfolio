@@ -1,6 +1,6 @@
 # Agregados y event sourcing
 
-[← Volver al README](../README.md)
+[← Volver al README](../../README.md)
 
 Cómo se modela un ticket en el lado de escritura y cómo pasa de eventos a estado y de estado a eventos.
 Cómo se guardan esos eventos en Mongo está en [*Event store*](event-store.md).
