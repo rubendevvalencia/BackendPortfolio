@@ -47,7 +47,8 @@ punteadas unen un puerto con la clase que lo implementa. Los puertos (`I...`) vi
 vive en `Ticketing.Common` y se dibuja aparte. `Ticketing.Common` (eventos y `Response<T>`) lo usan `Api`,
 `Application` y `Domain` y no se dibuja para no cruzar todas las flechas.
 
-**[Abrir el resumen como imagen →](img/arquitectura-resumen.png)** (el mismo diagrama, a tamaño completo)
+Este diagrama es el de `Ticketing.Command`; el de `Ticketing.Query` está
+[más abajo](#vista-de-componentes-de-query).
 
 ```mermaid
 flowchart LR
@@ -100,17 +101,6 @@ flowchart LR
         Topic[["topic KafkaSettings:Topic"]]
     end
 
-    subgraph QUERY["Ticketing.Query · lectura"]
-        direction TB
-        QApi["Query.Api<br/>GET api/v1/TicketCreate/ReadTicket"]
-        QInf["Query.Infrastructure<br/>TicketDbContext (EF Core)"]
-    end
-
-    subgraph PG["PostgreSQL 16 · eventspostgres"]
-        direction TB
-        Tables[("tickets · employees<br/>ticket_types · ticket_employees")]
-    end
-
     Client -->|JSON| Ctrl
     Ctrl -->|MediatR Send| Handler
     Handler -->|Create| TAS
@@ -133,20 +123,18 @@ flowchart LR
     DbCtx -->|insertOne / find| Coll
     Coll --- Idx
     Prod -->|JSON| Topic
-    QApi -->|registra servicios| QInf
-    QInf -->|Npgsql · Migrate| Tables
 
     classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
     classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
     classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
     classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
     classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
-    class Ctrl,QApi api
+    class Ctrl api
     class Handler,ESH app
     class TAS,IUoW,IES,IEMR dom
-    class UoW,Ctx,ES,Repo,DbCtx,Prod,QInf inf
+    class UoW,Ctx,ES,Repo,DbCtx,Prod inf
     class IEP dom
-    class Coll,Idx,Topic,Tables db
+    class Coll,Idx,Topic db
 ```
 
 **Cómo leerlo**
@@ -163,13 +151,65 @@ flowchart LR
 - **`Ticketing.Common`** es el contrato compartido: eventos, `Response<T>` e `IEventProducer`, sin
   dependencias de MongoDB ni de ASP.NET (sí del paquete `Confluent.Kafka`).
 
-### Cómo regenerar la imagen
+## Vista de componentes de Query
 
-`img/arquitectura-resumen.png` sale de `img/arquitectura-resumen.mmd`, que es el diagrama de arriba. Tras un
-cambio en el código, desde `docs/`:
+Cada recuadro es una clase o un conjunto de clases reales de `Ticketing.Query`. El handler de `ReadTicket`
+todavía no usa `TicketDbContext`: hoy la base de datos solo se toca al arrancar, con `Migrate()`.
 
-```bash
-npx @mermaid-js/mermaid-cli -i img/arquitectura-resumen.mmd -o img/arquitectura-resumen.png -s 6 -b white
+```mermaid
+flowchart LR
+    Client([Cliente HTTP])
+
+    subgraph API["Api"]
+        direction TB
+        Ctrl["TicketCreate<br/>GET api/v1/TicketCreate/ReadTicket"]
+        Prog["Program.cs<br/>Migrate() al arrancar"]
+    end
+
+    subgraph APP["Application"]
+        direction TB
+        Cmd["ReadTicketCommand"]
+        Handler["ReadTicketCommandHandler<br/>sin implementar"]
+        Val["ReadTicketValidator"]
+    end
+
+    subgraph DOM["Domain"]
+        direction TB
+        Ent["Ticket · TicketType · Employee<br/>BaseAudit · Address"]
+    end
+
+    subgraph INF["Infrastructure"]
+        direction TB
+        Ctx["TicketDbContext"]
+        Cfg["TicketConfiguration · EmployeeConfiguration<br/>TicketTypeConfiguration"]
+        Mig["Migrations<br/>Initial"]
+    end
+
+    subgraph DB["PostgreSQL 16 · eventspostgres"]
+        direction TB
+        Tables[("tickets · employees<br/>ticket_types · ticket_employees")]
+    end
+
+    Client -->|JSON| Ctrl
+    Ctrl -->|MediatR Send| Cmd
+    Cmd --> Handler
+    Val -.->|valida| Cmd
+    Prog -->|Migrate| Ctx
+    Ctx -->|ApplyConfigurationsFromAssembly| Cfg
+    Cfg -->|mapea| Ent
+    Mig -->|crea el esquema| Tables
+    Ctx -->|Npgsql| Tables
+
+    classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
+    classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
+    classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
+    classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
+    classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
+    class Ctrl,Prog api
+    class Cmd,Handler,Val app
+    class Ent dom
+    class Ctx,Cfg,Mig inf
+    class Tables db
 ```
 
 ## Proyectos y dependencias
