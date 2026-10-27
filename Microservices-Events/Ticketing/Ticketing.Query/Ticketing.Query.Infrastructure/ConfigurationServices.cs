@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Ticketing.Query.Domain.Interfaces;
 using Ticketing.Query.Infrastructure.Data;
+using Ticketing.Query.Infrastructure.Repository;
 
 namespace Ticketing.Query.Infrastructure
 {
@@ -13,6 +15,9 @@ namespace Ticketing.Query.Infrastructure
             // Example: services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddDbContext<TicketDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("PostgresConnection")));
+
+            
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
         }

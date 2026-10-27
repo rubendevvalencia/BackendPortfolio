@@ -20,7 +20,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration, builder.Enviro
 
 
 var app = builder.Build();
-//Forma moderna de ejecutar las migraciones
+//Aplica las migraciones pendientes al arrancar, como en el monolito
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
