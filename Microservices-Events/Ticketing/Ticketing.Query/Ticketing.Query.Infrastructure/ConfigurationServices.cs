@@ -1,3 +1,4 @@
+using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,8 @@ namespace Ticketing.Query.Infrastructure
             // Example: services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddDbContext<TicketDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("PostgresConnection")));
+
+            services.Configure<ConsumerConfig>(configuration.GetSection("ConsumerConfig"));
 
             
             services.AddScoped<IUnitOfWork, UnitOfWork>();
