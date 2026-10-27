@@ -7,21 +7,18 @@ using Ticketing.Common.Events;
 using Ticketing.Command.Domain.Interfaces.Events;
 using Confluent.Kafka;
 using Ticketing.Common.Common.Producers.Interface;
-using Microsoft.Extensions.Configuration;
 
 namespace Ticketing.Command.Infrastructure.Persistence
 {
     public class EventStore : IEventStore
     {
         private readonly IEventModelRepository _eventModelRepo;
-        private readonly IConfiguration _conf;
         private readonly ProducerConfig _confKakfa;
         private readonly IEventProducer _eventProducer;
-       
-        public EventStore (IEventModelRepository eventModelRepository, IConfiguration conf, ProducerConfig confKafka, IEventProducer eventProducer)
+
+        public EventStore (IEventModelRepository eventModelRepository, ProducerConfig confKafka, IEventProducer eventProducer)
         {
             _eventModelRepo = eventModelRepository;
-            _conf = conf;
             _confKakfa = confKafka;
             _eventProducer = eventProducer;
         } 
@@ -45,8 +42,8 @@ namespace Ticketing.Command.Infrastructure.Persistence
             //Si la última versión guardada no es la que el agregado tenía al cargarse, otra operación escribió antes
             if (lastVersion != expectedVersion) throw new ConcurrencyException(aggregateId);
 
-            //Buscamos el topic para mandárselo a Kafka
-            var topic = _conf["KafkaSettings:Topic"] ?? throw new Exception("No se encontró el topic");
+            //Topic de Kafka al que se publican los eventos; el nombre es compartido con Query
+            string topic = KafkaTopics.TicketEvents;
 
             //Cada evento nuevo continúa la numeración a partir de la versión esperada: expectedVersion + 1, + 2...
             int version = expectedVersion;
@@ -61,7 +58,7 @@ namespace Ticketing.Command.Infrastructure.Persistence
                     AggregateIdentifier = aggregateId,
                     AggregateType = aggregateType,
                     Version = version,
-                    EventType = Enum.Parse<eEventType>(@event.Type), //El nombre del evento coincide con el valor del enum
+                    EventType = @event.Type, //El evento ya trae su tipo como eEventType
                     EventData = @event
                 };
 

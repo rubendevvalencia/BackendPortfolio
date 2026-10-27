@@ -116,10 +116,14 @@ clase sin querer no deja sin poder leer los eventos ya guardados.
 
 ### Tipos de agregado y de evento como enums ligados por nombre
 
-`eAggregateType` y `eEventType` hacen que en el documento solo puedan aparecer valores conocidos, y se
-guardan como texto para que sea legible. El valor se obtiene con `Enum.Parse` a partir del nombre de la
-clase del agregado y del `Type` del evento, lo que evita un mapeo a mano por cada uno; a cambio, un
-agregado o evento nuevo sin su valor en el enum falla al guardar, en tiempo de ejecución.
+`eAggregateType` y `eEventType` hacen que en el documento solo puedan aparecer valores conocidos, y
+`EventModel` los guarda como texto para que sea legible. `eAggregateType` (de `Command`) se obtiene con
+`Enum.Parse` a partir del nombre de la clase del agregado, lo que evita un mapeo a mano por cada uno; a
+cambio, un agregado nuevo sin su valor en el enum falla al guardar, en tiempo de ejecución.
+
+`eEventType` vive en `Ticketing.Common` porque lo usan los dos servicios, y `EventBase.Type` es ya un
+`eEventType`: el evento lo trae puesto y no hace falta convertirlo. Viaja como **número** en el JSON de Kafka y
+`Query` lo usa para elegir la clase del evento; por eso sus valores son un contrato y no se cambian.
 
 ### `Response<T>` y `ErrorType` compartidos en `Common`
 
@@ -133,5 +137,6 @@ servicios.
 de Kafka antes de registrar nada, y `Program.cs` crea los índices antes de `app.Run()`. Un error de
 configuración o un Mongo caído se ven al arrancar, no en la primera petición.
 
-Dos huecos conocidos: `KafkaSettings:Topic` se lee al guardar, no al arrancar, y no se comprueba que el
-broker responda (el productor se conecta en el primer envío).
+Un hueco conocido: no se comprueba que el broker responda (el productor se conecta en el primer envío). El
+nombre del topic ya no se lee de configuración: es la constante `KafkaTopics.TicketEvents` de
+`Ticketing.Common`.

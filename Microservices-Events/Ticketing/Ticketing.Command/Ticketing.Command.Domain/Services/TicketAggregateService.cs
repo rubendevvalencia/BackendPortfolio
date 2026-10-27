@@ -17,7 +17,6 @@ namespace Ticketing.Command.Domain.Services
             {
                 Id = id,
                 UserName = userName,
-                TyperError = errorType,
                 DetailError = errorDetail
             };
 

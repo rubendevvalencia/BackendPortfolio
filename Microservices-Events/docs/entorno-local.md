@@ -25,7 +25,7 @@ para `Command` (Kafka arrastra a Zookeeper) o `... up -d postgres` para `Query`.
 | Servicio de Compose | Lo usa | Contenedor |
 |---|---|---|
 | `mongodb` | `Ticketing.Command` | `mongodb` |
-| `zookeeper`, `kafka` y `kafka-ui` | `Ticketing.Command` (productor); `Ticketing.Query` (consumidor, pendiente) | `zookeper`, `kafka`, `kafkaui` |
+| `zookeeper`, `kafka` y `kafka-ui` | `Ticketing.Command` (productor); `Ticketing.Query` (consumidor) | `zookeper`, `kafka`, `kafkaui` |
 | `postgres` | `Ticketing.Query` | `postgresql` |
 
 **Para parar sin perder los contenedores**, usa `docker compose -f ... stop`. `down` los elimina. Vale para
@@ -109,11 +109,10 @@ compose:
 | `MongoSettings:Database` | `ticketingApp` | Base de datos donde vive `eventStore` |
 | `KafkaSettings:HostName` | `localhost` | Host del broker |
 | `KafkaSettings:Port` | `29092` | Puerto del listener externo de Kafka |
-| `KafkaSettings:Topic` | `KAFKA_TOPIC` | Topic al que se publican los eventos |
 
 Si falta cualquiera de las dos de Mongo o `HostName`/`Port` de Kafka, `AddInfrastructureServices` lanza
-`InvalidOperationException` al arrancar (falla rápido, no en la primera petición). `Topic` no se valida al
-arrancar: si falta, falla al guardar el primer evento.
+`InvalidOperationException` al arrancar (falla rápido, no en la primera petición). El nombre del topic ya no se
+configura: es la constante `KafkaTopics.TicketEvents` (`KAFKA_TOPIC`) de `Ticketing.Common`.
 
 `appsettings.Development.json` solo ajusta los niveles de log.
 
@@ -166,8 +165,8 @@ docker exec mongodb mongosh --quiet ticketingApp --eval "db.eventStore.find().pr
 docker exec mongodb mongosh --quiet ticketingApp --eval "db.eventStore.getIndexes()"
 ```
 
-Y el mismo evento publicado en Kafka: en `http://localhost:8080`, *Topics* → el valor de
-`KafkaSettings:Topic` → *Messages*. O desde la consola del broker:
+Y el mismo evento publicado en Kafka: en `http://localhost:8080`, *Topics* → `KAFKA_TOPIC` → *Messages*. O
+desde la consola del broker:
 
 ```bash
 docker exec kafka kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic KAFKA_TOPIC --from-beginning
@@ -183,7 +182,17 @@ dotnet run --project Microservices-Events/Ticketing/Ticketing.Query/Ticketing.Qu
 
 La cadena `ConnectionStrings:PostgresConnection` va vacía en `appsettings.json`: se aporta por *User Secrets*
 (o por `secrets.json`/variables de entorno) y debe coincidir con la contraseña del contenedor. Al arrancar,
-la API aplica las migraciones y crea las tablas. Este servicio no necesita MongoDB ni Kafka para arrancar.
+la API aplica las migraciones y crea las tablas. Este servicio no necesita MongoDB.
+
+La sección `ConsumerConfig` de `appsettings.json` ya apunta al compose (`localhost:29092`, grupo `TK_CONSUMER`).
+`BootstrapServers` y `GroupId` se validan al arrancar. El consumidor se suscribe al topic `KAFKA_TOPIC`, y
+**no lo crea** (`AllowAutoCreateTopics = false`): el topic aparece cuando `Command` publica su primer evento. No
+he comprobado cómo se comporta el arranque de `Query` con Kafka caído o con el topic aún sin crear.
+
+> **Antes de probar la proyección:** la migración `Initial` está desfasada respecto al modelo (ver
+> [*Migraciones*](query/arquitectura.md#migraciones)) y hace falta al menos un empleado cargado en
+> `employees` cuyo `Email` coincida con el `userName` del ticket (ver
+> [*Cómo probarlo*](query/consumidor-kafka.md#cómo-probarlo)).
 
 | Perfil (`launchSettings.json`) | URLs |
 |---|---|

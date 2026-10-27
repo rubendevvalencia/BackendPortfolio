@@ -2,8 +2,10 @@
 
 [← Volver al README](../README.md)
 
-Cómo se publican los eventos del event store en Kafka. Hoy solo existe el **lado productor**, en
-`Ticketing.Command`: `Ticketing.Query` todavía no consume nada. El guardado en MongoDB está en
+Cómo se publican los eventos del event store en Kafka y cómo los recibe el otro servicio. El **productor** vive
+en `Ticketing.Command` y el **consumidor** en `Ticketing.Query`; este documento detalla el lado productor y la
+infraestructura, y el consumidor tiene su propio documento: [*El consumidor de Kafka y la
+proyección*](query/consumidor-kafka.md). El guardado en MongoDB está en
 [*Event store*](command/event-store.md); el recorrido completo de la petición, en
 [*Arquitectura*](command/arquitectura.md#recorrido-de-una-petición).
 
@@ -11,7 +13,7 @@ Cómo se publican los eventos del event store en Kafka. Hoy solo existe el **lad
 
 Mongo guarda la **fuente de verdad** (la secuencia de eventos de cada agregado). Kafka sirve para **avisar**
 a otros servicios de que ha pasado algo: cada evento que `EventStore` guarda en Mongo se envía también a un
-topic. El servicio de consulta podrá leer de ese topic para construir su propio modelo de lectura.
+topic. El servicio de consulta lee de ese topic para construir su propio modelo de lectura.
 
 ```mermaid
 flowchart LR
@@ -19,13 +21,15 @@ flowchart LR
     IEP["IEventProducer<br/>(Ticketing.Common)"]
     Prod["TicketEventProducer<br/>(Infrastructure)"]
     Mongo[("MongoDB<br/>eventStore")]
-    Kafka[["Kafka<br/>topic KafkaSettings:Topic"]]
+    Kafka[["Kafka<br/>topic KafkaTopics.TicketEvents"]]
+    Cons["ConsumerHostedService<br/>(Ticketing.Query)"]
     UI["Kafka UI<br/>localhost:8080"]
 
     ES -->|AddAsync| Mongo
     ES -->|ProduceAsync| IEP
     IEP -.-|implementado por| Prod
     Prod -->|JSON| Kafka
+    Kafka -->|Consume| Cons
     UI -.->|lee| Kafka
 ```
 
@@ -59,7 +63,18 @@ apunta al puerto **29092**.
 Los dos listeners son `PLAINTEXT` (`ALLOW_PLAINTEXT_LISTENER: 'yes'`), sin cifrado ni autenticación: solo
 para desarrollo local.
 
-## Configuración de la API
+## Configuración
+
+### El nombre del topic
+
+El topic **no es configuración**: es una constante en `Ticketing.Common`,
+`KafkaTopics.TicketEvents = "KAFKA_TOPIC"`. Productor y consumidor tienen que coincidir exactamente, y si cada
+servicio lo leyera de su `appsettings` se podrían desincronizar sin ningún error: el consumidor se suscribiría
+a un topic vacío. A cambio, no se puede cambiar por entorno sin recompilar, y renombrarlo obliga a recompilar
+los dos servicios. `KAFKA_TOPIC` es un valor de ejemplo; el topic se crea solo la primera vez que se produce a
+él (`KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'`).
+
+### Productor (`Ticketing.Command.Api`)
 
 [`appsettings.json`](../Ticketing/Ticketing.Command/Ticketing.Command.Api/appsettings.json):
 
@@ -67,18 +82,27 @@ para desarrollo local.
 |---|---|---|
 | `KafkaSettings:HostName` | `localhost` | Host del broker |
 | `KafkaSettings:Port` | `29092` | Puerto del listener `EXTERNAL` |
-| `KafkaSettings:Topic` | `KAFKA_TOPIC` | Topic al que se envían los eventos |
 
 `AddInfrastructureServices` valida `HostName` y `Port` al arrancar: si falta cualquiera, lanza
 `InvalidOperationException` y la API no arranca. Con ellos construye un `ProducerConfig`
-(`BootstrapServers = "{HostName}:{Port}"`) y lo registra como *singleton*.
+(`BootstrapServers = "{HostName}:{Port}"`) y lo registra como *singleton*. Tampoco se comprueba al arrancar que
+el broker responda: la API arranca sin Kafka.
 
-**`Topic` no se valida al arrancar**: `EventStore` lo lee al guardar y, si falta, lanza
-`Exception("No se encontró el topic")` en plena petición. Tampoco se comprueba al arrancar que el broker
-responda: la API arranca sin Kafka.
+### Consumidor (`Ticketing.Query.Api`)
 
-`KAFKA_TOPIC` es un valor de ejemplo; el topic se crea solo la primera vez que se produce a él
-(`KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'`).
+[`appsettings.json`](../Ticketing/Ticketing.Query/Ticketing.Query.Api/appsettings.json), sección
+`ConsumerConfig`, que se enlaza directamente a la clase `ConsumerConfig` de Confluent:
+
+| Clave | Valor | Uso |
+|---|---|---|
+| `GroupId` | `TK_CONSUMER` | Grupo de consumidores; Kafka guarda los offsets por grupo |
+| `BootstrapServers` | `localhost:29092` | Listener `EXTERNAL`, porque la API corre en el host |
+| `EnableAutoCommit` | `false` | El offset se confirma a mano, después de proyectar el evento |
+| `AutoOffsetReset` | `Earliest` | Sin offset guardado, lee desde el principio del topic |
+| `AllowAutoCreateTopics` | `false` | El consumidor no crea topics |
+
+`BootstrapServers` y `GroupId` se validan al arrancar. Qué hace cada ajuste, en
+[*El consumidor de Kafka*](query/consumidor-kafka.md#conceptos-de-kafka-que-usa-este-código).
 
 ## El productor
 
@@ -97,7 +121,8 @@ Qué hace `ProduceAsync`:
 2. Serializa el evento a JSON con `System.Text.Json`, usando su **tipo concreto**
    (`JsonSerializer.Serialize(@event, @event.GetType())`) para que salgan los campos de
    `TicketCreatedEvent` y no solo los de `EventBase`. Los nombres de propiedad salen tal cual están en C#
-   (PascalCase).
+   (PascalCase) y `Type`, que es un enum, sale como **número**. El consumidor depende de las dos cosas: su
+   `EventConverter` busca la propiedad `Type`, con esa capitalización y como entero.
 3. Envía el mensaje con **clave = `event.Id`** (el id del agregado). Con una sola partición no cambia nada,
    pero si el topic tuviera varias, todos los eventos de un ticket caerían en la misma y conservarían el
    orden.
@@ -108,10 +133,12 @@ Ejemplo de mensaje en el topic:
 
 ```
 clave:  019...-....
-valor:  {"Type":"TicketCreatedEvent","UserName":"ruben","TyperError":"Timeout","DetailError":"...","Id":"019...-...."}
+valor:  {"Type":1,"UserName":"ruben","DetailError":"...","Id":"019...-...."}
 ```
 
-(Orientativo: el orden de los campos puede variar.)
+(Orientativo: el orden de los campos puede variar. `Type` vale `1` para `TicketCreatedEvent` y `2` para
+`TicketUpdatedEvent`; son los valores de `eEventType` en `Ticketing.Common`. **Esos números no deben
+cambiarse:** ya viajan por Kafka.)
 
 ## Cuándo se publica
 
@@ -153,14 +180,16 @@ proceso. No está implementado ni decidido; se anota aquí para no olvidar que l
 - **Un productor por mensaje.** `TicketEventProducer` construye y destruye un `IProducer` en cada
   `ProduceAsync`. Funciona, pero abre una conexión nueva por evento; el uso habitual es un productor de
   larga vida registrado como *singleton*.
-- **Sin consumidor.** Nada lee el topic todavía; `Ticketing.Query.Api` no usa Kafka. El consumidor que
-  proyecte los eventos sobre PostgreSQL es lo pendiente en
-  [*Arquitectura de Ticketing.Query*](query/arquitectura.md#pendiente).
+- **Consumidor sin probar de extremo a extremo.** `Ticketing.Query` ya tiene un consumidor que proyecta los
+  eventos sobre PostgreSQL, pero el flujo completo no se ha ejecutado. Qué falta, en
+  [*El consumidor de Kafka*](query/consumidor-kafka.md#qué-falta).
 - **Con Kafka caído**, la petición no termina bien (el envío falla o espera al *timeout* del cliente) y,
   como la transacción de Mongo sigue abierta, no se guarda nada. No está probado el tiempo de espera.
-- **Sin pruebas automáticas** del productor ni de `EventStore` con Kafka.
-- **Topic sin validar al arrancar** (ver arriba) y sin configuración propia de particiones o retención: se
-  usa el topic autocreado por defecto.
+- **Sin pruebas automáticas** del productor, del consumidor ni de `EventStore` con Kafka.
+- **Sin configuración propia de particiones o retención:** se usa el topic autocreado por defecto. No he
+  comprobado cuántas particiones tiene; con una sola, el orden entre eventos está garantizado.
+- **Orden entre eventos.** La clave del mensaje es el id del agregado, así que los eventos de un mismo ticket
+  conservarían el orden con varias particiones, pero no hay orden garantizado entre tickets distintos.
 
 ## Probarlo
 
@@ -168,6 +197,7 @@ Con el compose levantado (ver [*Entorno local*](entorno-local.md#kafka-y-su-inte
 y un `POST` a `CreateTicket`:
 
 1. Abrir Kafka UI en `http://localhost:8080`.
-2. *Topics* → el valor de `KafkaSettings:Topic` → *Messages*: debe aparecer un mensaje con el JSON del
-   `TicketCreatedEvent`.
+2. *Topics* → `KAFKA_TOPIC` → *Messages*: debe aparecer un mensaje con el JSON del `TicketCreatedEvent`.
 3. El mismo evento está en Mongo, en `ticketingApp.eventStore`.
+4. Con `Ticketing.Query` en marcha y un empleado cargado, el evento se proyecta en PostgreSQL (ver
+   [*Cómo probarlo*](query/consumidor-kafka.md#cómo-probarlo)).
