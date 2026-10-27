@@ -4,11 +4,9 @@ namespace Ticketing.Common.Events
 {
     public abstract class EventBase : Message
     {
-        public EventBase(string type)
-        {
-            Type = type;
-        }
-        public string Type {get; set; }
+        public eEventType Type {get; set; }
+        public EventBase(eEventType type) => Type = type;
+      
     }
 }
 

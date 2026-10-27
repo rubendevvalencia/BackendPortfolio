@@ -1,5 +1,6 @@
 using MediatR;
 using Ticketing.Common.Events;
+using Ticketing.Query.Application.Feature.Tickets;
 using Ticketing.Query.Domain.Interfaces;
 
 namespace Ticketing.Query.Application.Feature.Events
@@ -11,10 +12,26 @@ namespace Ticketing.Query.Application.Feature.Events
         {
             _mediator = mediator;
         }
-        public Task On(TicketCreatedEvent @event)
+        public async Task On(TicketCreatedEvent @event)
+        {
+            var command = new ProjectionTicketCreatedCommand()
+            {
+                Id = @event.Id,
+                UserName = @event.UserName,
+                Type = @event.Type,
+                DetailError = @event.DetailError
+
+            };
+
+            await _mediator.Send(command);
+
+        }
+
+        public Task On(TicketUpdatedEvent @event)
         {
             throw new NotImplementedException();
         }
+
     }
 
 

@@ -1,13 +1,14 @@
 using MediatR;
 using Ticketing.Common.Common.Response;
+using Ticketing.Common.Events;
 
 namespace Ticketing.Query.Application.Feature.Tickets
 {
-    public class TicketCreateCommand : IRequest<Response<bool>>
+    public class ProjectionTicketCreatedCommand : IRequest<Response<bool>>
     {
-        public int Id {get; set;}
+        public string? Id {get; set;}
         public string? UserName {get; set;}
-        public int TicketType {get; set;}
+        public eEventType Type {get; set;}
         public string? DetailError {get; set;}
     }
     
