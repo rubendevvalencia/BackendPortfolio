@@ -10,7 +10,7 @@ detalle de cada uno está en su carpeta:
 | Microservicio | Arquitectura | Decisiones técnicas | Más |
 |---|---|---|---|
 | `Ticketing.Command` | [Arquitectura](command/arquitectura.md) | [Decisiones](command/decisiones-tecnicas.md) | [Agregados](command/agregados.md) · [Event store](command/event-store.md) |
-| `Ticketing.Query` | [Arquitectura](query/arquitectura.md) | [Decisiones](query/decisiones-tecnicas.md) | — |
+| `Ticketing.Query` | [Arquitectura](query/arquitectura.md) | [Decisiones](query/decisiones-tecnicas.md) | [El consumidor de Kafka](query/consumidor-kafka.md) |
 
 ## Dos microservicios independientes
 
@@ -47,7 +47,7 @@ flowchart LR
     Client --> QApi
     CInf --> MONGO
     CInf -->|publica eventos| KAFKA
-    KAFKA -.->|consumidor pendiente| QInf
+    KAFKA -->|consume eventos| QInf
     QInf --> PG
     CMD -.-> COM
     QRY -.-> COM
@@ -61,14 +61,14 @@ es Kafka, y lo único que comparten en código es `Ticketing.Common`.
 | | `Ticketing.Command` | `Ticketing.Query` |
 |---|---|---|
 | Rol | Recibe órdenes y las convierte en eventos | Sirve consultas sobre un modelo ya proyectado |
-| Patrón de datos | Event sourcing: secuencia de eventos inmutables | Modelo relacional con EF Core |
+| Patrón de datos | Event sourcing: secuencia de eventos inmutables | Modelo relacional con EF Core, rellenado por proyección de eventos |
 | Almacén | MongoDB 7 (replica set `rs0`), base `ticketingApp` | PostgreSQL 16, base `eventspostgres` |
 | Endpoint | `POST api/v1/TicketCreate/CreateTicket` | `GET api/v1/TicketCreate/ReadTicket` |
 | Puertos | `5166` (HTTP), `7249` (HTTPS) | `5270` (HTTP), `7005` (HTTPS) |
 | Capas | Api · Application · Domain · Infrastructure | Api · Application · Domain · Infrastructure |
 | Esquema | Índice único creado al arrancar | Migraciones de EF Core aplicadas al arrancar |
-| Con Kafka | Productor: publica cada evento guardado | Consumidor: pendiente |
-| Estado | Caso de uso `CreateTicket` completo | Estructura y base de datos listas; `ReadTicket` sin implementar |
+| Con Kafka | Productor: publica cada evento guardado | Consumidor: proyecta cada evento en PostgreSQL |
+| Estado | Caso de uso `CreateTicket` completo | Consumidor y proyección escritos, sin probar de extremo a extremo; `ReadTicket` sin implementar; migración por regenerar |
 
 ## Qué es independiente y qué se comparte
 
@@ -86,21 +86,24 @@ es Kafka, y lo único que comparten en código es `Ticketing.Common`.
 **Compartido**
 
 - **`Ticketing.Common`** (`Ticketing.Core/`): el contrato que ambos deben entender igual: la jerarquía de
-  eventos (`EventBase`, `TicketCreatedEvent`), `Message`, `Response<T>`, `ErrorType` e `IEventProducer`. No
-  conoce MongoDB ni ASP.NET.
+  eventos (`EventBase`, `TicketCreatedEvent`, `TicketUpdatedEvent`), el enum `eEventType`, el nombre del topic
+  (`KafkaTopics`), `Message`, `Response<T>`, `ErrorType` e `IEventProducer`. No conoce MongoDB ni ASP.NET.
 - **Un solo `Ticketing.slnx`**, un solo `docker-compose.yml` (los tres almacenes) y un solo workflow de CI
   (`ci-micro-events.yaml`), por comodidad del proyecto de aprendizaje.
 
 **Acoplamientos que existen hoy**
 
-- `Ticketing.Common` referencia `Confluent.Kafka`, así que `Query` lo recibe de forma transitiva aunque aún no
-  consuma Kafka.
-- Un cambio en un evento de `Common` obliga a recompilar los dos servicios.
+- `Ticketing.Common` referencia `Confluent.Kafka` (por `IEventProducer`), así que `Query` lo recibe también de
+  forma transitiva; además lo referencia directamente en `Infrastructure`, que es donde está el consumidor.
+- Un cambio en un evento, en `eEventType` o en `KafkaTopics` obliga a recompilar los dos servicios.
+- **Los valores de `eEventType` son parte del contrato**: viajan como número en el JSON y el consumidor los
+  usa para saber qué clase de evento deserializar. Cambiarlos o reordenarlos rompe lo que ya está en Kafka.
 
 ## Cómo se comunican
 
-Los eventos viajan por Kafka. Hoy solo existe el lado productor; el consumidor de `Query`, que proyectaría
-cada evento en PostgreSQL, está pendiente.
+Los eventos viajan por Kafka: `Command` los publica y `Query` los consume y los proyecta en PostgreSQL. El
+consumidor está escrito pero **no se ha probado de extremo a extremo**; qué falta, en
+[*El consumidor de Kafka*](query/consumidor-kafka.md#qué-falta).
 
 ```mermaid
 sequenceDiagram
@@ -115,13 +118,16 @@ sequenceDiagram
     CMD->>M: guarda el evento (transacción)
     CMD->>K: publica el evento
     CMD-->>C: 200 + id del ticket
-    Note over K,QRY: pendiente: el consumidor de Query
-    K-->>QRY: evento
-    QRY->>P: proyecta sobre las tablas
-    C->>QRY: GET ReadTicket
+    K-->>QRY: evento (el consumidor lo lee)
+    QRY->>P: proyecta: añade el ticket a un empleado existente
+    QRY->>K: confirma el offset
+    C->>QRY: GET ReadTicket (sin implementar)
     QRY->>P: lee
     QRY-->>C: ticket
 ```
+
+Entre que `Command` responde y `Query` proyecta hay un hueco: la consistencia entre los dos servicios es
+**eventual**.
 
 Cada evento se guarda y se publica con ciertas garantías y limitaciones (publicación antes del `Commit`, sin
 *outbox*): ver [*Mensajería con Kafka*](mensajeria-kafka.md).
@@ -152,7 +158,7 @@ Microservices-Events/
 
 | Proyecto compartido | Responsabilidad | Referencias | Paquetes |
 |---|---|---|---|
-| `Ticketing.Common` | Eventos, `Message`, `Response<T>`, `ErrorType` e `IEventProducer` | — | `Confluent.Kafka` 2.16.0, `Microsoft.Extensions.Logging.Abstractions` |
+| `Ticketing.Common` | Eventos, `eEventType`, `KafkaTopics`, `Message`, `Response<T>`, `ErrorType` e `IEventProducer` | — | `Confluent.Kafka` 2.16.0, `Microsoft.Extensions.Logging.Abstractions` |
 
 Los proyectos de cada servicio, con sus referencias y paquetes, están en la arquitectura de cada uno:
 [Command](command/arquitectura.md#proyectos-y-dependencias) y

@@ -32,9 +32,12 @@ namespace Ticketing.Query.Infrastructure.Repository
         public async Task<Employee?> GetByUsernameAsync(string userName) => await _dbContext.Employees.Where(o => o.Email == userName).FirstOrDefaultAsync();
 
 
+        //Solo marca la entidad en el contexto; la transacción la confirma IUnitOfWork.SaveChangesAsync
         public Task<bool> UpdateAsync(Employee entity)
         {
-            throw new NotImplementedException();
+            _dbContext.Employees.Update(entity);
+
+            return Task.FromResult(true);
         }
     }
 

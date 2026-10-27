@@ -45,20 +45,23 @@ MongoDB. Si una clase no lo lleva, o lo lleva vacío, `GetCollection<T>` lanza `
 | Clase | Aporta |
 |---|---|
 | `Message` (abstracta) | `Id`, obligatorio (`required`). En los eventos de ticket es el **id del agregado**, no un id propio del evento. |
-| `EventBase : Message` (abstracta) | `Type`: el nombre del evento, que el evento concreto pasa al constructor base con `nameof(...)`. |
+| `EventBase : Message` (abstracta) | `Type`: el tipo del evento como enum `eEventType` (de `Ticketing.Common`), que el evento concreto pasa al constructor base (por ejemplo `eEventType.TicketCreatedEvent`). Viaja como **número** en el JSON de Kafka. |
 
 `EventBase` no lleva versión: la versión vive solo en el sobre (`EventModel.Version`).
 
 ### `TicketCreatedEvent` (Common)
 
-El único evento hoy:
+El único evento que Command genera hoy (en `Ticketing.Common` existe también `TicketUpdatedEvent`, pero nada
+lo publica todavía):
 
 | Campo | Viene de |
 |---|---|
 | `Id` | El id del ticket que genera `TicketAggregateService.Create` |
-| `UserName` | `TicketCreateCommand.UserName` |
-| `TyperError` | `TicketCreateCommand.ErrorType` |
+| `UserName` | `TicketCreateCommand.UserName` (obligatorio, `required`) |
 | `DetailError` | `TicketCreateCommand.ErrorDetail` |
+
+El evento ya no lleva el tipo de error: `TicketAggregateService.Create` aún recibe `errorType` por parámetro,
+pero no lo usa. `Query` busca al empleado por el `UserName` del evento (lo compara con su `Email`).
 
 Lo construye a mano `TicketAggregateService.Create`; no hay librería de mapeo.
 
@@ -73,14 +76,13 @@ agregado, siempre dentro de la transacción que abrió el caso de uso.
 3. Si no coincide con `expectedVersion`, lanza **`ConcurrencyException`**: alguien guardó eventos de ese
    agregado después de que se cargara.
 4. Por cada evento, sube la versión en uno (`expectedVersion + 1`, `+ 2`…) y lo envuelve en un `EventModel`
-   con `TimeStamp = DateTime.UtcNow`, el agregado, la versión y `EventType = Enum.Parse<eEventType>(event.Type)`.
-   **Convención:** el `Type` del evento debe coincidir con un valor de `eEventType`, o falla en tiempo de
-   ejecución.
+   con `TimeStamp = DateTime.UtcNow`, el agregado, la versión y `EventType = event.Type` (el evento ya trae
+   su tipo como `eEventType`, así que no hace falta convertir nada).
 5. Inserta cada `EventModel` con `IEventModelRepository.AddAsync`.
 6. Justo después de cada inserción, publica ese mismo evento en Kafka con `IEventProducer.ProduceAsync`,
-   en el topic de `KafkaSettings:Topic` (si falta, lanza `Exception("No se encontró el topic")`). Se hace
-   dentro de la transacción y antes del `Commit`: si el envío falla, la transacción se aborta; si falla el
-   `Commit`, el evento ya está en Kafka. Detalle y límites en
+   en el topic `KafkaTopics.TicketEvents` (una constante de `Ticketing.Common`, ya no una clave de
+   configuración). Se hace dentro de la transacción y antes del `Commit`: si el envío falla, la transacción se
+   aborta; si falla el `Commit`, el evento ya está en Kafka. Detalle y límites en
    [*Mensajería con Kafka*](../mensajeria-kafka.md#cuándo-se-publica).
 
 ## Control de concurrencia
@@ -142,15 +144,16 @@ Orientativo, según el mapeo anterior:
   "EventData": {
     "_t": "TicketCreatedEvent",
     "_id": "019...-....",
-    "Type": "TicketCreatedEvent",
+    "Type": 1,
     "UserName": "...",
-    "TyperError": "...",
     "DetailError": "..."
   }
 }
 ```
 
-`AggregateIdentifier` y `EventData._id` llevan el mismo valor.
+`AggregateIdentifier` y `EventData._id` llevan el mismo valor. `EventModel.EventType` se guarda como texto
+(tiene su `EnumSerializer`), pero `EventData.Type` no tiene serializador propio: se espera el número del enum, que
+es el comportamiento por defecto del driver para los enums. No he abierto el documento real para confirmarlo.
 
 ## Índices de `eventStore`
 
@@ -161,14 +164,20 @@ Orientativo, según el mapeo anterior:
 
 ## Cómo añadir un evento nuevo
 
-1. Clase en `Ticketing.Common/Events/` que herede de `EventBase` y pase `nameof(...)` al constructor base.
-2. Valor nuevo en `eEventType`, **con el mismo nombre** que la clase (lo exige `Enum.Parse` en `EventStore`).
+1. Clase en `Ticketing.Common/Events/` que herede de `EventBase` y pase su valor de `eEventType` al
+   constructor base.
+2. Valor nuevo en `eEventType` (en `Ticketing.Common`), con el **siguiente número libre**: los valores
+   existentes no se tocan, porque ya viajan por Kafka. Por convención lleva el mismo nombre que la clase, y
+   `Query` lo necesita en su `EventConverter` (ver más abajo).
 3. Registrar su mapeo en `MongoClassMaps` (`RegisterClassMap` + `SetDiscriminator`), llamarlo desde
    `Register()` y añadirlo con `AddKnownType` en el mapeo de `EventBase`.
 4. Su `case` en el `ApplyEvent` del servicio del agregado (ver [*Agregados*](agregados.md)).
 5. Command, handler y validador en `Application/Features/<Agregado>/<Orden>/`.
 
 La publicación en Kafka no necesita cambios: `TicketEventProducer` serializa el evento con su tipo concreto.
+El **consumidor** de `Query`, en cambio, sí: hace falta un `case` en `EventConverter`, un método `On` en
+`IEventHandler` y `EventHandler`, y su proyección (ver [*El consumidor de
+Kafka*](../query/consumidor-kafka.md)).
 
 Un **agregado** nuevo necesita además su valor en `eAggregateType`, con el mismo nombre que la clase (lo
 exige `Enum.Parse` en `EventSourcingHandler`), y su registro en DI.

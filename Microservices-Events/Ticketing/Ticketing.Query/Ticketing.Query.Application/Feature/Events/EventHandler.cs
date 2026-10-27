@@ -23,7 +23,10 @@ namespace Ticketing.Query.Application.Feature.Events
 
             };
 
-            await _mediator.Send(command);
+            var response = await _mediator.Send(command);
+
+            //Si la proyección falla se lanza para que el consumer no confirme el offset y el evento no se pierda
+            if(!response.IsSuccess) throw new InvalidOperationException($"No se pudo proyectar el evento {nameof(TicketCreatedEvent)} {@event.Id}: {response.Message}");
 
         }
 

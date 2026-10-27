@@ -37,8 +37,8 @@ servicios.
 ### Kafka para publicar los eventos; Mongo sigue siendo la fuente de verdad
 
 Cada evento guardado en el event store se publica también en un topic de Kafka, para que otros servicios (el
-de consulta, a futuro) reaccionen sin leer la base de datos del servicio de escritura. Kafka no sustituye al
-event store: si hubiera que reconstruir un agregado, se hace desde Mongo.
+de consulta) reaccionen sin leer la base de datos del servicio de escritura. Kafka no sustituye al event store:
+si hubiera que reconstruir un agregado, se hace desde Mongo.
 
 - **Un broker con Zookeeper**, en el compose. Basta para aprender el flujo; un cluster pide más brokers y
   réplicas.
@@ -46,8 +46,26 @@ event store: si hubiera que reconstruir un agregado, se hace desde Mongo.
   mantengan el orden.
 - **`IEventProducer` en `Common` y no en `Domain`**: a diferencia de los demás puertos, queda a la vista de
   los dos servicios. A cambio, `Common` referencia `Confluent.Kafka`.
+- **El consumidor vive en `Query`** y proyecta cada evento en PostgreSQL, con commit manual del offset después
+  de proyectar. Detalle en [*El consumidor de Kafka*](query/consumidor-kafka.md).
 - **La publicación va dentro del bucle de guardado, antes del `Commit`.** Es lo más simple y hace que un
   fallo de Kafka aborte la transacción de Mongo, pero deja una ventana: si falla el `Commit` después de
   enviar, hay un evento en Kafka que Mongo no tiene. La salida habitual es un *outbox*; está sin decidir.
+
+### El nombre del topic es una constante compartida
+
+`KafkaTopics.TicketEvents` está en `Ticketing.Common`, junto a los eventos, y lo usan el productor de `Command` y
+el consumidor de `Query`. El topic es parte del contrato entre los dos servicios, igual que `EventBase` o
+`eEventType`: si cada uno lo leyera de su `appsettings`, se podrían desincronizar sin ningún error, porque el
+consumidor se suscribiría a un topic vacío. Dos costes: no se puede cambiar por entorno sin recompilar, y
+renombrarlo obliga a redesplegar los dos servicios a la vez. Se descartó un "gestor de topics" con interfaz y
+DI: con un solo topic, una clase estática con constantes basta.
+
+### `eEventType` viaja como número
+
+`EventBase.Type` es el enum `eEventType` de `Common`, y el JSON lo lleva como entero (`1`, `2`). El
+`EventConverter` del consumidor busca la propiedad `Type` con esa capitalización y como número. Por eso **los
+valores del enum no deben cambiarse ni reordenarse**: ya viajan por Kafka. Un evento nuevo recibe el siguiente
+número libre.
 
 Detalle y limitaciones en [*Mensajería con Kafka*](mensajeria-kafka.md).

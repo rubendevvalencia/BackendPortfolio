@@ -64,7 +64,7 @@ flowchart LR
 
     subgraph BROKER["Kafka · 1 broker"]
         direction TB
-        Topic[["topic KafkaSettings:Topic"]]
+        Topic[["topic KafkaTopics.TicketEvents"]]
     end
 
     Client -->|JSON| Ctrl
@@ -158,8 +158,8 @@ del dominio.
    `AddInfrastructureServices(configuration)`, `AddVersioning`, `AddSwaggerGen`, `AddOpenApi`.
 2. **`AddInfrastructureServices` valida la configuración**: si falta `ConnectionStrings:MongoDbConnection`,
    `MongoSettings:Database`, `KafkaSettings:HostName` o `KafkaSettings:Port`, lanza
-   `InvalidOperationException` y la aplicación no arranca. (`KafkaSettings:Topic` no se valida aquí: se lee
-   al guardar.) También registra los mapeos BSON (`MongoClassMaps.Register()`), que deben existir antes de la primera
+   `InvalidOperationException` y la aplicación no arranca. (El nombre del topic no es configuración: es la
+   constante `KafkaTopics.TicketEvents`.) También registra los mapeos BSON (`MongoClassMaps.Register()`), que deben existir antes de la primera
    serialización.
 3. **`Build()`** y, antes de aceptar peticiones, **`EnsureMongoIndexesAsync`**: crea (si no existe) el
    índice único `ux_aggregate_version` sobre `eventStore`. Es idempotente, va fuera de cualquier

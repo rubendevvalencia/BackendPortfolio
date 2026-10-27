@@ -90,7 +90,8 @@ nuevo sin su `case` falla en lugar de ignorarse en silencio.
 `TicketAggregateService.Create(userName, errorType, errorDetail)`:
 
 1. Genera el id con `Guid.CreateVersion7()`.
-2. Construye el `TicketCreatedEvent` con ese id y los tres datos del command.
+2. Construye el `TicketCreatedEvent` con ese id y `UserName` y `DetailError` del command. `errorType` llega por
+   parámetro pero ya no se usa: el evento no lo lleva.
 3. Parte de `CreateEmpty()`: id vacío, versión 0, sin cambios, inactivo.
 4. Lo lanza con `RaiseEvent`.
 
