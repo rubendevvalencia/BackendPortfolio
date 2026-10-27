@@ -2,14 +2,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ticketing.Query.Application
 {
-    public static class ApplicationServiceRegistration
+    public static class ConfigurationService
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services;
         }
     }
-    
+
 }
 
 

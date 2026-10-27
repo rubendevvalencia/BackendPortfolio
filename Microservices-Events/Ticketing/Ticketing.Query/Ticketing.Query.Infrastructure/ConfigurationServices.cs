@@ -19,8 +19,9 @@ namespace Ticketing.Query.Infrastructure
 
             services.Configure<ConsumerConfig>(configuration.GetSection("ConsumerConfig"));
 
-            
+
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 
             return services;
         }
