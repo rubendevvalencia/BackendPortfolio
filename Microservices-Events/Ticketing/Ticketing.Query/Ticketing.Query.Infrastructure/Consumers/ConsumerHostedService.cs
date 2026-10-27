@@ -27,8 +27,8 @@ namespace Ticketing.Query.Infrastructure.Consumers
         {
             _logger.LogInformation("El event consumer service está trabajando");
 
-            //Topic de Kafka del que se leen los eventos que publica el lado Command
-            var topic = "KAFKA_TOPIC";
+            //Topic de Kafka del que se leen los eventos que publica el lado Command; el nombre es compartido con Command
+            string topic = KafkaTopics.TicketEvents;
 
             //El consumer lee clave y valor como texto UTF-8; el valor es el JSON del evento
             var consumer = new ConsumerBuilder<string, string>(_config)
