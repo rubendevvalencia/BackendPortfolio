@@ -24,7 +24,7 @@ namespace Ticketing.Query.Api.Controllers
         {
             _mediator = mediator;
         }
-
+        //No tiene sentido hacer end points, ningún usuario ni el sistema va a usarlos porque se gestionan automáticamente con el EventHandler.cs
         //Los endpoints actuales del TicketController (ReadTicket y UpdateTicket) ejecutan comandos de proyección: escriben en el modelo de lectura. 
         //Eso solo debe hacerlo el consumer de Kafka. 
         // El usuario nunca debería poder llamarlos, porque se saltaría el event store y el modelo de lectura dejaría de reflejar los eventos reales.
