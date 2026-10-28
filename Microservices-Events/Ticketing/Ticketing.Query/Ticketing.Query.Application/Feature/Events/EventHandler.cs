@@ -1,6 +1,7 @@
 using MediatR;
 using Ticketing.Common.Events;
-using Ticketing.Query.Application.Feature.Tickets;
+using Ticketing.Query.Application.Feature.Commands.TicketCreated;
+using Ticketing.Query.Application.Feature.Commands.TicketUpdated;
 using Ticketing.Query.Domain.Interfaces;
 
 namespace Ticketing.Query.Application.Feature.Events

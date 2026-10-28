@@ -3,7 +3,7 @@ using Ticketing.Common.Common.Response;
 using Ticketing.Query.Domain.Entities;
 using Ticketing.Query.Domain.Interfaces;
 
-namespace Ticketing.Query.Application.Feature.Tickets
+namespace Ticketing.Query.Application.Feature.Commands.TicketCreated
 {
     public class TicketCreatedCommandHandler : IRequestHandler<TicketCreatedCommand, Response<string>>
     {

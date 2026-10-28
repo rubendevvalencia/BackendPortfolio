@@ -3,18 +3,18 @@ using Ticketing.Common.Common.Response;
 using Ticketing.Query.Domain.Entities;
 using Ticketing.Query.Domain.Interfaces;
 
-namespace Ticketing.Query.Application.Feature.Tickets
+namespace Ticketing.Query.Application.Feature.Queries.TicketsGet
 {
-    public class TicketUpdatedCommandHandler : IRequestHandler<TicketUpdatedCommand, Response<string>>
+    public class TicketGetCommandHandler : IRequestHandler<TicketGetCommand, Response<string>>
     {
         private readonly IUnitOfWork _unitOfWork;
-        public TicketUpdatedCommandHandler(IUnitOfWork unitOfWork)
+        public TicketGetCommandHandler(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
 
         //Sin try/catch: si la proyección lanza, la excepción llega al consumer, que no confirma el offset del mensaje
-        public async Task<Response<string>> Handle(TicketUpdatedCommand request, CancellationToken cancellationToken)
+        public async Task<Response<string>> Handle(TicketGetCommand request, CancellationToken cancellationToken)
         {
             bool idIsValid = Guid.TryParse(request.Id, out Guid ticketTypeId);
             if(!idIsValid) return Response<string>.Fail("El Id del evento no es un Guid válido");
