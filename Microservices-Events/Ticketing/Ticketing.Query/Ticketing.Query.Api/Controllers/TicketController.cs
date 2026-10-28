@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
 using Ticketing.Common.Common.Response;
-using Ticketing.Query.Application.Feature.ReadTicket;
+using Ticketing.Query.Application.Feature.Tickets;
 
 namespace Ticketing.Query.Api.Controllers
 {
@@ -16,11 +16,11 @@ namespace Ticketing.Query.Api.Controllers
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiVersion("1.0")]
     [SwaggerTag("Controller for managing customer operations.")]
-    public class TicketCreate : ApiResponseControllerBase
+    public class TicketController : ApiResponseControllerBase
     {
         private readonly IMediator _mediator;
 
-        public TicketCreate(IMediator mediator)
+        public TicketController(IMediator mediator)
         {
             _mediator = mediator;
         }
@@ -28,7 +28,17 @@ namespace Ticketing.Query.Api.Controllers
         //[RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Read a new ticket.", Description = "Read a new ticket to the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Ticket readed successfully.", typeof(Response<bool>))]
-        public async Task<IActionResult> Create([FromBody] ReadTicketCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] TicketCreatedCommand command, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(command, cancellationToken);
+            return ToActionResult(response);
+        }
+
+        [HttpGet("UpdateTicket")]
+        //[RequestTimeout("CustomPolicy")]
+        [SwaggerOperation(Summary = "Update a ticket.", Description = "Update a new ticket to the system.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Ticket updated successfully.", typeof(Response<bool>))]
+        public async Task<IActionResult> Create([FromBody] TicketUpdatedCommand command, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(command, cancellationToken);
             return ToActionResult(response);
