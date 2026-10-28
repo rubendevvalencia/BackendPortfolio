@@ -27,12 +27,14 @@ namespace Ticketing.Query.Infrastructure.Consumers
         }
 
 
-        //Consume() bloquea el hilo: el bucle se lanza en un hilo del pool y StartAsync vuelve enseguida para que el host termine de arrancar
+        //Consume() bloquea el hilo que lo llama: si el bucle corriera aquí, StartAsync no volvería nunca y el host no terminaría de arrancar
+        //Por eso el bucle se lanza en otro hilo del pool con Task.Run y StartAsync vuelve enseguida
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _stoppingSource = new CancellationTokenSource();
             CancellationToken stoppingToken = _stoppingSource.Token;
 
+            //Ese hilo del pool queda ocupado mientras la app viva; con un solo consumer es un coste aceptable
             _consuming = Task.Run(() => ConsumeAsync(stoppingToken));
 
             return Task.CompletedTask;
@@ -68,9 +70,11 @@ namespace Ticketing.Query.Infrastructure.Consumers
             try
             {
                 //Bucle: lee un mensaje, lo procesa y confirma; después pasa al siguiente hasta que StopAsync pida parar
+                //Es un único hilo y es secuencial: no hay dos mensajes procesándose a la vez en esta instancia
                 while(!stoppingToken.IsCancellationRequested)
                 {
-                    //Consume() bloquea hasta que llega un mensaje; con el token lanza OperationCanceledException al parar
+                    //Consume() bloquea solo este hilo del pool hasta que llega un mensaje; las peticiones HTTP de la API se atienden en otros hilos
+                    //Con el token lanza OperationCanceledException al parar
                     var consumerResult = consumer.Consume(stoppingToken);
                     if(consumerResult is null) continue;
                     if(consumerResult.Message is null) continue;
@@ -87,6 +91,7 @@ namespace Ticketing.Query.Infrastructure.Consumers
                     if(@event is null) throw new ArgumentNullException(nameof(@event), "No se pudo procesar el json parser");
 
                     //El servicio es singleton y el handler usa servicios scoped (MediatR, DbContext): se crea un scope por mensaje
+                    //Así cada mensaje tiene su propio DbContext y nunca se comparte uno entre hilos
                     using IServiceScope scope = _serviceProvider.CreateScope();
                     var eventHandler = scope.ServiceProvider.GetRequiredService<IEventHandler>();
 
