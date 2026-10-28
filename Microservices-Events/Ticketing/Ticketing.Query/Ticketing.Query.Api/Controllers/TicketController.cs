@@ -24,6 +24,12 @@ namespace Ticketing.Query.Api.Controllers
         {
             _mediator = mediator;
         }
+
+        //Los endpoints actuales del TicketController (ReadTicket y UpdateTicket) ejecutan comandos de proyección: escriben en el modelo de lectura. 
+        //Eso solo debe hacerlo el consumer de Kafka. 
+        // El usuario nunca debería poder llamarlos, porque se saltaría el event store y el modelo de lectura dejaría de reflejar los eventos reales.
+        //Y no los necesitas: el consumer ya envía esos mismos comandos por MediatR (EventHandler → _mediator.Send), sin pasar por HTTP. 
+        // Estos dos endpoints sobran. Si los quieres para probar, déjalos solo en Development o detrás de una política de acceso interno, y quítalos después.
         [HttpGet("ReadTicket")]
         //[RequestTimeout("CustomPolicy")]
         [SwaggerOperation(Summary = "Read a new ticket.", Description = "Read a new ticket to the system.")]
