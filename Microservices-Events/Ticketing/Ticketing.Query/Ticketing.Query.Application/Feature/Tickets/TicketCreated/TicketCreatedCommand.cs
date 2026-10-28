@@ -4,7 +4,7 @@ using Ticketing.Common.Events;
 
 namespace Ticketing.Query.Application.Feature.Tickets
 {
-    public class ProjectionTicketCreatedCommand : IRequest<Response<string>>
+    public class TicketCreatedCommand : IRequest<Response<string>>
     {
         public string? Id {get; set;}
         public string? UserName {get; set;}

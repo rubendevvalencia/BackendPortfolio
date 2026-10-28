@@ -14,7 +14,7 @@ namespace Ticketing.Query.Application.Feature.Events
         }
         public async Task On(TicketCreatedEvent @event)
         {
-            var command = new ProjectionTicketCreatedCommand()
+            var command = new TicketCreatedCommand()
             {
                 Id = @event.Id,
                 UserName = @event.UserName,
@@ -30,9 +30,22 @@ namespace Ticketing.Query.Application.Feature.Events
 
         }
 
-        public Task On(TicketUpdatedEvent @event)
+        public async Task On(TicketUpdatedEvent @event)
         {
-            throw new NotImplementedException();
+            var command = new TicketUpdatedCommand()
+            {
+                Id = @event.Id,
+                UserName = @event.Username,
+                Type = @event.Type,
+                DetailError = @event.DetailError
+
+            };
+
+            var response = await _mediator.Send(command);
+
+            //Si la proyección falla se lanza para que el consumer no confirme el offset y el evento no se pierda
+            if(!response.IsSuccess) throw new InvalidOperationException($"No se pudo proyectar el evento {nameof(TicketCreatedEvent)} {@event.Id}: {response.Message}");
+
         }
 
     }
