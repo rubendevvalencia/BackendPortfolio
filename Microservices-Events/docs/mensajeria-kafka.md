@@ -68,8 +68,45 @@ valor:  {"ErrorDetail":"...","Type":1,"Id":"019...-....","OcurredAt":"2026-10-29
 | El `Commit` falla **después** de enviar | El evento está en Kafka y **no** en Mongo |
 | Varios eventos y falla el segundo envío | Los anteriores ya están en Kafka; la transacción se aborta |
 
-Mongo y Kafka no comparten transacción (*dual write*). El patrón *outbox* lo cerraría; no está implementado ni
-decidido.
+Mongo y Kafka no comparten transacción (*dual write*). Lo cierra el patrón *Transactional Outbox*: decidido,
+pendiente de implementar.
+
+### Pendiente: Transactional Outbox
+
+El propio `eventStore` hace de outbox (sin colección aparte): el caso de uso solo guarda en Mongo y un proceso en
+segundo plano publica en Kafka lo ya confirmado. Se aplicará paso a paso:
+
+| Paso | Cambio |
+|---|---|
+| 1 | `PublishedAt` (`DateTime?`) en `EventModel`: `null` mientras está pendiente de publicar |
+| 2 | Métodos nuevos en `IEventModelRepository`: `FindPendingToPublishAsync(batchSize)` (orden `TimeStamp`, `Version`) y `MarkAsPublishedAsync(id, publishedAt)` |
+| 3 | Quitar `ProduceAsync` de `EventStore.SaveEventsAsync` (y el `ProducerConfig` que ya no usa) |
+| 4 | `BackgroundService` en `Infrastructure` que publica en Kafka los pendientes y los marca; un scope por vuelta (el repositorio es *Scoped*) y corta al primer fallo para no romper el orden por ticket |
+| 5 | Índice sobre (`PublishedAt`, `TimeStamp`, `Version`) en `EnsureMongoIndexesAsync` |
+| 6 | Actualizar los comentarios de `TicketCreateCommandHandler` que dicen que Kafka se publica en `SaveAsync` |
+
+```mermaid
+sequenceDiagram
+    participant H as Handler
+    participant M as Mongo (eventStore)
+    participant R as Relay (BackgroundService)
+    participant K as Kafka
+    H->>M: insert EventModel (PublishedAt = null)
+    H->>M: commit
+    loop cada N segundos
+        R->>M: eventos con PublishedAt null
+        R->>K: ProduceAsync
+        R->>M: PublishedAt = ahora
+    end
+```
+
+A tener en cuenta:
+
+- **Datos existentes:** los documentos ya guardados no tienen `PublishedAt` y el relay los reenviaría. Antes de
+  arrancarlo, marcarlos: `updateMany({ PublishedAt: { $exists: false } }, { $set: { PublishedAt: new Date() } })`.
+- **Entrega *at-least-once*:** si el relay cae entre publicar y marcar, el evento se reenvía. Va en pareja con la
+  **idempotencia** del consumidor de `Query` (ver [*Qué falta*](query/consumidor-kafka.md#qué-falta)).
+- **Varias instancias de `Command`:** cada una tendría su relay y duplicarían envíos; hoy solo hay una.
 
 ## Limitaciones actuales
 

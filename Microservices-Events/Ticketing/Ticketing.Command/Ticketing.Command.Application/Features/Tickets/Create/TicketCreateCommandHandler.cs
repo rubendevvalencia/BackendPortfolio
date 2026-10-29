@@ -32,6 +32,8 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
                 //Guarda el TicketCreatedEvent pendiente del ticket (versión 1) dentro de la transacción abierta; 
                 //el ticket en sí no se guarda, solo su evento
                 await _eventSourcingHandler.SaveAsync(ticket, cancellationToken);
+                //Confirma la transacción: el evento pasa a ser definitivo y visible para todos en Mongo.
+                //Kafka ya se publicó en SaveAsync y no se deshace si esto falla
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
                 ticket = _ticketAggregateService.MarkChangesAsCommitted(ticket);
             }
