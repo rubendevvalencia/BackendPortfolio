@@ -20,7 +20,7 @@ namespace Ticketing.Query.Application.Feature.Events
                 Id = @event.Id,
                 UserName = @event.UserName,
                 Type = @event.Type,
-                DetailError = @event.DetailError
+                DetailError = @event.ErrorDetail
 
             };
 

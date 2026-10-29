@@ -2,9 +2,8 @@ namespace Ticketing.Common.Events
 {
     public class TicketCreatedEvent : EventBase
     {
-        public required string? UserName {get; set; }
-        public string? DetailError {get; set;}
-        public TicketCreatedEvent() : base(eEventType.TicketCreatedEvent) //nameOf es un string y por defecto toma el tipo de evento
+        public string? ErrorDetail {get; set;}
+        public TicketCreatedEvent() : base(eEventType.TicketCreatedEvent)
         {
         }
     }
