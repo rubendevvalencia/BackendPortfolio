@@ -34,8 +34,8 @@ namespace Ticketing.Command.Application.EventSourcing
             //La versión que el agregado tenía en el almacén antes de los cambios pendientes
             int expectedVersion = aggregate.VersionBeforeChanges;
 
-            //El nombre de la clase del agregado coincide con el valor del enum
-            eAggregateType aggregateType = Enum.Parse<eAggregateType>(typeof(TAggregate).Name);
+            //Cada agregado declara su tipo; ya no depende del nombre de la clase
+            eAggregateType aggregateType = aggregate.AggregateType;
             //Aquí se hace el guardado físico
             await _eventStore.SaveEventsAsync(aggregate.Id, aggregateType, changes, expectedVersion, cancellationToken);
         }

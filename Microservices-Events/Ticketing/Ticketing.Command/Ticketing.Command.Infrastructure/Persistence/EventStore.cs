@@ -12,15 +12,15 @@ namespace Ticketing.Command.Infrastructure.Persistence
 {
     public class EventStore : IEventStore
     {
-        private readonly IEventModelRepository _eventModelRepo;
+        private readonly IEventModelRepository _eventModelRepo; //guardar y leer la fuente de verdad -> va a MongoDb
+        private readonly IEventProducer _eventProducer;         //Notificar a otros servicios -> va a Kafka
         private readonly ProducerConfig _confKakfa;
-        private readonly IEventProducer _eventProducer;
 
         public EventStore (IEventModelRepository eventModelRepository, ProducerConfig confKafka, IEventProducer eventProducer)
         {
             _eventModelRepo = eventModelRepository;
-            _confKakfa = confKafka;
             _eventProducer = eventProducer;
+            _confKakfa = confKafka;
         } 
         public async Task<List<EventBase>> GetEventsAsync(string aggregateId, CancellationToken cancellationToken)
         {

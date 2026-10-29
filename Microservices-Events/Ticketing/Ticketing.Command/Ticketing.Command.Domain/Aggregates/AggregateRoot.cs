@@ -1,3 +1,4 @@
+using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Domain.Aggregates
@@ -9,13 +10,15 @@ namespace Ticketing.Command.Domain.Aggregates
         public int Version { get; }
         public int VersionBeforeChanges { get; }     //Versión que tenía el agregado en el almacén antes de los cambios pendientes; es la que espera el control de concurrencia
         public IReadOnlyCollection<EventBase> UncommittedChanges { get; } //Cambios que se realizan en los eventos
+        public eAggregateType AggregateType { get; }
 
-        public AggregateRoot(string id, int version, int versionBeforeChanges, List<EventBase> uncommittedChanges)
+        public AggregateRoot(eAggregateType eAggregateType, string id, int version, int versionBeforeChanges, List<EventBase> uncommittedChanges)
         {
             _id = id;
             Version = version;
             VersionBeforeChanges = versionBeforeChanges;
             UncommittedChanges = uncommittedChanges;
+            AggregateType = eAggregateType;
         }
     }
 }

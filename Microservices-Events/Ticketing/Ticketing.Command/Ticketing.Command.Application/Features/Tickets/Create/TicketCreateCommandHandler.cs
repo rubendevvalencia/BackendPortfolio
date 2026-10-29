@@ -9,6 +9,8 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
     public class TicketCreateCommandHandler : IRequestHandler<TicketCreateCommand, Response<string>>
     {
         private readonly IUnitOfWork _unitOfWork;
+        //Lógica del ticket en memoria: decide qué evento se lanza y cómo queda el ticket (Create, MarkChangesAsCommitted).
+        //No guarda nada ni toca Mongo o Kafka
         private readonly ITicketAggregateService _ticketAggregateService;
         //Persiste el agregado como eventos: toma sus cambios pendientes y los entrega al almacén (guardarlos en Mongo y publicarlos en Kafka). 
         // No decide qué evento se lanza ni abre la transacción
@@ -32,14 +34,13 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
                 await _eventSourcingHandler.SaveAsync(ticket, cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
                 ticket = _ticketAggregateService.MarkChangesAsCommitted(ticket);
-                _unitOfWork.Dispose();
             }
             catch
             {
                 await _unitOfWork.RollbackAsync(cancellationToken);
-                _unitOfWork.Dispose();
                 throw;
             }
+            //Sin _unitOfWork.Dispose(): UnitOfWork es Scoped e IDisposable, el contenedor cierra la sesión de Mongo al acabar la petición
             return Response<string>.Success(ticket.Id);
         }
     }
