@@ -1,4 +1,4 @@
-using Ticketing.Command.Api.Modules.GlobalExceptions;
+using Ticketing.Command.Api.Modules.MiddlewareAndExceptions.GlobalExceptions;
 
 namespace Ticketing.Command.Api.Modules.MiddlewareAndExceptions.Middleware
 {

@@ -3,7 +3,7 @@ using System.Text.Json;
 using Ticketing.Command.Application.Common.Exceptions;
 using Ticketing.Common.Common.Response;
 
-namespace Ticketing.Command.Api.Modules.GlobalExceptions
+namespace Ticketing.Command.Api.Modules.MiddlewareAndExceptions.GlobalExceptions
 {
     public class GlobalExceptionHandler : IMiddleware
     {
