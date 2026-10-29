@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using Ticketing.Command.Domain.Entities.EventModels;
-using Ticketing.Command.Infrastructure.Data;
 
 namespace Ticketing.Command.Infrastructure.Mapping
 {
@@ -10,8 +9,7 @@ namespace Ticketing.Command.Infrastructure.Mapping
     {
         public static async Task EnsureMongoIndexesAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
         {
-            MongoDbContext dbContext = services.GetRequiredService<MongoDbContext>();
-            IMongoCollection<EventModel> collection = dbContext.GetCollection<EventModel>();
+            IMongoCollection<EventModel> collection = services.GetRequiredService<IMongoCollection<EventModel>>();
 
             //Un agregado no puede tener dos eventos con la misma versión: es lo que garantiza la concurrencia de verdad
             IndexKeysDefinition<EventModel> keys = Builders<EventModel>.IndexKeys

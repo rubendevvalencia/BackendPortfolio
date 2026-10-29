@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Domain.Interfaces;
+using Ticketing.Command.Domain.Entities.EventModels;
 using Ticketing.Command.Infrastructure.Interface;
 using Ticketing.Command.Infrastructure.Session;
 using Ticketing.Command.Infrastructure.Repository.UnitOfWork;
@@ -33,6 +34,14 @@ namespace Ticketing.Command.Infrastructure
                 IMongoClient client = sp.GetRequiredService<IMongoClient>();
                 return new MongoDbContext(client, databaseName);
             });                                                //Reintenta automáticamente ante fallos transitorios
+
+            //La colección del event store se registra una vez con su nombre; IMongoCollection es thread-safe y se comparte como singleton
+            services.AddSingleton<IMongoCollection<EventModel>>(sp =>
+            {
+                MongoDbContext dbContext = sp.GetRequiredService<MongoDbContext>();
+                IMongoCollection<EventModel> collection = dbContext.GetCollection<EventModel>("eventStore");
+                return collection;
+            });
             services.AddSingleton(new ClientSessionOptions
             {
                 DefaultTransactionOptions = new TransactionOptions()

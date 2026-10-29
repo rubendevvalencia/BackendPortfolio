@@ -1,11 +1,10 @@
 using System.Diagnostics.Tracing;
-using Ticketing.Command.Domain.Common;
 using Ticketing.Command.Domain.Enums;
 using Ticketing.Common.Events;
 
 namespace Ticketing.Command.Domain.Entities.EventModels
 {
-    [BsonCollection("eventStore")] //Esto es una collection personalizada, no tiene que ver con MongoDb
+    //El nombre de la colección de Mongo ("eventStore") se fija en Infrastructure, al registrar IMongoCollection<EventModel>
     public class EventModel //Modelo base para los eventos
     {
         public string Id {get; set; } = string.Empty; //Vacío al crear: Mongo genera el ObjectId al insertar, si se usa int mongodb no autoincrementa
