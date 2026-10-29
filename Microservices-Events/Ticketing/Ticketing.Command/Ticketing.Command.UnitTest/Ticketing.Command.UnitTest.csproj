@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Ticketing.Command.Api\Ticketing.Command.Api.csproj" />
     <ProjectReference Include="..\Ticketing.Command.Application\Ticketing.Command.Application.csproj" />
     <ProjectReference Include="..\Ticketing.Command.Domain\Ticketing.Command.Domain.csproj" />
   </ItemGroup>
