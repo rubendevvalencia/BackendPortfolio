@@ -2,7 +2,7 @@ using Ticketing.Command.Domain.Aggregates;
 
 namespace Ticketing.Command.Domain.Interfaces.Events
 {
-    public interface IEventSourcingHandler<T> where T : AggregateRoot
+    public interface IEventSourcingHandler<T> where T : AggregateRoot //Limita a la interfaz el tipo de entidad que puede usar
     {
         //Guarda un EventModel por cada cambio pendiente del agregado. La transacción la abre y confirma el caso de uso
         Task SaveAsync(T aggregate, CancellationToken cancellationToken);

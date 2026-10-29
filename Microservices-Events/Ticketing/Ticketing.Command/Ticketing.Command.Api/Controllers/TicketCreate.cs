@@ -26,7 +26,7 @@ namespace Ticketing.Command.Api.Controllers
         }
         [HttpPost("CreateTicket")]
         //[RequestTimeout("CustomPolicy")]
-        [SwaggerOperation(Summary = "Adds a new customer.", Description = "Adds a new customer to the system.")]
+        [SwaggerOperation(Summary = "Adds a new ticket.", Description = "Adds a new ticket to the system.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Ticket created successfully.", typeof(Response<string>))]
         public async Task<IActionResult> Create([FromBody] TicketCreateCommand command, CancellationToken cancellationToken)
         {

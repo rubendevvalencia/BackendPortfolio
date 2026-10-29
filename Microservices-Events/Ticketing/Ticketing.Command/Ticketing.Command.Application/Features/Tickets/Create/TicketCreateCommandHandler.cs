@@ -10,6 +10,8 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITicketAggregateService _ticketAggregateService;
+        //Persiste el agregado como eventos: toma sus cambios pendientes y los entrega al almacén (guardarlos en Mongo y publicarlos en Kafka). 
+        // No decide qué evento se lanza ni abre la transacción
         private readonly IEventSourcingHandler<TicketAggregate> _eventSourcingHandler;
 
         public TicketCreateCommandHandler(IUnitOfWork unitOfWork, ITicketAggregateService ticketAggregateService, IEventSourcingHandler<TicketAggregate> eventSourcingHandler)
@@ -25,6 +27,8 @@ namespace Ticketing.Command.Application.Features.Tickets.Create
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try
             {
+                //Guarda el TicketCreatedEvent pendiente del ticket (versión 1) dentro de la transacción abierta; 
+                //el ticket en sí no se guarda, solo su evento
                 await _eventSourcingHandler.SaveAsync(ticket, cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
                 ticket = _ticketAggregateService.MarkChangesAsCommitted(ticket);
