@@ -2,37 +2,31 @@
 
 [← Volver al README](../../README.md) · [Arquitectura general](../arquitectura.md)
 
-Microservicio de **lectura**, independiente de `Ticketing.Command`: tiene sus propias capas, su propio
-`Program.cs` y su propia base de datos (PostgreSQL), y no referencia ningún proyecto del otro servicio. No usa
-event sourcing: el estado vive en tablas relacionales, que se rellenan **proyectando** los eventos que llegan por
-Kafka. Cómo encaja con `Command`, en la [arquitectura general](../arquitectura.md); las decisiones, en
-[*Decisiones técnicas*](decisiones-tecnicas.md); el consumidor, en
-[*El consumidor de Kafka y la proyección*](consumidor-kafka.md).
+Servicio de **lectura**, independiente de `Ticketing.Command`: propias capas, `Program.cs` y base de datos
+(PostgreSQL). No usa event sourcing: el estado vive en tablas que se rellenan **proyectando** los eventos que
+llegan por Kafka. Decisiones en [*Decisiones técnicas*](decisiones-tecnicas.md); consumidor en
+[*El consumidor de Kafka*](consumidor-kafka.md).
 
 ## Qué hay
 
-| Antes | Ahora |
-|---|---|
-| Solo `Ticketing.Query.Api` | `Api`, `Application`, `Domain`, `Infrastructure` y `UnitTest` |
-| Sin base de datos | PostgreSQL 16 con EF Core y Npgsql |
-| Sin modelo | `Ticket`, `Employee`, `BaseAudit` y `Address` |
-| Sin consumo de eventos | `ConsumerHostedService` lee el topic y proyecta `TicketCreatedEvent` en PostgreSQL |
-| Sin casos de uso | Feature `ReadTicket` (sin implementar) y proyección `ProjectionTicketCreated` con MediatR |
-| Sin migraciones | Migración `Initial`, aplicada al arrancar, **desfasada respecto al modelo** (ver [*Migraciones*](#migraciones)) |
+- `Api`, `Application`, `Domain`, `Infrastructure` y `UnitTest`; PostgreSQL 16 con EF Core y Npgsql.
+- Modelo: `Ticket`, `Employee`, `BaseAudit` y `Address`.
+- `ConsumerHostedService` lee el topic y proyecta `TicketCreatedEvent` y `TicketUpdatedEvent`.
+- Casos de uso con MediatR: dos comandos de proyección (`TicketCreated`, `TicketUpdated`) y una consulta
+  (`TicketsGet`), expuesta en `GET api/v1/Ticket/AllTickets`.
+- Migración `Initial`, aplicada al arrancar, **desfasada respecto al modelo** (ver [*Migraciones*](#migraciones)).
 
 ## Dependencias entre proyectos
 
-Las dependencias apuntan hacia dentro.
-
 ```mermaid
 flowchart RL
-    API["<b>Ticketing.Query.Api</b><br/>Controller · composition root<br/>Migrate() al arrancar"]
-    APP["<b>Ticketing.Query.Application</b><br/>ReadTicket · proyección de eventos<br/>EventHandler · MediatR · FluentValidation"]
-    DOM["<b>Ticketing.Query.Domain</b><br/>Entidades · BaseAudit · Address<br/>Puertos: IEventHandler · IUnitOfWork · IEmployeeRepository"]
-    INF["<b>Ticketing.Query.Infrastructure</b><br/>TicketDbContext · repositorios · UnitOfWork<br/>ConsumerHostedService · EventConverter<br/>Migrations · Npgsql · Confluent.Kafka"]
+    API["<b>Api</b><br/>Controller · composition root<br/>Migrate() al arrancar"]
+    APP["<b>Application</b><br/>TicketsGet · proyección · TicketMapper<br/>EventHandler · MediatR · FluentValidation"]
+    DOM["<b>Domain</b><br/>Entidades · BaseAudit · Address<br/>Puertos: IEventHandler · IUnitOfWork ·<br/>IEmployeeRepository · ITicketsRepository"]
+    INF["<b>Infrastructure</b><br/>TicketDbContext · repositorios · UnitOfWork<br/>ConsumerHostedService · EventConverter<br/>Migrations · Npgsql · Confluent.Kafka"]
     COM["<b>Ticketing.Common</b><br/>Response&lt;T&gt; · eventos · KafkaTopics"]
-    PG[("<b>PostgreSQL 16</b><br/>eventspostgres")]
-    KAFKA[["<b>Kafka</b><br/>topic de eventos"]]
+    PG[("PostgreSQL 16<br/>eventspostgres")]
+    KAFKA[["Kafka"]]
 
     API --> APP
     API -.->|solo para registrar servicios| INF
@@ -45,110 +39,26 @@ flowchart RL
     KAFKA --> INF
 ```
 
-- `Domain` no tiene paquetes de EF Core. Referencia `Ticketing.Common` porque `Ticket` usa el enum
-  `eEventType` y los puertos usan los eventos.
-- `Application` referencia `Domain` y `Ticketing.Common`. Habla con la base de datos solo a través de los
-  puertos de `Domain` (`IUnitOfWork`, `IEmployeeRepository`).
-- `Infrastructure` contiene el consumidor porque es un adaptador: traduce un mensaje de Kafka a una llamada
-  sobre el puerto `IEventHandler`, que vive en `Domain` y que implementa `Application`.
+- `Domain` no tiene paquetes de EF Core; referencia `Common` porque `Ticket` usa `eEventType`.
+- `Application` habla con la base de datos solo por los puertos de `Domain`.
+- El consumidor está en `Infrastructure` porque es un adaptador: traduce un mensaje de Kafka a una llamada al
+  puerto `IEventHandler` (en `Domain`, implementado por `Application`).
 - `Microsoft.EntityFrameworkCore.Design` está en `Api` (proyecto de inicio) e `Infrastructure`, con
-  `PrivateAssets=all`, para que `dotnet ef` funcione con las migraciones en `Infrastructure`.
-
-## Vista de componentes
-
-Cada recuadro es una clase o un conjunto de clases reales de `Ticketing.Query`. Hay dos entradas: el
-**consumidor** (que escribe, proyectando eventos) y el **controller** (que lee, y está sin implementar).
-
-```mermaid
-flowchart LR
-    Client([Cliente HTTP])
-    KAFKA[["Kafka · topic de eventos"]]
-
-    subgraph API["Api"]
-        direction TB
-        Ctrl["TicketCreate<br/>GET api/v1/TicketCreate/ReadTicket"]
-        Prog["Program.cs<br/>Migrate() al arrancar"]
-    end
-
-    subgraph APP["Application"]
-        direction TB
-        EH["EventHandler<br/>On(TicketCreatedEvent)"]
-        PCmd["ProjectionTicketCreatedCommand<br/>y su handler"]
-        RCmd["ReadTicketCommand<br/>y su handler (sin implementar)"]
-    end
-
-    subgraph DOM["Domain"]
-        direction TB
-        Ports["IEventHandler · IUnitOfWork<br/>IEmployeeRepository"]
-        Ent["Ticket · Employee<br/>BaseAudit · Address"]
-    end
-
-    subgraph INF["Infrastructure"]
-        direction TB
-        Cons["ConsumerHostedService<br/>EventConverter"]
-        Repo["UnitOfWork · EmployeeRepository"]
-        Ctx["TicketDbContext"]
-        Cfg["TicketConfiguration<br/>EmployeeConfiguration"]
-    end
-
-    subgraph DB["PostgreSQL 16 · eventspostgres"]
-        direction TB
-        Tables[("tickets · employees<br/>ticket_employees")]
-    end
-
-    KAFKA -->|Consume| Cons
-    Cons -->|IEventHandler.On| EH
-    EH -->|MediatR Send| PCmd
-    PCmd -->|puertos| Ports
-    Repo -.-|implementa| Ports
-    Repo --> Ctx
-    Client -->|JSON| Ctrl
-    Ctrl -->|MediatR Send| RCmd
-    Prog -->|Migrate| Ctx
-    Ctx -->|ApplyConfigurationsFromAssembly| Cfg
-    Cfg -->|mapea| Ent
-    Ctx -->|Npgsql| Tables
-
-    classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
-    classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
-    classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
-    classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
-    classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
-    class Ctrl,Prog api
-    class EH,PCmd,RCmd app
-    class Ports,Ent dom
-    class Cons,Repo,Ctx,Cfg inf
-    class Tables db
-```
+  `PrivateAssets=all`, para que `dotnet ef` funcione.
 
 ## Árbol de carpetas
 
 ```
 Ticketing.Query/
-├── Ticketing.Query.Api/
-│   ├── Controllers/                 TicketCreate, ActionResultController
-│   ├── Modules/Versioning/
-│   ├── Program.cs                   Secretos, DI, Migrate(), pipeline
-│   └── appsettings.json             ConnectionStrings:PostgresConnection · ConsumerConfig
+├── Ticketing.Query.Api/             Controllers (TicketController), Modules/Versioning, Program.cs, appsettings.json
 ├── Ticketing.Query.Application/
-│   ├── ConfigurationServices.cs     AddApplicationServices(): MediatR, validadores, IEventHandler
-│   └── Feature/
-│       ├── Events/                  EventHandler (orquesta un On por tipo de evento)
-│       ├── Tickets/                 ProjectionTicketCreated: Command · CommandHandler · Validator
-│       └── ReadTicket/              Command · CommandHandler · Validator
-├── Ticketing.Query.Domain/
-│   ├── Entities/                    Ticket · Employee
-│   │   └── Audit/BaseAudit.cs
-│   ├── Interfaces/                  IEventHandler · IUnitOfWork · IEmployeeRepository · IBaseRepository
-│   └── ValueObjects/Address.cs
-├── Ticketing.Query.Infrastructure/
-│   ├── ConfigurationServices.cs     AddInfrastructureServices(): DbContext, ConsumerConfig, consumidor
-│   ├── Consumers/                   ConsumerHostedService
-│   ├── Converters/                  EventConverter
-│   ├── Data/TicketDbContext.cs
-│   ├── Persistence/                 Una IEntityTypeConfiguration por entidad
-│   ├── Repository/                  UnitOfWork · EmployeeRepository
-│   └── Migrations/
+│   ├── Feature/Events/              EventHandler (un On por tipo de evento)
+│   ├── Feature/Commands/            TicketCreated/ · TicketUpdated/  (Command · CommandHandler · Validator)
+│   ├── Feature/Queries/TicketsGet/  Query · QueryHandler · Validator
+│   ├── Dto/                         TicketDto
+│   └── Mapping/                     TicketMapper
+├── Ticketing.Query.Domain/          Entities (Ticket, Employee, Audit/BaseAudit), Interfaces, ValueObjects/Address
+├── Ticketing.Query.Infrastructure/  Consumers, Converters, Data/TicketDbContext, Persistence (config por entidad), Repository, Migrations
 └── Ticketing.Query.UnitTest/
 ```
 
@@ -170,34 +80,28 @@ erDiagram
         string Address_Country }
 ```
 
-- **`BaseAudit`** (base de `Ticket` y `Employee`): `Id` (`Guid`), `CreatedAt`/`CreatedBy`,
-  `LastUpdatedAt`/`LastUpdatedBy`, `IsDeleted` y `DeletedAt`/`DeletedBy`. Las fechas de modificación y
-  borrado son `DateTime?`.
-- **`Ticket.TicketType`** es el enum `eEventType` de `Ticketing.Common` (nullable), no una entidad ni una tabla:
-  se guarda como entero. Sus valores son `TicketCreatedEvent` y `TicketUpdatedEvent`, es decir, el tipo del
-  **evento** que originó el ticket.
-- **`Ticket.TicketTypeId`** es un `Guid?` sin clave foránea. La proyección le asigna el `Id` del evento. Los
-  dos nombres no reflejan bien ese contenido; está anotado en [*Qué falta*](consumidor-kafka.md#qué-falta).
-- **`Address`**: value object (`[ComplexType]`) sin `Id`; sus columnas van en la tabla `employees`. Setters
-  privados y constructor público que valida y recorta los valores.
-- **Ticket ↔ Employee**: muchos a muchos con la tabla intermedia `ticket_employees`, sin clase propia.
-- Tablas en minúsculas y plural: `tickets`, `employees`, `ticket_employees`.
-- **Los empleados ya existen:** ningún evento crea empleados. El consumidor solo les añade tickets (ver
+- **`BaseAudit`** (base de `Ticket` y `Employee`): `Id`, `CreatedAt/By`, `LastUpdatedAt/By`, `IsDeleted` y
+  `DeletedAt/By`.
+- **`Ticket.TicketType`** es el enum `eEventType` (nullable, guardado como entero): el tipo del **evento** que
+  originó el ticket. **`TicketTypeId`** es un `Guid?` sin clave foránea con el `Id` del evento. Los nombres no
+  reflejan ese contenido (ver [*Qué falta*](consumidor-kafka.md#qué-falta)).
+- **`Address`**: value object (`[ComplexType]`) sin `Id`, con columnas en `employees`; setters privados y
+  constructor que valida y recorta.
+- **Ticket ↔ Employee**: muchos a muchos con `ticket_employees`, sin clase propia. Tablas en minúsculas y plural.
+- **Los empleados ya existen**: ningún evento los crea (ver
   [*Los empleados ya existen*](consumidor-kafka.md#los-empleados-ya-existen)).
 
 ## Infraestructura
 
-`TicketDbContext` se registra con `AddDbContext` y `UseNpgsql(PostgresConnection)`. Las configuraciones de
-entidad se descubren con `ApplyConfigurationsFromAssembly`. Además, `AddInfrastructureServices` registra
-`IUnitOfWork`, `IEmployeeRepository`, el `ConsumerConfig` (enlazado y validado) y el consumidor como hosted
-service.
-
-La cadena `PostgresConnection` no se versiona: `appsettings.json` la declara vacía y se aporta por secretos.
-Cómo levantar PostgreSQL y la API, en [*Entorno local*](../entorno-local.md#3-ticketingquery).
+`TicketDbContext` se registra con `AddDbContext` y `UseNpgsql(PostgresConnection)`; las configuraciones de entidad
+se descubren con `ApplyConfigurationsFromAssembly`. `AddInfrastructureServices` registra además `IUnitOfWork`,
+`IEmployeeRepository`, el `ConsumerConfig` (enlazado y validado) y el consumidor como hosted service (pendiente:
+registrar `ITicketsRepository`). La cadena `PostgresConnection` va vacía en `appsettings.json` y se aporta por
+secretos (ver [*Entorno local*](../entorno-local.md#3-ticketingquery)).
 
 ## Migraciones
 
-`Program.cs` llama a `context.Database.Migrate()` al arrancar. Para crear una migración:
+`Program.cs` llama a `context.Database.Migrate()` al arrancar. Para crear una:
 
 ```bash
 dotnet ef migrations add NombreMigracion \
@@ -205,26 +109,35 @@ dotnet ef migrations add NombreMigracion \
   --startup-project Ticketing.Query.Api
 ```
 
-> **La migración `Initial` está desfasada.** Se generó cuando el modelo tenía una entidad `TicketType` (tabla
-> `ticket_types`, `TicketTypeId` entero con clave foránea). Ahora `TicketType` es un enum y `TicketTypeId` es un
-> `Guid?` sin clave foránea. Hay que regenerar la migración (si `Initial` nunca se aplicó a la base) o añadir
-> una nueva encima (si ya se aplicó). Hasta entonces, `Migrate()` crearía un esquema distinto del que espera el
-> modelo.
+> **La migración `Initial` está desfasada.** Se generó cuando existía una entidad `TicketType` (tabla
+> `ticket_types`, `TicketTypeId` entero con FK); ahora `TicketType` es un enum y `TicketTypeId` un `Guid?` sin FK.
+> Hay que regenerarla (si nunca se aplicó) o añadir una nueva encima (si ya se aplicó). Hasta entonces,
+> `Migrate()` crearía un esquema distinto del que espera el modelo.
 
 ## Capa de aplicación y API
 
-- **Proyección:** `ProjectionTicketCreatedCommand` → `IRequest<Response<string>>`, con su handler. Lo envía
-  `EventHandler` cuando el consumidor entrega un `TicketCreatedEvent`.
-- **Lectura:** `ReadTicketCommand` → `IRequest<Response<bool>>`, con `ReadTicketCommandHandler` y
-  `ReadTicketValidator`. `GET api/v1/TicketCreate/ReadTicket` envía el comando por MediatR.
-- `AddApplicationServices()` registra MediatR (handlers del ensamblado), los validadores y
-  `IEventHandler` → `EventHandler`. No hay un `ValidationBehaviour` en el pipeline, así que los validadores
-  están registrados pero no se ejecutan.
+- **Proyección:** `TicketCreatedCommand` (lo envía `EventHandler.On(TicketCreatedEvent)`) y `TicketUpdatedCommand`
+  (`On(TicketUpdatedEvent)`), ambos `IRequest<Response<string>>` con su handler.
+- **Lectura:** `TicketGetQuery` → `Response<List<TicketDto>>`. `TicketGetQueryHandler` lee todos los tickets con
+  `_unitOfWork._ticketsRepo.GetAllAsync()`, devuelve `NotFound` si no hay ninguno y los convierte con
+  `TicketMapper.MappingToDto` (`TicketDto`: `Description`, `TicketTypeId`, `TicketType`, `LastUpdatedAt`,
+  `LastUpdatedBy`). `GET api/v1/Ticket/AllTickets` envía la consulta por MediatR.
+- **Endpoints quitados:** `ReadTicket` y `UpdateTicket` ejecutaban comandos de proyección. Solo el consumidor de
+  Kafka debe lanzarlos: por HTTP se saltarían el event store y el modelo de lectura dejaría de reflejar los
+  eventos reales. Quedan comentados en `TicketController` como referencia.
+- `AddApplicationServices()` registra MediatR, los validadores e `IEventHandler` → `EventHandler`. No hay
+  `ValidationBehaviour` en `Query` (el de `Command` no se ha trasladado), así que los validadores están vacíos y no
+  se ejecutan. El versionado (`api/v{version:apiVersion}/...`) se registra con `AddVersioning()` en `Program.cs`.
+- **Peculiaridades sin resolver:** `AllTickets` es un `GET` que lee `TicketGetQuery` del body (`[FromBody]`), su
+  método se llama `Create`, el handler exige un `Id` GUID válido sin usarlo y `UserName`, `Type` y `DetailError` de
+  la query no se usan. `TicketUpdatedCommandHandler` copia al de creación (añade un ticket en vez de actualizar
+  uno); si "actualizar" debe modificar el ya proyectado, falta definir cómo localizarlo (por `TicketTypeId`).
 
 ## Pendiente
 
-- Regenerar o añadir la migración (ver arriba).
-- Implementar `ReadTicket` (el handler lanza `NotImplementedException`).
-- Probar de extremo a extremo la proyección del consumidor y cerrar lo que falta en él: política de errores,
-  idempotencia y `On(TicketUpdatedEvent)`. Detalle en [*El consumidor de Kafka*](consumidor-kafka.md#qué-falta).
+- Adaptar `EventHandler.On(TicketCreatedEvent)` al cambio de contrato (el usuario viaja en `OcurredBy`).
+- Corregir el mensaje de excepción de `On(TicketUpdatedEvent)`, que nombra `TicketCreatedEvent`.
+- Regenerar o añadir la migración.
+- Implementar `TicketsRepository` y decidir qué hace de verdad `TicketGetQuery` (filtros, paginación).
+- Probar de extremo a extremo la proyección y cerrar lo que falta en el consumidor (errores, idempotencia).
 - Tests de `Ticketing.Query.UnitTest`.

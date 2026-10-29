@@ -2,136 +2,104 @@
 
 [← Volver al README](../../README.md)
 
-Cómo se representa un evento y cómo acaba en MongoDB (y en Kafka). De dónde salen los eventos (el agregado)
-está en [*Agregados y event sourcing*](agregados.md).
+Cómo se representa un evento y cómo acaba en MongoDB (y en Kafka). De dónde salen los eventos, en
+[*Agregados*](agregados.md).
 
 ## Idea
 
-En lugar de guardar "el ticket" y modificarlo, se guarda **cada cosa que le pasó** como un documento
-inmutable. El estado actual de un ticket se obtiene reproduciendo sus eventos en orden. Todos los eventos
-de todos los agregados viven en una única colección, `eventStore`, de la base de datos `ticketingApp`. El
-event store **solo añade**: nunca modifica ni borra un evento guardado. Cada evento guardado se publica
-además en Kafka; la fuente de verdad sigue siendo Mongo.
-
-## Las tres capas de un evento
+Se guarda **cada cosa que le pasó** a un ticket como un documento inmutable; el estado actual sale de reproducir
+sus eventos. Todos los eventos de todos los agregados viven en una colección, `eventStore`, de la base
+`ticketingApp`. El event store **solo añade**: nunca modifica ni borra. Cada evento guardado se publica además en
+Kafka; la fuente de verdad es Mongo.
 
 ```
-EventModel                      ← sobre: qué agregado, qué versión, cuándo, qué tipo
+EventModel                      ← sobre: agregado, versión, cuándo, tipo
 └── EventData : EventBase       ← carga: el evento concreto
         └── TicketCreatedEvent
 ```
 
 ### `EventModel` (Domain)
 
-El registro que se guarda en la colección. Es un *envoltorio*: lleva los metadatos del evento y, dentro, el
-evento en sí.
-
 | Campo | Para qué |
 |---|---|
-| `Id` | Identificador del documento. Vacío al crear: Mongo genera el `ObjectId` al insertar. |
-| `TimeStamp` | Momento en que se guardó el evento, en UTC. |
-| `AggregateIdentifier` | A qué agregado (ticket) pertenece. Todos los eventos de un ticket comparten este valor. |
-| `AggregateType` | Tipo de agregado (`TicketAggregate`), como enum `eAggregateType`. |
-| `Version` | Posición del evento dentro de su agregado: 1, 2, 3… sin huecos. |
-| `EventType` | Tipo de evento (`TicketCreatedEvent`), como enum `eEventType`. |
-| `EventData` | El evento concreto (`EventBase`). |
+| `Id` | Documento. Vacío al crear: Mongo genera el `ObjectId` |
+| `TimeStamp` | Cuándo se guardó, en UTC |
+| `AggregateIdentifier` | A qué ticket pertenece; común a todos sus eventos |
+| `AggregateType` / `EventType` | Enums `eAggregateType` y `eEventType` |
+| `Version` | Posición dentro del agregado: 1, 2, 3… sin huecos |
+| `EventData` | El evento concreto (`EventBase`) |
 
-La colección se elige con el atributo propio `[BsonCollection("eventStore")]` (`Domain/Common`). No es un
-atributo del driver: lo lee `MongoDbContext` por reflexión, y por eso `Domain` no necesita referenciar
-MongoDB. Si una clase no lo lleva, o lo lleva vacío, `GetCollection<T>` lanza `InvalidOperationException`.
+El nombre de la colección (`eventStore`) no vive en `Domain`: se fija en `Infrastructure`, al registrar
+`IMongoCollection<EventModel>` (`GetCollection<T>(collectionName)`); los repositorios la reciben por constructor
+(ver [*Decisiones*](decisiones-tecnicas.md#la-colección-se-registra-por-su-nombre-en-di)).
 
-### `Message` y `EventBase` (Common)
+### `Message`, `EventBase` y `TicketCreatedEvent` (Common)
 
 | Clase | Aporta |
 |---|---|
-| `Message` (abstracta) | `Id`, obligatorio (`required`). En los eventos de ticket es el **id del agregado**, no un id propio del evento. |
-| `EventBase : Message` (abstracta) | `Type`: el tipo del evento como enum `eEventType` (de `Ticketing.Common`), que el evento concreto pasa al constructor base (por ejemplo `eEventType.TicketCreatedEvent`). Viaja como **número** en el JSON de Kafka. |
+| `Message` | Obligatorios: `Id` (en eventos de ticket, el **id del agregado**), `OcurredAt` (UTC) y `OcurredBy` (`string?`, quién lo provocó) |
+| `EventBase : Message` | `Type`, el `eEventType` del evento (viaja como **número** en el JSON de Kafka). No lleva versión: esa vive en `EventModel.Version` |
+| `TicketCreatedEvent` | `ErrorDetail`. Único evento que `Command` genera hoy (`TicketUpdatedEvent` existe, pero nada lo publica) |
 
-`EventBase` no lleva versión: la versión vive solo en el sobre (`EventModel.Version`).
+`TicketAggregateService.Create` lo construye a mano: `Id` = id generado, `OcurredAt` = `DateTime.UtcNow`,
+`OcurredBy` = `TicketCreateCommand.UserName`, `ErrorDetail` = `TicketCreateCommand.ErrorDetail`. El usuario viaja
+en `OcurredBy` (ya no hay campo `UserName`) y el tipo de error no se incluye. `TicketUpdatedEvent` conserva su
+`DetailError` y su `Username`.
 
-### `TicketCreatedEvent` (Common)
-
-El único evento que Command genera hoy (en `Ticketing.Common` existe también `TicketUpdatedEvent`, pero nada
-lo publica todavía):
-
-| Campo | Viene de |
-|---|---|
-| `Id` | El id del ticket que genera `TicketAggregateService.Create` |
-| `UserName` | `TicketCreateCommand.UserName` (obligatorio, `required`) |
-| `DetailError` | `TicketCreateCommand.ErrorDetail` |
-
-El evento ya no lleva el tipo de error: `TicketAggregateService.Create` aún recibe `errorType` por parámetro,
-pero no lo usa. `Query` busca al empleado por el `UserName` del evento (lo compara con su `Email`).
-
-Lo construye a mano `TicketAggregateService.Create`; no hay librería de mapeo.
+> **Pendiente en `Query`:** `EventHandler.On(TicketCreatedEvent)` todavía lee `@event.UserName`; tiene que leer
+> `@event.OcurredBy`.
 
 ## Guardar eventos
 
-`EventStore.SaveEventsAsync(aggregateId, aggregateType, events, expectedVersion)`, en
-`Infrastructure/Persistence`. Lo llama `EventSourcingHandler.SaveAsync` con los cambios pendientes del
-agregado, siempre dentro de la transacción que abrió el caso de uso.
+`EventStore.SaveEventsAsync(aggregateId, aggregateType, events, expectedVersion)` (`Infrastructure/Persistence`),
+llamado por `SaveAsync` dentro de la transacción del caso de uso:
 
-1. Lee los eventos ya guardados del agregado (`FindByAggregateIdAsync`, dentro de la sesión).
-2. Calcula la última versión guardada: 0 si no hay ninguno, el máximo de `Version` si los hay.
-3. Si no coincide con `expectedVersion`, lanza **`ConcurrencyException`**: alguien guardó eventos de ese
-   agregado después de que se cargara.
-4. Por cada evento, sube la versión en uno (`expectedVersion + 1`, `+ 2`…) y lo envuelve en un `EventModel`
-   con `TimeStamp = DateTime.UtcNow`, el agregado, la versión y `EventType = event.Type` (el evento ya trae
-   su tipo como `eEventType`, así que no hace falta convertir nada).
-5. Inserta cada `EventModel` con `IEventModelRepository.AddAsync`.
-6. Justo después de cada inserción, publica ese mismo evento en Kafka con `IEventProducer.ProduceAsync`,
-   en el topic `KafkaTopics.TicketEvents` (una constante de `Ticketing.Common`, ya no una clave de
-   configuración). Se hace dentro de la transacción y antes del `Commit`: si el envío falla, la transacción se
-   aborta; si falla el `Commit`, el evento ya está en Kafka. Detalle y límites en
-   [*Mensajería con Kafka*](../mensajeria-kafka.md#cuándo-se-publica).
+1. Lee los eventos ya guardados del agregado y calcula la última versión (0 si no hay).
+2. Si no coincide con `expectedVersion`, lanza **`ConcurrencyException`**.
+3. Por cada evento, sube la versión en uno y lo envuelve en un `EventModel` (`TimeStamp = UtcNow`,
+   `EventType = event.Type`).
+4. Lo inserta con `IEventModelRepository.AddAsync`.
+5. Justo después lo publica en Kafka (`IEventProducer.ProduceAsync`, topic `KafkaTopics.TicketEvents`), antes del
+   `Commit`. Detalle y límites en [*Mensajería*](../mensajeria-kafka.md#cuándo-se-publica).
 
 ## Control de concurrencia
 
 Concurrencia **optimista**, en dos capas:
 
-| Capa | Dónde | Qué detecta |
-|---|---|---|
-| Comprobación de versión | `EventStore.SaveEventsAsync` (paso 3) | Que otra operación ya **confirmó** eventos del agregado desde que este se cargó. Es la comprobación clásica de event sourcing y da un error claro antes de escribir. |
-| Índice único `ux_aggregate_version` | `MongoIndexes`, sobre (`AggregateIdentifier`, `Version`) | Que dos operaciones intenten guardar **la misma versión** a la vez: la comprobación anterior la pasan las dos, el índice solo deja entrar una. |
+| Capa | Qué detecta |
+|---|---|
+| Comprobación de versión (`EventStore`, paso 2) | Que otra operación ya **confirmó** eventos del agregado desde que se cargó. Da un error claro antes de escribir |
+| Índice único `ux_aggregate_version` sobre (`AggregateIdentifier`, `Version`) | Que dos operaciones guarden **la misma versión** a la vez: las dos pasan la comprobación, el índice solo deja entrar una |
 
-El índice es la garantía real; la comprobación de versión es la que da el mensaje. `EventModelRepository`
-captura el `MongoWriteException` de clave duplicada (`ServerErrorCategory.DuplicateKey`) y lo convierte en
-`ConcurrencyException` con la excepción original como `InnerException`, para que `Domain` hable de
-concurrencia y no de Mongo.
-
-El índice se crea al arrancar (`EnsureMongoIndexesAsync`), fuera de cualquier transacción, y
-`CreateOneAsync` es idempotente: si ya existe con la misma definición, no hace nada.
+El índice es la garantía real. `EventModelRepository` captura el `MongoWriteException` de clave duplicada y lo
+convierte en `ConcurrencyException` (con la original como `InnerException`), para que `Domain` hable de
+concurrencia y no de Mongo. El índice se crea al arrancar (`EnsureMongoIndexesAsync`), fuera de transacción, y es
+idempotente. Índices de `eventStore`: `_id_` (único) y `ux_aggregate_version` (único, también sirve para leer por
+agregado).
 
 ## Leer eventos
 
-| Método | Qué hace |
-|---|---|
-| `IEventModelRepository.FindByAggregateIdAsync(aggregateIdentifier)` | Todos los `EventModel` de un agregado, sin orden garantizado. Usa la sesión del contexto si la hay. Aprovecha el índice `ux_aggregate_version` (su primer campo es `AggregateIdentifier`). |
-| `IEventStore.GetEventsAsync(aggregateId)` | Los eventos (`EventData`) de un agregado, **ordenados por `Version`**. Si no hay ninguno, lanza `AggregateNotFoundException`. Es lo que reproduce `EventSourcingHandler.GetByIdAsync`. |
+- `IEventModelRepository.FindByAggregateIdAsync(id)`: todos los `EventModel` del agregado, sin orden garantizado,
+  con la sesión del contexto si la hay.
+- `IEventStore.GetEventsAsync(id)`: los `EventData` **ordenados por `Version`**; sin eventos, lanza
+  `AggregateNotFoundException`. Es lo que reproduce `GetByIdAsync`.
 
 ## Mapeo a BSON (`MongoClassMaps`)
 
-Toda la configuración de Mongo vive en `Infrastructure/Mapping/MongoClassMaps.cs`, para que `Domain` y
-`Common` sigan sin conocer el driver. Se registra una vez al arrancar, desde `AddInfrastructureServices`.
+Toda la configuración de Mongo está en `Infrastructure/Mapping`, para que `Domain` y `Common` no conozcan el
+driver. Se registra una vez al arrancar, y cada `RegisterClassMap` se protege con `IsClassMapRegistered` (el
+driver falla si se registra dos veces).
 
 | Qué | Cómo | Por qué |
 |---|---|---|
-| `EventModel.Id` | `string` guardado como `ObjectId`, con `StringObjectIdGenerator` | Mongo lo genera si llega vacío. Con un `int` no autoincrementaría. |
-| Enums (`AggregateType`, `EventType`) | `EnumSerializer` con `BsonType.String`: se guardan como **texto** | El documento es legible al inspeccionarlo. |
-| `EventBase` | `AutoMap` + clase raíz (`SetIsRootClass`) + `AddKnownType(TicketCreatedEvent)` | Habilita el polimorfismo: Mongo guarda `_t` con el tipo concreto y sabe reconstruirlo al leer, incluso si la subclase no se ha usado antes. |
-| `Message.Id` (dentro de `EventData`) | Convención de `AutoMap`: una propiedad `Id` es el `_id` | No se configura; por eso dentro de `EventData` aparece `_id` con el id del ticket, como `string`. |
-| `TicketCreatedEvent` | `AutoMap` + discriminador `"TicketCreatedEvent"` | Valor estable de `_t`, independiente del nombre de la clase en C#. |
+| `EventModel.Id` | `string` como `ObjectId` (`StringObjectIdGenerator`) | Mongo lo genera si llega vacío |
+| Enums `AggregateType`, `EventType` | `EnumSerializer` a `BsonType.String` | Documento legible |
+| `EventBase` | `AutoMap` + clase raíz + `AddKnownType(TicketCreatedEvent)` | Polimorfismo: `_t` guarda el tipo concreto |
+| `Message.Id` (en `EventData`) | Convención de `AutoMap`: `Id` es el `_id` | Sin configurar |
+| `TicketCreatedEvent` | `AutoMap` + discriminador `"TicketCreatedEvent"` | `_t` estable, independiente del nombre de la clase |
 
-Cada `RegisterClassMap` va protegido con `IsClassMapRegistered`, porque el driver lanza excepción si se
-registra dos veces (algo que ocurriría, por ejemplo, al levantar varios hosts de test en el mismo proceso).
-
-El discriminador está fijado, pero **los nombres de campo no**: `AutoMap` usa el nombre de cada propiedad
-C#. Renombrar una propiedad de un evento cambia el campo en los documentos nuevos y deja los antiguos sin
-leer ese dato, sin error.
-
-### Cómo se ve un documento
-
-Orientativo, según el mapeo anterior:
+El discriminador está fijado, pero **los nombres de campo no**: renombrar una propiedad de un evento cambia el campo
+en los documentos nuevos y deja los antiguos sin ese dato, sin error. Documento orientativo:
 
 ```json
 {
@@ -145,39 +113,25 @@ Orientativo, según el mapeo anterior:
     "_t": "TicketCreatedEvent",
     "_id": "019...-....",
     "Type": 1,
-    "UserName": "...",
-    "DetailError": "..."
+    "OcurredAt": { "$date": "..." },
+    "OcurredBy": "...",
+    "ErrorDetail": "..."
   }
 }
 ```
 
-`AggregateIdentifier` y `EventData._id` llevan el mismo valor. `EventModel.EventType` se guarda como texto
-(tiene su `EnumSerializer`), pero `EventData.Type` no tiene serializador propio: se espera el número del enum, que
-es el comportamiento por defecto del driver para los enums. No he abierto el documento real para confirmarlo.
-
-## Índices de `eventStore`
-
-| Nombre | Campos | Opciones | Para qué |
-|---|---|---|---|
-| `_id_` | `_id` | Único (lo crea Mongo) | Identidad del documento |
-| `ux_aggregate_version` | `AggregateIdentifier` ↑, `Version` ↑ | Único | Concurrencia y lectura por agregado |
+`EventData.Type` no tiene serializador propio, así que se espera el número del enum (comportamiento por defecto
+del driver); no he abierto el documento real para confirmarlo.
 
 ## Cómo añadir un evento nuevo
 
-1. Clase en `Ticketing.Common/Events/` que herede de `EventBase` y pase su valor de `eEventType` al
-   constructor base.
-2. Valor nuevo en `eEventType` (en `Ticketing.Common`), con el **siguiente número libre**: los valores
-   existentes no se tocan, porque ya viajan por Kafka. Por convención lleva el mismo nombre que la clase, y
-   `Query` lo necesita en su `EventConverter` (ver más abajo).
-3. Registrar su mapeo en `MongoClassMaps` (`RegisterClassMap` + `SetDiscriminator`), llamarlo desde
-   `Register()` y añadirlo con `AddKnownType` en el mapeo de `EventBase`.
-4. Su `case` en el `ApplyEvent` del servicio del agregado (ver [*Agregados*](agregados.md)).
+1. Clase en `Ticketing.Common/Events/` que herede de `EventBase` y pase su `eEventType` al constructor.
+2. Valor nuevo en `eEventType` con el **siguiente número libre** (los existentes no se tocan: ya viajan por Kafka).
+3. Su mapeo en `MongoClassMaps` (`RegisterClassMap` + `SetDiscriminator`), llamarlo desde `Register()` y añadirlo
+   con `AddKnownType` en el de `EventBase`.
+4. Su `case` en el `ApplyEvent` del servicio del agregado.
 5. Command, handler y validador en `Application/Features/<Agregado>/<Orden>/`.
 
-La publicación en Kafka no necesita cambios: `TicketEventProducer` serializa el evento con su tipo concreto.
-El **consumidor** de `Query`, en cambio, sí: hace falta un `case` en `EventConverter`, un método `On` en
-`IEventHandler` y `EventHandler`, y su proyección (ver [*El consumidor de
-Kafka*](../query/consumidor-kafka.md)).
-
-Un **agregado** nuevo necesita además su valor en `eAggregateType`, con el mismo nombre que la clase (lo
-exige `Enum.Parse` en `EventSourcingHandler`), y su registro en DI.
+Kafka no necesita cambios (el productor serializa el tipo concreto), pero el consumidor de `Query` sí: un `case` en
+`EventConverter`, un `On` en `IEventHandler`/`EventHandler` y su proyección. Un **agregado** nuevo necesita además
+su valor en `eAggregateType` (mismo nombre que la clase) y su registro en DI.

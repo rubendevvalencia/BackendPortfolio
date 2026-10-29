@@ -2,19 +2,13 @@
 
 [← Volver al README](../../README.md) · [Arquitectura general](../arquitectura.md)
 
-Cómo está organizado el microservicio de escritura y por dónde pasa una petición. Es un servicio
-independiente: tiene sus propias capas, su propia base de datos (MongoDB) y su propio `Program.cs`. Cómo
-encaja con `Ticketing.Query` está en la [arquitectura general](../arquitectura.md). Los matices de *por qué*
-está así están en [*Decisiones técnicas*](decisiones-tecnicas.md); el modelo de agregado, en
-[*Agregados y event sourcing*](agregados.md).
+Servicio de escritura: propias capas, base de datos (MongoDB) y `Program.cs`. El *porqué* de cada pieza está en
+[*Decisiones técnicas*](decisiones-tecnicas.md); el modelo de agregado, en [*Agregados*](agregados.md).
 
 ## Vista de componentes
 
-Cada recuadro es una clase o interfaz real. Las flechas son llamadas en tiempo de ejecución; las líneas
-punteadas unen un puerto con la clase que lo implementa. Los puertos (`I...`) viven en `Domain`:
-`Application` solo habla con ellos y `Infrastructure` los implementa. La excepción es `IEventProducer`, que
-vive en `Ticketing.Common` y se dibuja aparte. `Ticketing.Common` (eventos y `Response<T>`) lo usan `Api`,
-`Application` y `Domain` y no se dibuja para no cruzar todas las flechas.
+Cada recuadro es una clase o interfaz real. Los puertos (`I...`) viven en `Domain`: `Application` solo habla con
+ellos e `Infrastructure` los implementa (salvo `IEventProducer`, que vive en `Common`).
 
 ```mermaid
 flowchart LR
@@ -22,11 +16,14 @@ flowchart LR
 
     subgraph API["Api"]
         direction TB
+        MW["GlobalExceptionHandler<br/>middleware: 400 / 500"]
         Ctrl["TicketCreate<br/>POST api/v1/TicketCreate/CreateTicket"]
     end
 
     subgraph APP["Application"]
         direction TB
+        VB["ValidationBehaviour<br/>solo IValidatableRequest"]
+        LB["LoggingBehaviour<br/>nivel según ErrorType"]
         Handler["TicketCreateCommandHandler<br/>fija la transacción"]
         ESH["EventSourcingHandler"]
     end
@@ -34,269 +31,168 @@ flowchart LR
     subgraph DOM["Domain"]
         direction TB
         TAS["TicketAggregateService<br/>crea el TicketAggregate"]
-        subgraph PORTS["Puertos"]
-            direction TB
-            IUoW["IUnitOfWork"]
-            IES["IEventStore"]
-            IEMR["IEventModelRepository"]
-        end
+        PORTS["Puertos: IUnitOfWork ·<br/>IEventStore · IEventModelRepository"]
     end
 
     subgraph INF["Infrastructure"]
         direction TB
-        UoW["UnitOfWork"]
-        Ctx["MongoSessionContext"]
+        UoW["UnitOfWork · MongoSessionContext"]
         ES["EventStore<br/>versión y concurrencia"]
         Repo["EventModelRepository"]
-        DbCtx["MongoDbContext"]
         Prod["TicketEventProducer"]
     end
 
-    subgraph COMMON["Common"]
-        IEP["IEventProducer"]
-    end
+    Coll[("MongoDB · ticketingApp.eventStore<br/>índice único Aggregate+Version")]
+    Topic[["Kafka · KafkaTopics.TicketEvents"]]
 
-    subgraph DB["MongoDB 7 · replica set rs0"]
-        direction TB
-        Coll[("ticketingApp.eventStore")]
-        Idx["índice único<br/>AggregateIdentifier + Version"]
-    end
-
-    subgraph BROKER["Kafka · 1 broker"]
-        direction TB
-        Topic[["topic KafkaTopics.TicketEvents"]]
-    end
-
-    Client -->|JSON| Ctrl
-    Ctrl -->|MediatR Send| Handler
+    Client -->|JSON| MW -->|next| Ctrl
+    Ctrl -->|MediatR Send| VB
+    VB -->|válido| LB --> Handler
+    VB -.->|ValidationExceptionCustom| MW
     Handler -->|Create| TAS
-    Handler -->|Begin / Commit / Rollback| IUoW
-    Handler -->|SaveAsync| ESH
-    ESH -->|SaveEventsAsync| IES
-
-    IUoW -.-|implementado por| UoW
-    IES -.-|implementado por| ES
-    IEMR -.-|implementado por| Repo
-
-    UoW -->|publica sesión| Ctx
-    Repo -->|lee sesión| Ctx
-    ES -->|usa| Repo
-    ES -->|ProduceAsync| IEP
-    IEP -.-|implementado por| Prod
-    Repo --> DbCtx
-
+    Handler -->|Begin / Commit / Rollback| UoW
+    Handler -->|SaveAsync| ESH -->|SaveEventsAsync| ES
+    ES --> Repo --> Coll
+    ES -->|ProduceAsync| Prod --> Topic
     UoW -->|sesión + transacción| Coll
-    DbCtx -->|insertOne / find| Coll
-    Coll --- Idx
-    Prod -->|JSON| Topic
-
-    classDef api fill:#dbeafe,stroke:#2563eb,color:#0f172a
-    classDef app fill:#dcfce7,stroke:#16a34a,color:#0f172a
-    classDef dom fill:#fef9c3,stroke:#ca8a04,color:#0f172a
-    classDef inf fill:#ffedd5,stroke:#ea580c,color:#0f172a
-    classDef db fill:#e2e8f0,stroke:#475569,color:#0f172a
-    class Ctrl api
-    class Handler,ESH app
-    class TAS,IUoW,IES,IEMR dom
-    class UoW,Ctx,ES,Repo,DbCtx,Prod inf
-    class IEP dom
-    class Coll,Idx,Topic db
+    UoW -.- PORTS
+    ES -.- PORTS
 ```
 
-**Cómo leerlo**
-
-- **Regla de dependencia:** `Api` → `Application` → `Domain` ← `Infrastructure`. Nada en `Domain` conoce
-  MongoDB; todo el driver queda dentro de `Infrastructure`.
-- **Una sola transacción por petición:** `UnitOfWork` abre la sesión y la deja en `MongoSessionContext`
-  (`Scoped`); `EventModelRepository` la lee de ahí. Por eso `Application` no pasa ninguna sesión al guardar.
-- **Dos niveles de concurrencia:** `EventStore` compara la versión esperada con la última guardada y el índice
-  único de `eventStore` rechaza dos eventos con el mismo (agregado, versión).
-- **Publicación en Kafka:** `EventStore` envía cada evento al topic justo después de insertarlo en Mongo y
-  antes del `Commit`. Las dos escrituras no comparten transacción: ver
-  [*Cuándo se publica*](../mensajeria-kafka.md#cuándo-se-publica).
-- **`Ticketing.Common`** es el contrato compartido: eventos, `Response<T>` e `IEventProducer`, sin
-  dependencias de MongoDB ni de ASP.NET (sí del paquete `Confluent.Kafka`).
+- **Regla de dependencia:** `Api` → `Application` → `Domain` ← `Infrastructure`. Nada en `Domain` conoce MongoDB.
+- **Una transacción por petición:** `UnitOfWork` abre la sesión y la deja en `MongoSessionContext` (`Scoped`); los
+  repositorios la leen de ahí, así que `Application` no pasa ninguna sesión.
+- **Dos niveles de concurrencia:** `EventStore` compara la versión esperada y el índice único rechaza dos eventos
+  con el mismo (agregado, versión).
+- **Kafka:** `EventStore` envía cada evento justo después de insertarlo y antes del `Commit`; no comparten
+  transacción (ver [*Cuándo se publica*](../mensajeria-kafka.md#cuándo-se-publica)).
+- **Pipeline de MediatR:** antes del handler pasan `ValidationBehaviour` y `LoggingBehaviour`; los fallos de
+  validación los recoge `GlobalExceptionHandler`.
 
 ## Proyectos y dependencias
 
-La dependencia apunta siempre hacia dentro (hacia `Domain`):
-
-| Proyecto | Responsabilidad | Referencias de proyecto | Paquetes |
+| Proyecto | Responsabilidad | Referencias | Paquetes |
 |---|---|---|---|
-| `Ticketing.Command.Api` | HTTP: controller, versionado por URL, Swagger. Traduce `ErrorType` a código HTTP. *Composition root*. | `Application`, `Infrastructure` | `Asp.Versioning.Mvc` y `.ApiExplorer` 10.2.1, `Swashbuckle.AspNetCore` y `.Annotations` 10.3.1, `Microsoft.AspNetCore.OpenApi` 10.0.11 |
-| `Ticketing.Command.Application` | Caso de uso: *command* + *handler* (MediatR) y validador (FluentValidation). `EventSourcingHandler<T>`, que une agregado y event store. | `Domain`, `Common` | `MediatR` 14.2.0, `FluentValidation` y `.DependencyInjectionExtensions` 12.2.0, `Microsoft.Extensions.DependencyInjection.Abstractions` |
-| `Ticketing.Command.Domain` | Agregados (`AggregateRoot`, `TicketAggregate`) y sus servicios (`AggregateService<T>`, `TicketAggregateService`), `EventModel`, enums, excepciones y los **puertos**. | `Common` | — |
-| `Ticketing.Command.Infrastructure` | Los **adaptadores**: los de MongoDB (contexto, sesión, Unit of Work, repositorio, `EventStore`, mapeos BSON e índices) y el productor de Kafka (`TicketEventProducer`). | `Domain` | `MongoDB.Driver` y `MongoDB.Bson` 3.12.0, `Microsoft.Extensions.Configuration.Abstractions`, `Microsoft.Extensions.Options`; `Confluent.Kafka` llega transitivo desde `Common` |
-| `Ticketing.Command.UnitTest` | Proyecto de tests. | — | xUnit 2.9.3, coverlet |
+| `Api` | Controller, versionado por URL, Swagger, `GlobalExceptionHandler`. Traduce `ErrorType` a HTTP. *Composition root* | `Application`, `Infrastructure` | Asp.Versioning 10.2.1, Swashbuckle 10.3.1 |
+| `Application` | Command + handler (MediatR), validador (FluentValidation), behaviours, `ValidationExceptionCustom`, `IValidatableRequest`, `EventSourcingHandler<T>` | `Domain`, `Common` | MediatR 14.2.0, FluentValidation 12.2.0 |
+| `Domain` | Agregados y sus servicios, `EventModel`, enums, excepciones y **puertos** | `Common` | — |
+| `Infrastructure` | **Adaptadores**: MongoDB (contexto, sesión, UoW, repositorio, `EventStore`, mapeos BSON, índices) y `TicketEventProducer` | `Domain` | MongoDB.Driver 3.12.0; `Confluent.Kafka` llega transitivo |
+| `UnitTest` | Tests unitarios (ver [*Tests*](#tests)) | `Api`, `Application`, `Domain` | xUnit 2.9.3, coverlet |
 
-`Ticketing.Common` (contratos compartidos con `Ticketing.Query`) se describe en la [arquitectura general](../arquitectura.md#qué-es-independiente-y-qué-se-comparte).
+`Api` referencia `Infrastructure` solo para `AddInfrastructureServices` y `EnsureMongoIndexesAsync` en
+`Program.cs`. `IMongoSessionContext` e `IMongoBaseRepository<T>` son internas de `Infrastructure`, no puertos.
 
-
-`Application` solo ve interfaces de `Domain`; nunca `MongoDB.Driver`. Eso es lo que permite que el handler
-sea el mismo si mañana el event store deja de ser MongoDB.
-
-`Api` referencia `Infrastructure` para llamar a `AddInfrastructureServices` y `EnsureMongoIndexesAsync` en
-el *composition root* (`Program.cs`); el resto de `Api` no la usa.
-
-### Puertos y adaptadores
-
-| Puerto (en `Domain`) | Implementación | Dónde |
-|---|---|---|
-| `IUnitOfWork` | `UnitOfWork` | `Infrastructure/Repository/UnitOfWork` |
-| `IEventModelRepository` | `EventModelRepository` | `Infrastructure/Repository/EventModelRepository` |
-| `IEventStore` | `EventStore` | `Infrastructure/Persistence` |
-| `IEventProducer` (en `Common`, no en `Domain`) | `TicketEventProducer` | `Infrastructure/Persistence` |
-| `IEventSourcingHandler<T>` | `EventSourcingHandler<T>` | `Application/EventSourcing` |
-| `IAggregateService<T>`, `ITicketAggregateService` | `TicketAggregateService` (hereda de `AggregateService<T>`) | `Domain/Services` |
-
-`IMongoSessionContext` e `IMongoBaseRepository<T>` son interfaces internas de `Infrastructure`, no puertos
-del dominio.
+| Puerto | Implementación |
+|---|---|
+| `IUnitOfWork` | `UnitOfWork` (`Infrastructure/Repository/UnitOfWork`) |
+| `IEventModelRepository` | `EventModelRepository` |
+| `IEventStore` | `EventStore` (`Infrastructure/Persistence`) |
+| `IEventProducer` (en `Common`) | `TicketEventProducer` |
+| `IEventSourcingHandler<T>` | `EventSourcingHandler<T>` (`Application/EventSourcing`) |
+| `IAggregateService<T>`, `ITicketAggregateService` | `TicketAggregateService` (`Domain/Services`) |
 
 ## Arranque (`Program.cs`)
 
-1. **Registro de servicios**, en este orden: `AddControllers`, `AddApplicationServices`,
+1. **Servicios**, en orden: `AddMiddleWareService`, `AddControllers`, `AddApplicationServices`,
    `AddInfrastructureServices(configuration)`, `AddVersioning`, `AddSwaggerGen`, `AddOpenApi`.
-2. **`AddInfrastructureServices` valida la configuración**: si falta `ConnectionStrings:MongoDbConnection`,
-   `MongoSettings:Database`, `KafkaSettings:HostName` o `KafkaSettings:Port`, lanza
-   `InvalidOperationException` y la aplicación no arranca. (El nombre del topic no es configuración: es la
-   constante `KafkaTopics.TicketEvents`.) También registra los mapeos BSON (`MongoClassMaps.Register()`), que deben existir antes de la primera
-   serialización.
-3. **`Build()`** y, antes de aceptar peticiones, **`EnsureMongoIndexesAsync`**: crea (si no existe) el
-   índice único `ux_aggregate_version` sobre `eventStore`. Es idempotente, va fuera de cualquier
-   transacción y, como efecto, crea la colección. Si MongoDB no responde, el arranque se queda esperando la
-   selección de servidor y termina fallando: la API **no arranca sin Mongo**. Con Kafka no ocurre lo mismo:
-   el `ProducerConfig` no abre ninguna conexión, así que la API arranca aunque el broker esté caído.
-4. **Swagger y Swagger UI**, solo en `Development`, con un endpoint por cada versión que describe
-   `IApiVersionDescriptionProvider`.
-5. **Pipeline**: `UseHttpsRedirection`, `UseAuthorization`, `MapControllers`.
+2. `AddInfrastructureServices` **valida la configuración** (`MongoDbConnection`, `MongoSettings:Database`,
+   `KafkaSettings:HostName`/`Port`) y lanza `InvalidOperationException` si falta algo. Registra además los mapeos
+   BSON (`MongoClassMaps.Register()`).
+3. `Build()`, **`UseMiddlewares()`** (el middleware queda el primero del pipeline) y **`EnsureMongoIndexesAsync`**:
+   crea el índice único `ux_aggregate_version` (idempotente, fuera de transacción). La API **no arranca sin
+   Mongo**; con Kafka caído sí arranca, porque el `ProducerConfig` no abre conexión.
+4. Swagger y su UI solo en `Development`; después `UseHttpsRedirection`, `UseAuthorization`, `MapControllers`.
 
 ## Registro en DI
 
-| Servicio | Implementación | Vida | Lo registra |
-|---|---|---|---|
-| Handlers de MediatR | Escaneo del ensamblado de `Application` | Transient (por defecto de MediatR) | `AddApplicationServices` |
-| `IValidator<TicketCreateCommand>` | `TicketCreateValidator` | Scoped (por defecto de FluentValidation) | `AddApplicationServices` |
-| `IEventSourcingHandler<>` | `EventSourcingHandler<>` (genérico abierto) | Scoped | `AddApplicationServices` |
-| `ITicketAggregateService` | `TicketAggregateService` | Scoped | `AddApplicationServices` |
-| `IAggregateService<TicketAggregate>` | La misma instancia de `ITicketAggregateService` (factoría) | Scoped | `AddApplicationServices` |
-| `IMongoClient` | `MongoClient(connectionString)` | Singleton | `AddInfrastructureServices` |
-| `MongoDbContext` | `MongoDbContext(client, databaseName)` | Singleton | `AddInfrastructureServices` |
-| `ClientSessionOptions` | Con `TransactionOptions` vacías (heredan del cliente) | Singleton | `AddInfrastructureServices` |
-| `ProducerConfig` | `BootstrapServers = "{HostName}:{Port}"` | Singleton | `AddInfrastructureServices` |
-| `IEventProducer` | `TicketEventProducer` | Singleton | `AddInfrastructureServices` |
-| `IUnitOfWork` | `UnitOfWork` | Scoped | `AddInfrastructureServices` |
-| `IMongoSessionContext` | `MongoSessionContext` | Scoped | `AddInfrastructureServices` |
-| `IEventModelRepository` | `EventModelRepository` | Scoped | `AddInfrastructureServices` |
-| `IEventStore` | `EventStore` | Scoped | `AddInfrastructureServices` |
-| `IMongoBaseRepository<>` | `MongoRepository<>` | Scoped | `AddInfrastructureServices` |
+| Servicio | Implementación | Vida |
+|---|---|---|
+| `GlobalExceptionHandler` | Middleware (`IMiddleware`) | Transient |
+| Handlers de MediatR | Escaneo de `Application` | Transient |
+| `IPipelineBehavior<,>` | `ValidationBehaviour` y después `LoggingBehaviour` | Transient |
+| `IValidator<TicketCreateCommand>` | `TicketCreateValidator` | Scoped |
+| `IEventSourcingHandler<>` | `EventSourcingHandler<>` | Scoped |
+| `ITicketAggregateService` y `IAggregateService<TicketAggregate>` | `TicketAggregateService` (misma instancia) | Scoped |
+| `IMongoClient`, `MongoDbContext`, `ClientSessionOptions` | Cliente, contexto y opciones de sesión | Singleton |
+| `IMongoCollection<EventModel>` | `GetCollection<EventModel>("eventStore")` | Singleton |
+| `ProducerConfig`, `IEventProducer` | `BootstrapServers = "{HostName}:{Port}"`, `TicketEventProducer` | Singleton |
+| `IUnitOfWork`, `IMongoSessionContext`, `IEventModelRepository`, `IEventStore`, `IMongoBaseRepository<>` | UoW, sesión, repositorios y store | Scoped |
 
-`TicketAggregateService` vive en `Domain`, pero lo registra `Application`, porque `Domain` no referencia
-paquetes de inyección de dependencias.
-
-`IMongoClient` es singleton porque así lo recomienda el driver: gestiona su propio *pool* de conexiones y
-es seguro entre hilos. Todo lo que guarda estado de una petición (la sesión activa) es `Scoped`.
+`TicketAggregateService` vive en `Domain` pero lo registra `Application`, porque `Domain` no referencia paquetes
+de DI. `IMongoClient` es singleton por recomendación del driver; lo que guarda estado de una petición (la sesión)
+es `Scoped`.
 
 ## Recorrido de una petición
 
 `POST /api/v1/TicketCreate/CreateTicket`
 
-1. **`TicketCreate`** (controller) recibe el `TicketCreateCommand` del body y lo envía con `IMediator`,
-   pasando el `CancellationToken` de la petición. No sabe quién lo atiende.
-2. **`TicketCreateCommandHandler`** pide a **`ITicketAggregateService.Create`** un ticket nuevo. El servicio
-   genera el id (GUID v7), construye el `TicketCreatedEvent` y lo lanza sobre un ticket vacío: devuelve un
-   `TicketAggregate` en versión 1, activo, con ese evento como cambio pendiente. Detalle en
-   [*Agregados*](agregados.md#crear-un-ticket-paso-a-paso).
-3. Abre la transacción con **`IUnitOfWork.BeginTransactionAsync`**: `Infrastructure` inicia una sesión de
-   Mongo, arranca la transacción y deja la sesión en `IMongoSessionContext.Current`.
-4. **`IEventSourcingHandler<TicketAggregate>.SaveAsync`** toma los cambios pendientes del agregado y su
-   versión previa (`VersionBeforeChanges`, aquí 0), deduce `eAggregateType` del nombre de la clase y llama a
-   **`IEventStore.SaveEventsAsync`**.
-5. **`EventStore`** lee dentro de la transacción los eventos ya guardados del agregado, comprueba que la
-   última versión coincide con la esperada (si no, `ConcurrencyException`) y envuelve cada evento en un
-   `EventModel` numerado. **`EventModelRepository.AddAsync`** lo inserta con la sesión del contexto;
-   si el índice único rechaza la versión, también traduce el error a `ConcurrencyException`. Detalle en
-   [*Event store*](event-store.md#guardar-eventos).
-   Justo después de insertar cada evento, **`IEventProducer.ProduceAsync`** lo envía al topic de Kafka y
-   espera la confirmación del broker (ver [*Mensajería con Kafka*](../mensajeria-kafka.md)).
-6. **`CommitTransactionAsync`** confirma. El handler marca los cambios como confirmados
-   (`MarkChangesAsCommitted`) y cierra la sesión (`Dispose`).
-7. Si cualquier paso del 4 al 6 lanza (incluido el envío a Kafka), el handler hace **`RollbackAsync`**
-   (aborta la transacción), cierra la sesión y **relanza** la excepción. Lo ya enviado a Kafka no se
-   deshace.
-8. El handler devuelve `Response<string>.Success(ticket.Id)` y el controller lo traduce con
-   `ToActionResult`: **200** con el id del ticket en `data`.
+1. **`GlobalExceptionHandler`** envuelve toda la petición.
+2. **`TicketCreate`** (controller) envía el `TicketCreateCommand` con `IMediator`.
+3. **`ValidationBehaviour`** ejecuta `TicketCreateValidator` (el comando implementa `IValidatableRequest`; sin esa
+   marca no se validaría) y **`LoggingBehaviour`** registra la petición. Con datos inválidos lanza
+   `ValidationExceptionCustom` y el handler no llega a ejecutarse.
+4. **`TicketCreateCommandHandler`** pide a `ITicketAggregateService.Create` un ticket: genera el id (GUID v7),
+   construye el `TicketCreatedEvent` y devuelve un `TicketAggregate` en versión 1 con ese evento pendiente
+   (ver [*Agregados*](agregados.md#crear-un-ticket-paso-a-paso)).
+5. Abre la transacción con **`BeginTransactionAsync`** (sesión de Mongo en `IMongoSessionContext.Current`).
+6. **`SaveAsync`** toma los cambios pendientes y la versión previa (aquí 0) y llama a **`IEventStore.SaveEventsAsync`**.
+7. **`EventStore`** lee los eventos ya guardados, comprueba la versión (si no, `ConcurrencyException`) y envuelve
+   cada evento en un `EventModel` numerado; **`EventModelRepository.AddAsync`** lo inserta con la sesión (el índice
+   único también acaba en `ConcurrencyException`). Justo después, **`IEventProducer.ProduceAsync`** lo envía a
+   Kafka y espera la confirmación. Detalle en [*Event store*](event-store.md#guardar-eventos).
+8. **`CommitTransactionAsync`** confirma; el handler marca los cambios como confirmados y cierra la sesión.
+9. Si falla cualquier paso del 6 al 8 (Kafka incluido), el handler hace **`RollbackAsync`** y **relanza**. Lo ya
+   enviado a Kafka no se deshace.
+10. El handler devuelve `Response<string>.Success(ticket.Id)`; `LoggingBehaviour` lo registra y el controller
+    responde **200** con el id en `data`.
 
 ```mermaid
 sequenceDiagram
     participant C as TicketCreate
+    participant V as Pipeline MediatR
     participant H as Handler
-    participant S as TicketAggregateService
-    participant U as UnitOfWork
     participant E as EventSourcingHandler
     participant ES as EventStore
-    participant R as EventModelRepository
-    participant P as TicketEventProducer
     participant M as MongoDB
     participant K as Kafka
-    C->>H: Send(TicketCreateCommand)
-    H->>S: Create(userName, errorType, errorDetail)
-    S-->>H: TicketAggregate (v1, 1 cambio pendiente)
-    H->>U: BeginTransactionAsync
-    U->>M: StartSession + StartTransaction
+    C->>V: Send(TicketCreateCommand)
+    V->>H: Handle (si es válido)
+    H->>M: BeginTransaction
     H->>E: SaveAsync(ticket)
-    E->>ES: SaveEventsAsync(id, TicketAggregate, cambios, expectedVersion = 0)
-    ES->>R: FindByAggregateIdAsync(id)
-    R->>M: find (en la sesión)
-    ES->>R: AddAsync(EventModel v1)
-    R->>M: insertOne (en la sesión)
-    ES->>P: ProduceAsync(topic, evento)
-    P->>K: mensaje (espera confirmación)
-    H->>U: CommitTransactionAsync
-    U->>M: CommitTransaction
-    H->>S: MarkChangesAsCommitted(ticket)
-    H->>U: Dispose (cierra la sesión)
+    E->>ES: SaveEventsAsync(expectedVersion = 0)
+    ES->>M: find + insertOne (en la sesión)
+    ES->>K: ProduceAsync (espera confirmación)
+    H->>M: CommitTransaction
     H-->>C: Response.Success(ticket.Id)
 ```
 
-## Cómo se comparten la sesión y los repositorios
+### Si algo falla
 
-Dos piezas `Scoped` (una instancia por petición HTTP) que colaboran sin conocerse:
+| Qué falla | Dónde se recoge | Resultado |
+|---|---|---|
+| Validación (`ValidationExceptionCustom`) | `GlobalExceptionHandler` | **400** con `Response.Invalid`: errores por propiedad. El handler no se ejecuta |
+| Excepción no controlada (Mongo, Kafka, concurrencia…) | El handler la relanza tras `RollbackAsync`; la recoge `GlobalExceptionHandler` | **500** con `Response.Fail("Unhandle exception")`; el detalle solo va al log |
+| `Response` fallido devuelto como valor | `ToActionResult` | Código según `ErrorType` (tabla siguiente) |
 
-| Pieza | Papel |
-|---|---|
-| `IMongoSessionContext` / `MongoSessionContext` | Caja con la sesión activa (`Current`). Es el canal por el que el UoW "avisa" a los repositorios. |
-| `UnitOfWork` | Orquesta sobre `IMongoClient`: abre la sesión con las `ClientSessionOptions` registradas, arranca la transacción, la publica en el contexto, confirma o aborta, y al cerrar la libera y deja `Current` a `null`. |
+## Sesión y repositorios
 
-Los repositorios no reciben la sesión por parámetro: la leen del contexto. Si hay una, operan dentro de la
-transacción; si no, operan sin ella. Así el handler no tiene que pasar nada de Mongo a los repositorios, y
-el mismo repositorio sirve dentro y fuera de una transacción.
-
-Comportamiento de `UnitOfWork` en los bordes:
+`IMongoSessionContext` es la caja con la sesión activa (`Current`) y `UnitOfWork` la orquesta sobre `IMongoClient`:
+abre sesión y transacción, la publica en el contexto, confirma o aborta, y al cerrar la libera. Los repositorios
+leen la sesión del contexto: operan dentro de la transacción si hay una, y sin ella si no.
 
 | Llamada | Sin sesión activa | Con sesión activa |
 |---|---|---|
 | `BeginTransactionAsync` | Abre sesión y transacción | Abre otra y sustituye la anterior sin cerrarla |
-| `CommitTransactionAsync` | `InvalidOperationException("No hay una transacción iniciada.")` | Confirma |
-| `RollbackAsync` | No hace nada | Aborta la transacción |
-| `Dispose` | No hace nada | Libera la sesión y pone `Current = null` |
+| `CommitTransactionAsync` | `InvalidOperationException` | Confirma |
+| `RollbackAsync` / `Dispose` | No hace nada | Aborta / libera y deja `Current = null` |
 
-`UnitOfWork` implementa además `IDisposable`, así que el contenedor lo libera al terminar la petición
-aunque el handler no llegue a hacerlo; liberarlo dos veces es inocuo.
+`UnitOfWork` es `IDisposable`: el contenedor lo libera al terminar la petición; liberarlo dos veces es inocuo.
 
 ## Contrato de respuesta
 
-`Response<T>` (en `Common`) devuelve el resultado como valor:
-
-| Factoría | `IsSuccess` | `ErrorType` | Otros campos |
-|---|---|---|---|
-| `Success(data)` | `true` | `None` | `Data` |
-| `Fail(message, errorType = Unexpected)` | `false` | el indicado | `Message` |
-| `NotFound(message)` | `false` | `NotFound` | `Message` |
-| `Invalid(errors)` | `false` | `Validation` | `Message` fijo, `Errors` por propiedad |
-
-`IResponse` es su cara no genérica: expone `IsSuccess`, `Message` y `ErrorType` sin necesidad de conocer `T`.
-
-`ErrorType` dice *qué* falló y `ApiResponseControllerBase.ToActionResult` decide *cómo* se comunica:
+`Response<T>` (en `Common`) devuelve el resultado como valor: `Success(data)`, `Fail(message, errorType)`,
+`NotFound(message)` e `Invalid(errors)` (con `Errors` por propiedad); `IResponse` es su cara no genérica.
+`ApiResponseControllerBase.ToActionResult` decide el HTTP:
 
 | `ErrorType` | HTTP |
 |---|---|
@@ -305,27 +201,26 @@ aunque el handler no llegue a hacerlo; liberarlo dos veces es inocuo.
 | `NotFound` | 404 |
 | `Duplicated` | 409 |
 | `TimeOut` | 504 |
-| `Unexpected`, `None` en una respuesta fallida, valor no contemplado | 500 |
+| `Unexpected`, `None` en un fallo, valor no contemplado | 500 |
 
-Los valores del enum empiezan en 1 a propósito: un `0` indicaría que nadie lo asignó. En JSON se serializa
-como número (`"errorType": 1`).
-
-Es el mismo planteamiento que el del monolito (ver su
-[*Decisiones técnicas*](../../../Monolito/docs/decisiones-tecnicas.md)): `Application` no sabe qué es un 404.
+Los valores del enum empiezan en 1 a propósito (un `0` indicaría que nadie lo asignó) y se serializan como número.
+Es el mismo planteamiento que el del monolito.
 
 ## Versionado y Swagger
 
-Por segmento de URL (`api/v{version}/...`) con `Asp.Versioning`. `VersionExtensions.AddVersioning`
-configura:
+Por segmento de URL (`api/v{version}/...`) con `Asp.Versioning`: `DefaultApiVersion` 1.0,
+`AssumeDefaultVersionWhenUnspecified`, `ReportApiVersions`, solo `UrlSegmentApiVersionReader`, grupo `'v'VVV` y
+`SubstituteApiVersionInUrl`. Swagger y su UI solo en `Development`, en `/swagger`.
 
-| Opción | Valor |
+## Tests
+
+`Ticketing.Command.UnitTest` (xUnit, `[Theory]` con datos reales):
+
+| Clase | Qué comprueba |
 |---|---|
-| `DefaultApiVersion` | 1.0 |
-| `AssumeDefaultVersionWhenUnspecified` | `true` |
-| `ReportApiVersions` | `true` (cabeceras `api-supported-versions`) |
-| `ApiVersionReader` | Solo `UrlSegmentApiVersionReader` (query string, cabecera y *media type* comentados) |
-| `GroupNameFormat` | `'v'VVV` (grupo `v1`) |
-| `SubstituteApiVersionInUrl` | `true` |
+| `GlobalExceptionHandlerTests` | Sin excepción respeta el estado y no escribe cuerpo. `ValidationExceptionCustom`: 400, JSON, `ErrorType.Validation` y errores agrupados por propiedad. Otra excepción: 500, JSON, `ErrorType.Unexpected` y **sin filtrar** mensaje ni tipo |
+| `TicketCreateValidatorTests` | Datos válidos; un campo inválido falla solo en su propiedad; todos vacíos reportan las tres |
+| `TicketAggregateServiceTests` | `Create` da un ticket activo en v1 con un `TicketCreatedEvent` con los datos recibidos; id = id del evento y GUID v7; ids distintos entre llamadas; reproducir los eventos reconstruye el ticket; `OcurredAt` en UTC; `ErrorDetail` nulo se conserva |
 
-Swagger (Swashbuckle) y su UI se exponen solo en `Development`, en `/swagger`. La UI enumera un documento
-por cada versión que describe `IApiVersionDescriptionProvider`.
+Sin tests de los behaviours ni de `Infrastructure`; `Ticketing.Query.UnitTest` solo tiene el test vacío de la
+plantilla.
