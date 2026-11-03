@@ -1,0 +1,38 @@
+name: CI-Microservices-Events #Valida y ejecuta todos los tests
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "Microservices-Events/**"
+      - ".github/workflows/ci-micro-events.yaml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "Microservices-Events/**"
+      - ".github/workflows/ci-micro-events.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore Project
+        run: dotnet restore Microservices-Events/Ticketing/Ticketing.slnx
+
+      - name: Build Project
+        run: dotnet build Microservices-Events/Ticketing/Ticketing.slnx --configuration Release
+
+      - name: Test Project
+        run: dotnet test Microservices-Events/Ticketing/Ticketing.Command/Ticketing.Command.UnitTest/Ticketing.Command.UnitTest.csproj --configuration Release
