@@ -69,8 +69,10 @@ namespace Ticketing.Command.UnitTest.Application.Features.Tickets.Create
             Assert.Equal(eEventType.TicketCreatedEvent, eventType);
             TicketCreatedEvent createdEvent = (TicketCreatedEvent)pendingEvent;
             string? occurredBy = createdEvent.OcurredBy;
+            string? eventUserName = createdEvent.UserName;
             string? savedErrorDetail = createdEvent.ErrorDetail;
             Assert.Equal(userName, occurredBy);
+            Assert.Equal(userName, eventUserName);
             Assert.Equal(errorDetail, savedErrorDetail);
         }
 

@@ -18,7 +18,8 @@ namespace Ticketing.Command.Domain.Services
                 Id = id,
                 OcurredAt = DateTime.UtcNow,
                 OcurredBy = userName,
-                ErrorDetail = errorDetail
+                ErrorDetail = errorDetail,
+                UserName = userName,
             };
 
             //Punto de partida: ticket vacío

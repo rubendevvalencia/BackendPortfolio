@@ -24,7 +24,7 @@ namespace Ticketing.Command.UnitTest.Application.EventSourcing
         public async Task SaveAsync_ConCambiosPendientes_GuardaIdTipoEventosYVersionEsperada(int versionBeforeChanges)
         {
             //Arrange: un ticket con dos cambios pendientes; recojo lo que recibe el almacén al guardar
-            TicketCreatedEvent createdEvent = new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar" };
+            TicketCreatedEvent createdEvent = new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar", UserName = "ana@empresa.com" };
             TicketUpdatedEvent updatedEvent = new TicketUpdatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 11, 0, 0, DateTimeKind.Utc), OcurredBy = "luis@empresa.com", Status = "Closed" };
             List<EventBase> pendingEvents = new List<EventBase> { createdEvent, updatedEvent };
             TicketAggregate aggregate = new TicketAggregate("ticket-1", versionBeforeChanges + 2, versionBeforeChanges, pendingEvents, true);
@@ -62,7 +62,7 @@ namespace Ticketing.Command.UnitTest.Application.EventSourcing
             _eventStore
                 .SaveEventsAsync(Arg.Any<string>(), Arg.Any<eAggregateType>(), Arg.Any<IEnumerable<EventBase>>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
                 .ThrowsAsync(conflict);
-            List<EventBase> pendingEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar" } };
+            List<EventBase> pendingEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar", UserName = "ana@empresa.com" } };
             TicketAggregate aggregate = new TicketAggregate("ticket-1", 1, 0, pendingEvents, true);
             EventSourcingHandler<TicketAggregate> handler = new EventSourcingHandler<TicketAggregate>(_eventStore, _aggregateService);
 
@@ -80,7 +80,7 @@ namespace Ticketing.Command.UnitTest.Application.EventSourcing
             _eventStore
                 .SaveEventsAsync(Arg.Any<string>(), Arg.Any<eAggregateType>(), Arg.Any<IEnumerable<EventBase>>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
                 .ThrowsAsync(new OperationCanceledException());
-            List<EventBase> pendingEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar" } };
+            List<EventBase> pendingEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar", UserName = "ana@empresa.com" } };
             TicketAggregate aggregate = new TicketAggregate("ticket-1", 1, 0, pendingEvents, true);
             EventSourcingHandler<TicketAggregate> handler = new EventSourcingHandler<TicketAggregate>(_eventStore, _aggregateService);
             CancellationTokenSource cancellation = new CancellationTokenSource();
@@ -99,7 +99,7 @@ namespace Ticketing.Command.UnitTest.Application.EventSourcing
         public async Task GetByIdAsync_ConEventosGuardados_DevuelveElAgregadoQueReconstruyeElServicio(string aggregateId)
         {
             //Arrange: el almacén devuelve los eventos de ese id y el servicio del agregado los convierte en un agregado
-            List<EventBase> storedEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar" } };
+            List<EventBase> storedEvents = new List<EventBase> { new TicketCreatedEvent { Id = "ticket-1", OcurredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc), OcurredBy = "ana@empresa.com", ErrorDetail = "Timeout al pagar", UserName = "ana@empresa.com" } };
             TicketAggregate rebuiltAggregate = new TicketAggregate(aggregateId, 1, 1, new List<EventBase>(), true);
             _eventStore.GetEventsAsync(aggregateId, Arg.Any<CancellationToken>()).Returns(storedEvents);
             _aggregateService.ReplayEvents(storedEvents).Returns(rebuiltAggregate);

@@ -38,6 +38,7 @@ namespace Ticketing.Command.UnitTest.Domain.Services
             TicketCreatedEvent createdEvent = Assert.IsType<TicketCreatedEvent>(pendingEvent);
             Assert.Equal(eEventType.TicketCreatedEvent, createdEvent.Type);
             Assert.Equal(userName, createdEvent.OcurredBy);
+            Assert.Equal(userName, createdEvent.UserName);
             Assert.Equal(errorDetail, createdEvent.ErrorDetail);
         }
 
