@@ -16,12 +16,15 @@ namespace Ticketing.Command.Domain.Services
             TicketCreatedEvent ticketCreatedEvent = new TicketCreatedEvent
             {
                 Id = id,
+                OcurredAt = DateTime.UtcNow,
+                OcurredBy = userName,
+                ErrorDetail = errorDetail,
                 UserName = userName,
-                DetailError = errorDetail
             };
 
             //Punto de partida: ticket vacío
             TicketAggregate emptyTicket = CreateEmpty();
+            //RaiseEvent lanza un evento nuevo sobre el agregado. Aplica el cambio de estado, sube la versión y apunta el evento como pendiente de guardar
             TicketAggregate ticket = RaiseEvent(emptyTicket, ticketCreatedEvent);
 
             return ticket;

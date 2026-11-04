@@ -13,7 +13,7 @@ using Ticketing.Query.Infrastructure.Data;
 namespace Ticketing.Query.Infrastructure.Migrations
 {
     [DbContext(typeof(TicketDbContext))]
-    [Migration("20261026162330_Initial")]
+    [Migration("20261104084258_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -28,11 +28,11 @@ namespace Ticketing.Query.Infrastructure.Migrations
 
             modelBuilder.Entity("EmployeeTicket", b =>
                 {
-                    b.Property<Guid>("EmployeesId")
-                        .HasColumnType("uuid");
+                    b.Property<int>("EmployeesId")
+                        .HasColumnType("integer");
 
-                    b.Property<Guid>("TicketsId")
-                        .HasColumnType("uuid");
+                    b.Property<int>("TicketsId")
+                        .HasColumnType("integer");
 
                     b.HasKey("EmployeesId", "TicketsId");
 
@@ -43,9 +43,11 @@ namespace Ticketing.Query.Infrastructure.Migrations
 
             modelBuilder.Entity("Ticketing.Query.Domain.Entities.Employee", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -99,9 +101,11 @@ namespace Ticketing.Query.Infrastructure.Migrations
 
             modelBuilder.Entity("Ticketing.Query.Domain.Entities.Ticket", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -127,30 +131,15 @@ namespace Ticketing.Query.Infrastructure.Migrations
                     b.Property<string>("LastUpdatedBy")
                         .HasColumnType("text");
 
-                    b.Property<int>("TicketTypeId")
+                    b.Property<int?>("TicketType")
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.Property<Guid?>("TicketTypeId")
+                        .HasColumnType("uuid");
 
-                    b.HasIndex("TicketTypeId");
+                    b.HasKey("Id");
 
                     b.ToTable("tickets", (string)null);
-                });
-
-            modelBuilder.Entity("Ticketing.Query.Domain.Entities.TicketType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ticket_types", (string)null);
                 });
 
             modelBuilder.Entity("EmployeeTicket", b =>
@@ -166,22 +155,6 @@ namespace Ticketing.Query.Infrastructure.Migrations
                         .HasForeignKey("TicketsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Ticketing.Query.Domain.Entities.Ticket", b =>
-                {
-                    b.HasOne("Ticketing.Query.Domain.Entities.TicketType", "TicketType")
-                        .WithMany("Tickets")
-                        .HasForeignKey("TicketTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TicketType");
-                });
-
-            modelBuilder.Entity("Ticketing.Query.Domain.Entities.TicketType", b =>
-                {
-                    b.Navigation("Tickets");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Infrastructure.Interface;
 
 namespace Ticketing.Command.Infrastructure.Repository.MongoRepository
@@ -9,9 +8,10 @@ namespace Ticketing.Command.Infrastructure.Repository.MongoRepository
         private readonly IMongoCollection<TDocument> _mongoCollection;
         private readonly IMongoSessionContext _sessionContext;
 
-        public MongoRepository(MongoDbContext mongoDbContext, IMongoSessionContext sessionContext)
+        //Recibe la colección ya registrada en ConfigureService; solo se puede resolver para tipos con su IMongoCollection registrada
+        public MongoRepository(IMongoCollection<TDocument> mongoCollection, IMongoSessionContext sessionContext)
         {
-            _mongoCollection = mongoDbContext.GetCollection<TDocument>();
+            _mongoCollection = mongoCollection;
             _sessionContext = sessionContext;
         }
 

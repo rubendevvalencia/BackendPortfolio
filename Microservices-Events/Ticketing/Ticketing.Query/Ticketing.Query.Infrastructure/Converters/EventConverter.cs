@@ -19,10 +19,21 @@ namespace Ticketing.Query.Infrastructure.Converters
             bool hasType = root.TryGetProperty("Type", out JsonElement typeElement);
             if(!hasType) throw new JsonException("No puedo detectar la propiedad Type");
 
-            bool isNumber = typeElement.TryGetInt32(out int typeDiscriminator);
-            if(!isNumber) throw new JsonException("La propiedad Type no es un número válido");
+            //Type llega como número (lo normal) o como texto con el nombre del enum
+            eEventType eventType;
+            if(typeElement.ValueKind == JsonValueKind.Number)
+            {
+                bool isNumber = typeElement.TryGetInt32(out int typeDiscriminator);
+                if(!isNumber) throw new JsonException("La propiedad Type no es un número válido");
+                eventType = (eEventType)typeDiscriminator;
+            }
+            else
+            {
+                string? typeName = typeElement.GetString();
+                bool parsed = Enum.TryParse<eEventType>(typeName, out eventType);
+                if(!parsed) throw new JsonException($"'{typeName}' no es un tipo de evento válido");
+            }
 
-            var eventType = (eEventType)typeDiscriminator;
             string json = root.GetRawText();
 
             //Con el tipo conocido se deserializa a la clase concreta
@@ -30,7 +41,7 @@ namespace Ticketing.Query.Infrastructure.Converters
             {
                 eEventType.TicketCreatedEvent => JsonSerializer.Deserialize<TicketCreatedEvent>(json, options),
                 eEventType.TicketUpdatedEvent => JsonSerializer.Deserialize<TicketUpdatedEvent>(json, options),
-                _ => throw new JsonException($"{typeDiscriminator} no es soportado")
+                _ => throw new JsonException($"{eventType} no es soportado")
             };
         }
 
