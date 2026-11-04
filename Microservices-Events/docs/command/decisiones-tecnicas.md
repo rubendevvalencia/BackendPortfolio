@@ -75,12 +75,17 @@ reflexión. Con una sola colección era maquinaria de más y se eliminó. Ahora 
 reciben ya resuelta. Coste: `MongoRepository<T>` solo se resuelve para tipos con su `IMongoCollection<T>`
 registrada.
 
-### Tipos de agregado y de evento como enums ligados por nombre
+### El tipo de agregado lo declara cada agregado
 
-`eAggregateType` y `eEventType` limitan los valores del documento (se guardan como texto). `eAggregateType` se
-obtiene con `Enum.Parse` del nombre de la clase del agregado: sin mapeo a mano, pero un agregado sin valor en el
-enum falla al guardar, en ejecución. `eEventType` vive en `Ticketing.Common` y `EventBase.Type` ya lo trae
-puesto; viaja como número, así que sus valores son contrato.
+`AggregateRoot` recibe el `eAggregateType` en su constructor y `TicketAggregate` pasa el suyo. Antes el handler lo
+sacaba con `Enum.Parse` del nombre de la clase, y un agregado sin valor en el enum, o una clase renombrada, fallaba
+en ejecución; ahora lo obliga el compilador. `eEventType` vive en `Ticketing.Common` y viaja como número, así que
+sus valores son contrato.
+
+### El caso de uso no libera el `UnitOfWork`
+
+`UnitOfWork` es `Scoped` e `IDisposable`: el contenedor lo libera, y con él la sesión de Mongo, al acabar la
+petición. El handler solo decide entre `Commit` y `Rollback`, y `IUnitOfWork` ya no declara `Dispose`.
 
 ### `Response<T>` y `ErrorType` compartidos en `Common`
 

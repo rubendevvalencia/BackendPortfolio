@@ -24,7 +24,7 @@ Qué se practica con código que funciona:
 | Almacén | MongoDB 7 (event store, replica set) | PostgreSQL 16 con EF Core |
 | Endpoint | `POST api/v1/TicketCreate/CreateTicket` | `GET api/v1/Ticket/AllTickets` |
 | Con Kafka | Publica cada evento guardado | Consume el topic y proyecta |
-| Estado | `CreateTicket` completo, con validación, middleware de excepciones y tests unitarios | Consumidor y proyección escritos, sin probar de extremo a extremo; migración `Initial` por regenerar |
+| Estado | `CreateTicket` completo, con validación, middleware de excepciones y tests unitarios | Consumidor, proyección y lectura escritos, sin probar de extremo a extremo ni con tests |
 | Docs | [Arquitectura](docs/command/arquitectura.md) | [Arquitectura](docs/query/arquitectura.md) · [Consumidor](docs/query/consumidor-kafka.md) |
 
 ```mermaid
@@ -78,7 +78,7 @@ Microservices-Events/
 ## Stack
 
 .NET 10 · ASP.NET Core · MongoDB 7 (`MongoDB.Driver` 3.12) · Kafka 3.7 (`Confluent.Kafka` 2.16) · PostgreSQL 16 +
-EF Core 10 · MediatR 14 · FluentValidation 12 · Asp.Versioning 10 · Swashbuckle 10 · xUnit.
+EF Core 10 · MediatR 14 · FluentValidation 12 · Asp.Versioning 10 · Swashbuckle 10 · xUnit · NSubstitute.
 
 ## Puesta en marcha rápida
 

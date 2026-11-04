@@ -97,12 +97,13 @@ dotnet run --project Microservices-Events/Ticketing/Ticketing.Query/Ticketing.Qu
   topic: aparece cuando `Command` publica su primer evento.
 - URLs: `http://localhost:5270` y `https://localhost:7005`.
 
-> **Antes de probar la proyección:** la migración `Initial` está desfasada (ver
-> [*Migraciones*](query/arquitectura.md#migraciones)) y hace falta un empleado en `employees` cuyo `Email`
-> coincida con el `userName` del ticket (ver [*Cómo probarlo*](query/consumidor-kafka.md#cómo-probarlo)).
+> **Antes de probar la proyección:** hace falta un empleado en `employees` cuyo `Email` coincida con el `userName`
+> del ticket (ver [*Cómo probarlo*](query/consumidor-kafka.md#cómo-probarlo)). Si la base de PostgreSQL se creó con
+> la migración `Initial` anterior al 4 nov 2026, hay que recrearla (ver
+> [*Migraciones*](query/arquitectura.md#migraciones)).
 
-`GET api/v1/Ticket/AllTickets` devuelve los tickets proyectados (`TicketDto`). Peculiaridades: lee `TicketGetQuery`
-del **body** aunque sea un `GET`, y el handler exige un `Id` GUID válido sin usarlo para filtrar.
+`GET api/v1/Ticket/AllTickets` devuelve los tickets proyectados (`TicketDto`); sus peculiaridades, en
+[*Arquitectura de Query*](query/arquitectura.md#capa-de-aplicación-y-api).
 
 ## Tests y CI
 
@@ -110,7 +111,8 @@ del **body** aunque sea un `GET`, y el handler exige un `Id` GUID válido sin us
 dotnet test Microservices-Events/Ticketing/Ticketing.Command/Ticketing.Command.UnitTest
 ```
 
-`Command` tiene tests del middleware, del validador y del servicio de agregado (ver
+`Command` tiene tests del middleware, del validador, del servicio de agregado, del `EventSourcingHandler` y del
+handler de `CreateTicket` (ver
 [*Tests*](command/arquitectura.md#tests)); `Ticketing.Query.UnitTest` solo tiene el test vacío de la plantilla.
 `ci-micro-events.yaml` se dispara si cambia algo en `Microservices-Events/` (push y PR hacia `dev` y `main`): en
 `ubuntu-latest` restaura, compila `Ticketing.slnx` en `Release` y lanza los tests de `Command`.

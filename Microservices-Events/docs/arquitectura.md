@@ -20,7 +20,7 @@
 | Puertos | `5166` / `7249` | `5270` / `7005` |
 | Esquema | Índice único creado al arrancar | Migraciones de EF Core al arrancar |
 | Con Kafka | Productor | Consumidor |
-| Estado | `CreateTicket` completo, con validación, middleware y tests | Consumidor y proyección sin probar de extremo a extremo; migración por regenerar |
+| Estado | `CreateTicket` completo, con validación, middleware y tests | Consumidor, proyección y lectura implementados, sin probar de extremo a extremo ni con tests |
 
 ## Qué es independiente y qué se comparte
 
@@ -38,9 +38,8 @@
 **Acoplamientos que existen hoy**
 
 - `Ticketing.Common` referencia `Confluent.Kafka` (por `IEventProducer`), y `Query` lo recibe también.
-- Un cambio en un evento, en `eEventType` o en `KafkaTopics` obliga a recompilar los dos servicios. Es lo que
-  ha pasado con `UserName` → `OcurredBy` en `TicketCreatedEvent`: `Command` lo aplicó y `Query` tiene que
-  adaptarse.
+- Un cambio en un evento, en `eEventType` o en `KafkaTopics` obliga a recompilar los dos servicios (le pasó a
+  `UserName`/`OcurredBy` en `TicketCreatedEvent`).
 - **Los valores de `eEventType` son contrato**: viajan como número en el JSON. Cambiarlos o reordenarlos rompe
   lo que ya está en Kafka.
 

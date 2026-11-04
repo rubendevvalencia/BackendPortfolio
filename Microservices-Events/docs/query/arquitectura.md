@@ -14,7 +14,7 @@ llegan por Kafka. Decisiones en [*Decisiones técnicas*](decisiones-tecnicas.md)
 - `ConsumerHostedService` lee el topic y proyecta `TicketCreatedEvent` y `TicketUpdatedEvent`.
 - Casos de uso con MediatR: dos comandos de proyección (`TicketCreated`, `TicketUpdated`) y una consulta
   (`TicketsGet`), expuesta en `GET api/v1/Ticket/AllTickets`.
-- Migración `Initial`, aplicada al arrancar, **desfasada respecto al modelo** (ver [*Migraciones*](#migraciones)).
+- Migración `Initial`, aplicada al arrancar, regenerada el 4 nov 2026 para reflejar el modelo actual (ver [*Migraciones*](#migraciones)).
 
 ## Dependencias entre proyectos
 
@@ -67,11 +67,11 @@ Ticketing.Query/
 ```mermaid
 erDiagram
     tickets }o--o{ employees : "ticket_employees"
-    tickets { guid Id PK
+    tickets { int Id PK
         string Description
         guid TicketTypeId
         int TicketType }
-    employees { guid Id PK
+    employees { int Id PK
         string FirstName
         string LastName
         string Email
@@ -80,8 +80,8 @@ erDiagram
         string Address_Country }
 ```
 
-- **`BaseAudit`** (base de `Ticket` y `Employee`): `Id`, `CreatedAt/By`, `LastUpdatedAt/By`, `IsDeleted` y
-  `DeletedAt/By`.
+- **`BaseAudit`** (base de `Ticket` y `Employee`): `Id` (`int`, autogenerado por PostgreSQL), `CreatedAt/By`,
+  `LastUpdatedAt/By`, `IsDeleted` y `DeletedAt/By`.
 - **`Ticket.TicketType`** es el enum `eEventType` (nullable, guardado como entero): el tipo del **evento** que
   originó el ticket. **`TicketTypeId`** es un `Guid?` sin clave foránea con el `Id` del evento. Los nombres no
   reflejan ese contenido (ver [*Qué falta*](consumidor-kafka.md#qué-falta)).
@@ -95,8 +95,8 @@ erDiagram
 
 `TicketDbContext` se registra con `AddDbContext` y `UseNpgsql(PostgresConnection)`; las configuraciones de entidad
 se descubren con `ApplyConfigurationsFromAssembly`. `AddInfrastructureServices` registra además `IUnitOfWork`,
-`IEmployeeRepository`, el `ConsumerConfig` (enlazado y validado) y el consumidor como hosted service (pendiente:
-registrar `ITicketsRepository`). La cadena `PostgresConnection` va vacía en `appsettings.json` y se aporta por
+`IEmployeeRepository`, `ITicketsRepository`, el `ConsumerConfig` (enlazado y validado) y el consumidor como hosted
+service. Los repositorios solo marcan cambios en el `DbContext`; los confirma `IUnitOfWork.SaveChangesAsync`. La cadena `PostgresConnection` va vacía en `appsettings.json` y se aporta por
 secretos (ver [*Entorno local*](../entorno-local.md#3-ticketingquery)).
 
 ## Migraciones
@@ -109,10 +109,8 @@ dotnet ef migrations add NombreMigracion \
   --startup-project Ticketing.Query.Api
 ```
 
-> **La migración `Initial` está desfasada.** Se generó cuando existía una entidad `TicketType` (tabla
-> `ticket_types`, `TicketTypeId` entero con FK); ahora `TicketType` es un enum y `TicketTypeId` un `Guid?` sin FK.
-> Hay que regenerarla (si nunca se aplicó) o añadir una nueva encima (si ya se aplicó). Hasta entonces,
-> `Migrate()` crearía un esquema distinto del que espera el modelo.
+`Initial` se regeneró el 4 nov 2026 (la anterior aún tenía la entidad `TicketType`). Una base creada con la versión
+antigua hay que recrearla: `Migrate()` no reconcilia las dos.
 
 ## Capa de aplicación y API
 
@@ -135,9 +133,7 @@ dotnet ef migrations add NombreMigracion \
 
 ## Pendiente
 
-- Adaptar `EventHandler.On(TicketCreatedEvent)` al cambio de contrato (el usuario viaja en `OcurredBy`).
 - Corregir el mensaje de excepción de `On(TicketUpdatedEvent)`, que nombra `TicketCreatedEvent`.
-- Regenerar o añadir la migración.
-- Implementar `TicketsRepository` y decidir qué hace de verdad `TicketGetQuery` (filtros, paginación).
+- Decidir qué hace de verdad `TicketGetQuery` (filtros, paginación): `TicketsRepository.GetAllAsync` devuelve todo.
 - Probar de extremo a extremo la proyección y cerrar lo que falta en el consumidor (errores, idempotencia).
 - Tests de `Ticketing.Query.UnitTest`.

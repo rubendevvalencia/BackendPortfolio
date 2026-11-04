@@ -44,14 +44,14 @@ El nombre del topic no es configuración (ver [la decisión](decisiones-tecnicas
 
 1. Construye un `IProducer<string, string>` con `ProducerConfig`.
 2. Serializa el evento a JSON con su **tipo concreto** (`JsonSerializer.Serialize(@event, @event.GetType())`).
-   Los nombres salen en PascalCase y `Type` como **número**; el `EventConverter` del consumidor depende de ambas
-   cosas.
+   Los nombres salen en PascalCase y `Type` como **número** (el `EventConverter` del consumidor también tolera el
+   nombre del enum como texto).
 3. Envía con **clave = `event.Id`** (el id del agregado).
 4. Espera la confirmación del broker; si es `NotPersisted`, lanza una excepción.
 
 ```
 clave:  019...-....
-valor:  {"ErrorDetail":"...","Type":1,"Id":"019...-....","OcurredAt":"2026-10-29T10:00:00Z","OcurredBy":"ruben"}
+valor:  {"ErrorDetail":"...","UserName":"ruben","Type":1,"Id":"019...-....","OcurredAt":"2026-10-29T10:00:00Z","OcurredBy":"ruben"}
 ```
 
 (Orientativo: el orden de campos puede variar. `Type` vale `1` para `TicketCreatedEvent` y `2` para
@@ -112,7 +112,6 @@ A tener en cuenta:
 
 - **Un productor por mensaje:** se crea y destruye un `IProducer` en cada `ProduceAsync`. Lo habitual es uno
   *singleton* de larga vida.
-- **Consumidor sin probar de extremo a extremo** (ver [*Qué falta*](query/consumidor-kafka.md#qué-falta)).
 - **Con Kafka caído** la petición falla o espera al *timeout* y no se guarda nada; el tiempo de espera no está
   probado.
 - **Sin tests** del productor, del consumidor ni de `EventStore` con Kafka.

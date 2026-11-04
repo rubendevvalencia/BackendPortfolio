@@ -56,8 +56,8 @@ sequenceDiagram
 ```
 
 1. **`Consume()`** bloquea el hilo hasta que llega un mensaje (JSON serializado con su tipo concreto).
-2. **`EventConverter`** lee el campo `Type` (número del enum `eEventType`) para elegir la clase:
-   `TicketCreatedEvent` o `TicketUpdatedEvent`.
+2. **`EventConverter`** lee el campo `Type` (el enum `eEventType`, normalmente como número, aunque acepta también
+   su nombre como texto) para elegir la clase: `TicketCreatedEvent` o `TicketUpdatedEvent`.
 3. **Un `IServiceScope` por mensaje:** el consumer es singleton, pero `DbContext` y repositorios son `Scoped`. Con
    un scope por mensaje cada evento trabaja con un contexto limpio y nunca se comparte uno entre hilos.
 4. **`EventHandler`** traduce el evento a un `TicketCreatedCommand` o `TicketUpdatedCommand` y lo envía por
@@ -82,15 +82,18 @@ sequenceDiagram
 
 - `StartAsync` crea un `CancellationTokenSource`, lanza el bucle con `Task.Run` y **vuelve enseguida**: `Consume()`
   bloquea el hilo que lo llama y el host espera a `StartAsync` antes de seguir arrancando, así que con el bucle
-  dentro la API nunca terminaría de arrancar. Ese hilo del *thread pool* queda ocupado mientras la app viva (con
-  un solo consumer es aceptable).
+  dentro la API nunca terminaría de arrancar. No se conecta a Kafka (eso ocurre en `ConsumeAsync`). Ese hilo del
+  *thread pool* queda ocupado mientras la app viva (con un solo consumer es aceptable).
+- Las opciones de JSON (`PropertyNameCaseInsensitive`, `EventConverter`, `JsonStringEnumConverter`) son una única
+  instancia `static readonly`, no una por mensaje.
 - El bucle (`ConsumeAsync`) es **un único hilo y secuencial**: no hay dos mensajes procesándose a la vez.
   `Consume()` bloquea solo ese hilo; las peticiones HTTP se atienden en otros.
 - `StopAsync` cancela el token y espera al bucle; al cancelar, el `finally` llama a `consumer.Close()`, que avisa a
   Kafka para reasignar particiones sin esperar un *timeout*.
 
 **`EventConverter`** (Infrastructure) es un `JsonConverter<EventBase>`. Solo se aplica a `EventBase`, no a sus
-subclases (si no, se llamaría a sí mismo sin parar). Solo sabe leer; `Write` lanza `NotSupportedException`.
+subclases (si no, se llamaría a sí mismo sin parar). Solo sabe leer; `Write` lanza `NotSupportedException`. Un
+`Type` ausente o no válido lanza `JsonException`.
 
 **`EventHandler`** (Application) implementa `IEventHandler` (interfaz en `Domain`): un `On` por tipo de evento. Si la
 proyección devuelve un `Response` fallido, **lanza una excepción** para que no se confirme el offset.
@@ -105,9 +108,8 @@ proyección devuelve un `Response` fallido, **lanza una excepción** para que no
 
 No llevan `try/catch`: si algo lanza, llega al consumer.
 
-> **Cambio en el contrato.** El usuario viaja ahora en `OcurredBy`, no en `UserName` (`TicketCreatedEvent`).
-> `EventHandler.On(TicketCreatedEvent)` aún lee `UserName`: pendiente de adaptar. `TicketUpdatedEvent` conserva
-> su `Username`.
+> `EventHandler` lee `UserName` en los dos eventos (en `TicketCreatedEvent` llega junto a `OcurredBy`, con el mismo
+> valor).
 
 **Registro en DI:** `ConsumerConfig` (enlazado con `Bind`, validado y registrado *singleton* porque el consumer lo
 pide en el constructor) y `AddHostedService<ConsumerHostedService>()` en `Infrastructure`; MediatR, validadores e
@@ -132,14 +134,11 @@ En orden de importancia:
 | **Política de errores** | Hoy cualquier excepción detiene el bucle. Con un empleado inexistente o un JSON inválido, el consumer queda parado y, al reiniciar, relee el mismo mensaje y vuelve a fallar. Solo queda constancia en el log |
 | **Idempotencia** | Si el proceso cae entre proyectar y confirmar, el evento se reprocesa y el ticket se duplica; hay que detectar que ya se proyectó (p. ej. por el id del evento) |
 | **`On(TicketUpdatedEvent)`** | Ya envía un `TicketUpdatedCommand`, pero su handler añade un ticket en vez de actualizar uno y el mensaje de error nombra `TicketCreatedEvent`. Además `Command` aún no genera este evento |
-| **Contrato del evento** | `On(TicketCreatedEvent)` lee `UserName`, que en `Command` ahora es `OcurredBy` |
-| **Migración** | La `Initial` no refleja el modelo (ver [*Migraciones*](arquitectura.md#migraciones)) |
 | **Validadores** | `TicketCreatedValidator` y `TicketUpdatedValidator` están vacíos y no hay `ValidationBehaviour` en `Query` |
 | **`TicketType` / `TicketTypeId`** | `TicketType` guarda un `eEventType` y `TicketTypeId` el id del evento, sin FK; los nombres no lo reflejan |
 | **Arranque sin Kafka** | Con el broker caído o sin topic, el consumer falla al suscribirse y no reintenta |
-| **`JsonSerializerOptions`** | Se crea uno por mensaje; reutilizar una instancia sería más eficiente |
 | **Tests** | `Ticketing.Query.UnitTest` solo tiene el test vacío; `EventConverter` es lo más sencillo de cubrir primero |
-| **Lectura (`AllTickets`)** | `TicketsRepository` no existe aún; lee el body de un `GET` y exige un `Id` válido sin usarlo (ver [*Arquitectura*](arquitectura.md#capa-de-aplicación-y-api)) |
+| **Lectura (`AllTickets`)** | Devuelve todo sin filtro ni paginación y tiene peculiaridades en el endpoint (ver [*Arquitectura*](arquitectura.md#capa-de-aplicación-y-api)) |
 
 ## Cómo probarlo
 

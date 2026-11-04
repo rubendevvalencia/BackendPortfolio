@@ -14,16 +14,17 @@ dominio**: ninguna operación lo modifica, cada una devuelve uno nuevo.
 
 | Pieza | Dónde | Qué hace |
 |---|---|---|
-| `AggregateRoot` | `Domain/Aggregates` | Base abstracta: `Id`, `Version`, `VersionBeforeChanges` y `UncommittedChanges`, de solo lectura |
+| `AggregateRoot` | `Domain/Aggregates` | Base abstracta: `AggregateType`, `Id`, `Version`, `VersionBeforeChanges` y `UncommittedChanges`, de solo lectura |
 | `TicketAggregate` | `Domain/Aggregates/Tickets` | El ticket; añade `Active`. Sin comportamiento |
 | `AggregateService<T>` | `Domain/Aggregates` | Escribe una vez las operaciones comunes (`ReplayEvents`, `MarkChangesAsCommitted`, `RaiseEvent` protegido); deja tres huecos a cada agregado |
 | `TicketAggregateService` | `Domain/Services` | Rellena los huecos para el ticket y define `Create` |
 | `EventSourcingHandler<T>` | `Application/EventSourcing` | Carga un agregado por id y guarda sus cambios pendientes |
 
-## Las cuatro propiedades
+## Las propiedades
 
 | Propiedad | Qué es |
 |---|---|
+| `AggregateType` | El `eAggregateType` del agregado. Lo fija cada agregado al llamar al constructor base (`TicketAggregate` pasa `eAggregateType.TicketAggregate`); `SaveAsync` lo lee tal cual |
 | `Id` | Vacío en un agregado recién creado (`CreateEmpty`); lo fija el primer evento |
 | `Version` | Eventos aplicados, guardados o no |
 | `VersionBeforeChanges` | Versión que tenía en el event store antes de los cambios pendientes; la que espera el control de concurrencia |
@@ -64,8 +65,8 @@ falle en vez de ignorarse.
 `TicketAggregateService.Create(userName, errorType, errorDetail)`:
 
 1. Genera el id con `Guid.CreateVersion7()`.
-2. Construye el `TicketCreatedEvent` con ese id, `OcurredAt = DateTime.UtcNow`, `OcurredBy = userName` y
-   `ErrorDetail = errorDetail` (`errorType` llega pero no se usa: el evento no lo lleva).
+2. Construye el `TicketCreatedEvent` con ese id, `OcurredAt = DateTime.UtcNow`, `OcurredBy = userName`,
+   `UserName = userName` y `ErrorDetail = errorDetail` (`errorType` llega pero no se usa: el evento no lo lleva).
 3. Parte de `CreateEmpty()` y lanza el evento con `RaiseEvent`.
 
 | Momento | `Id` | `Active` | `Version` | `VersionBeforeChanges` | `UncommittedChanges` |
@@ -83,9 +84,9 @@ cosa.
 ninguno, `AggregateNotFoundException`) y `ReplayEvents` los aplica sobre un agregado vacío. Queda con
 `Version = VersionBeforeChanges` y sin cambios pendientes.
 
-**`SaveAsync(aggregate)`:** toma `UncommittedChanges` y `VersionBeforeChanges` (la versión esperada), obtiene
-`eAggregateType` con `Enum.Parse` del nombre de la clase (**convención:** cada agregado necesita un valor del enum
-con su mismo nombre) y llama a `IEventStore.SaveEventsAsync`. No abre ni confirma la transacción, ni marca los
+**`SaveAsync(aggregate)`:** toma `UncommittedChanges` y `VersionBeforeChanges` (la versión esperada), lee
+`aggregate.AggregateType` (cada agregado declara el suyo, sin depender del nombre de la clase) y llama a
+`IEventStore.SaveEventsAsync`. No abre ni confirma la transacción, ni marca los
 cambios como confirmados: eso lo hace el caso de uso después del *commit* (si fuera antes y el *commit* fallase,
 el agregado diría que está guardado sin estarlo).
 

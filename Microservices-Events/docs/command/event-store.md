@@ -39,15 +39,12 @@ El nombre de la colección (`eventStore`) no vive en `Domain`: se fija en `Infra
 |---|---|
 | `Message` | Obligatorios: `Id` (en eventos de ticket, el **id del agregado**), `OcurredAt` (UTC) y `OcurredBy` (`string?`, quién lo provocó) |
 | `EventBase : Message` | `Type`, el `eEventType` del evento (viaja como **número** en el JSON de Kafka). No lleva versión: esa vive en `EventModel.Version` |
-| `TicketCreatedEvent` | `ErrorDetail`. Único evento que `Command` genera hoy (`TicketUpdatedEvent` existe, pero nada lo publica) |
+| `TicketCreatedEvent` | `ErrorDetail` y `UserName`. Único evento que `Command` genera hoy (`TicketUpdatedEvent` existe, pero nada lo publica) |
 
 `TicketAggregateService.Create` lo construye a mano: `Id` = id generado, `OcurredAt` = `DateTime.UtcNow`,
-`OcurredBy` = `TicketCreateCommand.UserName`, `ErrorDetail` = `TicketCreateCommand.ErrorDetail`. El usuario viaja
-en `OcurredBy` (ya no hay campo `UserName`) y el tipo de error no se incluye. `TicketUpdatedEvent` conserva su
-`DetailError` y su `Username`.
-
-> **Pendiente en `Query`:** `EventHandler.On(TicketCreatedEvent)` todavía lee `@event.UserName`; tiene que leer
-> `@event.OcurredBy`.
+`OcurredBy` y `UserName` = `TicketCreateCommand.UserName`, `ErrorDetail` = `TicketCreateCommand.ErrorDetail`. El
+tipo de error no se incluye. `TicketUpdatedEvent` lleva `Status`, `DetailError` y `UserName`. `Query` usa `UserName`
+para localizar al empleado; `OcurredBy` es el "quién" genérico de todo `Message`. Hoy llevan el mismo valor.
 
 ## Guardar eventos
 
@@ -115,7 +112,8 @@ en los documentos nuevos y deja los antiguos sin ese dato, sin error. Documento 
     "Type": 1,
     "OcurredAt": { "$date": "..." },
     "OcurredBy": "...",
-    "ErrorDetail": "..."
+    "ErrorDetail": "...",
+    "UserName": "..."
   }
 }
 ```
@@ -134,4 +132,4 @@ del driver); no he abierto el documento real para confirmarlo.
 
 Kafka no necesita cambios (el productor serializa el tipo concreto), pero el consumidor de `Query` sí: un `case` en
 `EventConverter`, un `On` en `IEventHandler`/`EventHandler` y su proyección. Un **agregado** nuevo necesita además
-su valor en `eAggregateType` (mismo nombre que la clase) y su registro en DI.
+su valor en `eAggregateType` (que su constructor pasa al de `AggregateRoot`) y su registro en DI.

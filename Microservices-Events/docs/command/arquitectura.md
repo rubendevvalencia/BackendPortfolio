@@ -62,12 +62,8 @@ flowchart LR
 - **Regla de dependencia:** `Api` → `Application` → `Domain` ← `Infrastructure`. Nada en `Domain` conoce MongoDB.
 - **Una transacción por petición:** `UnitOfWork` abre la sesión y la deja en `MongoSessionContext` (`Scoped`); los
   repositorios la leen de ahí, así que `Application` no pasa ninguna sesión.
-- **Dos niveles de concurrencia:** `EventStore` compara la versión esperada y el índice único rechaza dos eventos
-  con el mismo (agregado, versión).
-- **Kafka:** `EventStore` envía cada evento justo después de insertarlo y antes del `Commit`; no comparten
-  transacción (ver [*Cuándo se publica*](../mensajeria-kafka.md#cuándo-se-publica)).
-- **Pipeline de MediatR:** antes del handler pasan `ValidationBehaviour` y `LoggingBehaviour`; los fallos de
-  validación los recoge `GlobalExceptionHandler`.
+- **Concurrencia y Kafka:** ver [*Event store*](event-store.md#control-de-concurrencia) y
+  [*Cuándo se publica*](../mensajeria-kafka.md#cuándo-se-publica).
 
 ## Proyectos y dependencias
 
@@ -77,7 +73,7 @@ flowchart LR
 | `Application` | Command + handler (MediatR), validador (FluentValidation), behaviours, `ValidationExceptionCustom`, `IValidatableRequest`, `EventSourcingHandler<T>` | `Domain`, `Common` | MediatR 14.2.0, FluentValidation 12.2.0 |
 | `Domain` | Agregados y sus servicios, `EventModel`, enums, excepciones y **puertos** | `Common` | — |
 | `Infrastructure` | **Adaptadores**: MongoDB (contexto, sesión, UoW, repositorio, `EventStore`, mapeos BSON, índices) y `TicketEventProducer` | `Domain` | MongoDB.Driver 3.12.0; `Confluent.Kafka` llega transitivo |
-| `UnitTest` | Tests unitarios (ver [*Tests*](#tests)) | `Api`, `Application`, `Domain` | xUnit 2.9.3, coverlet |
+| `UnitTest` | Tests unitarios (ver [*Tests*](#tests)) | `Api`, `Application`, `Domain` | xUnit 2.9.3, NSubstitute 6.2.0, coverlet |
 
 `Api` referencia `Infrastructure` solo para `AddInfrastructureServices` y `EnsureMongoIndexesAsync` en
 `Program.cs`. `IMongoSessionContext` e `IMongoBaseRepository<T>` son internas de `Infrastructure`, no puertos.
@@ -140,7 +136,7 @@ es `Scoped`.
    cada evento en un `EventModel` numerado; **`EventModelRepository.AddAsync`** lo inserta con la sesión (el índice
    único también acaba en `ConcurrencyException`). Justo después, **`IEventProducer.ProduceAsync`** lo envía a
    Kafka y espera la confirmación. Detalle en [*Event store*](event-store.md#guardar-eventos).
-8. **`CommitTransactionAsync`** confirma; el handler marca los cambios como confirmados y cierra la sesión.
+8. **`CommitTransactionAsync`** confirma y el handler marca los cambios como confirmados.
 9. Si falla cualquier paso del 6 al 8 (Kafka incluido), el handler hace **`RollbackAsync`** y **relanza**. Lo ya
    enviado a Kafka no se deshace.
 10. El handler devuelve `Response<string>.Success(ticket.Id)`; `LoggingBehaviour` lo registra y el controller
@@ -186,7 +182,7 @@ leen la sesión del contexto: operan dentro de la transacción si hay una, y sin
 | `CommitTransactionAsync` | `InvalidOperationException` | Confirma |
 | `RollbackAsync` / `Dispose` | No hace nada | Aborta / libera y deja `Current = null` |
 
-`UnitOfWork` es `IDisposable`: el contenedor lo libera al terminar la petición; liberarlo dos veces es inocuo.
+`UnitOfWork` es `IDisposable`: lo libera el contenedor al terminar la petición, no los casos de uso.
 
 ## Contrato de respuesta
 
@@ -214,13 +210,15 @@ Por segmento de URL (`api/v{version}/...`) con `Asp.Versioning`: `DefaultApiVers
 
 ## Tests
 
-`Ticketing.Command.UnitTest` (xUnit, `[Theory]` con datos reales):
+`Ticketing.Command.UnitTest` (xUnit y NSubstitute para los puertos, `[Theory]` con datos reales):
 
 | Clase | Qué comprueba |
 |---|---|
 | `GlobalExceptionHandlerTests` | Sin excepción respeta el estado y no escribe cuerpo. `ValidationExceptionCustom`: 400, JSON, `ErrorType.Validation` y errores agrupados por propiedad. Otra excepción: 500, JSON, `ErrorType.Unexpected` y **sin filtrar** mensaje ni tipo |
 | `TicketCreateValidatorTests` | Datos válidos; un campo inválido falla solo en su propiedad; todos vacíos reportan las tres |
-| `TicketAggregateServiceTests` | `Create` da un ticket activo en v1 con un `TicketCreatedEvent` con los datos recibidos; id = id del evento y GUID v7; ids distintos entre llamadas; reproducir los eventos reconstruye el ticket; `OcurredAt` en UTC; `ErrorDetail` nulo se conserva |
+| `TicketAggregateServiceTests` | `Create` da un ticket activo en v1 con un `TicketCreatedEvent` con los datos recibidos; id = id del evento y GUID v7; ids distintos entre llamadas; reproducir los eventos reconstruye el ticket; `OcurredAt` en UTC; `ErrorDetail` nulo se conserva; `OcurredBy` y `UserName` llevan el usuario recibido |
+| `EventSourcingHandlerTests` | `SaveAsync` entrega al almacén id, tipo de agregado, cambios y versión esperada, y propaga `ConcurrencyException` y la cancelación. `GetByIdAsync` devuelve lo que reconstruye el servicio |
+| `TicketCreateCommandHandlerTests` | Devuelve `Success` con el id y guarda un ticket con los datos del comando; abre, guarda y confirma. Si falla el guardado o el *commit* hace `Rollback` y relanza; con el token cancelado no guarda nada |
 
 Sin tests de los behaviours ni de `Infrastructure`; `Ticketing.Query.UnitTest` solo tiene el test vacío de la
 plantilla.
