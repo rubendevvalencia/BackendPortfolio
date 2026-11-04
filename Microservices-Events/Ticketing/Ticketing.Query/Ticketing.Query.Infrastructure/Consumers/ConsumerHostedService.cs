@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +12,18 @@ namespace Ticketing.Query.Infrastructure.Consumers
 {
     public class ConsumerHostedService : IHostedService
     {
+        //Opciones de lectura del JSON, creadas una sola vez: System.Text.Json cachea los metadatos por instancia de opciones
+        //EventConverter lee el campo Type para saber qué clase de evento crear; JsonStringEnumConverter acepta el enum como número o como texto
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters =
+            {
+                new EventConverter(),
+                new JsonStringEnumConverter()
+            }
+        };
+
         private readonly ConsumerConfig _config;
         private readonly ILogger<ConsumerHostedService> _logger;
         private readonly IServiceProvider _serviceProvider;
@@ -27,14 +40,21 @@ namespace Ticketing.Query.Infrastructure.Consumers
         }
 
 
-        //Consume() bloquea el hilo: el bucle se lanza en un hilo del pool y StartAsync vuelve enseguida para que el host termine de arrancar
+        //Consume() bloquea el hilo que lo llama: si el bucle corriera aquí, StartAsync no volvería nunca y el host no terminaría de arrancar
+        //Por eso el bucle se lanza en otro hilo del pool con Task.Run y StartAsync vuelve enseguida
+        //StartAsync no se conecta a Kafka: solo prepara el interruptor de parada y lanza el bucle. La conexión ocurre dentro de ConsumeAsync
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            //Interruptor propio del servicio: StopAsync lo activa (Cancel) para pedirle al bucle que pare
             _stoppingSource = new CancellationTokenSource();
+            //Token que ve el bucle; se cancela cuando StopAsync llama a Cancel
             CancellationToken stoppingToken = _stoppingSource.Token;
 
+            //Ese hilo del pool queda ocupado mientras la app viva; con un solo consumer es un coste aceptable
+            //Se guarda la tarea para que StopAsync pueda esperar a que el bucle termine y cierre el consumer
             _consuming = Task.Run(() => ConsumeAsync(stoppingToken));
 
+            //Devuelve ya, sin esperar al bucle: así el host sigue arrancando y la API HTTP queda disponible
             return Task.CompletedTask;
         }
 
@@ -68,25 +88,22 @@ namespace Ticketing.Query.Infrastructure.Consumers
             try
             {
                 //Bucle: lee un mensaje, lo procesa y confirma; después pasa al siguiente hasta que StopAsync pida parar
+                //Es un único hilo y es secuencial: no hay dos mensajes procesándose a la vez en esta instancia
                 while(!stoppingToken.IsCancellationRequested)
                 {
-                    //Consume() bloquea hasta que llega un mensaje; con el token lanza OperationCanceledException al parar
+                    //Consume() bloquea solo este hilo del pool hasta que llega un mensaje; las peticiones HTTP de la API se atienden en otros hilos
+                    //Con el token lanza OperationCanceledException al parar
                     var consumerResult = consumer.Consume(stoppingToken);
                     if(consumerResult is null) continue;
                     if(consumerResult.Message is null) continue;
 
-                    //El converter lee el campo Type del JSON para saber qué clase de evento crear
-                    var options = new JsonSerializerOptions
-                    {
-                        Converters = {new EventConverter()}
-                    };
-
                     //Convierte el JSON en un evento concreto (TicketCreatedEvent, TicketUpdatedEvent...) usando EventBase como tipo común
-                    var @event = JsonSerializer.Deserialize<EventBase>(consumerResult.Message.Value, options);
+                    var @event = JsonSerializer.Deserialize<EventBase>(consumerResult.Message.Value, _jsonOptions);
 
                     if(@event is null) throw new ArgumentNullException(nameof(@event), "No se pudo procesar el json parser");
 
                     //El servicio es singleton y el handler usa servicios scoped (MediatR, DbContext): se crea un scope por mensaje
+                    //Así cada mensaje tiene su propio DbContext y nunca se comparte uno entre hilos
                     using IServiceScope scope = _serviceProvider.CreateScope();
                     var eventHandler = scope.ServiceProvider.GetRequiredService<IEventHandler>();
 

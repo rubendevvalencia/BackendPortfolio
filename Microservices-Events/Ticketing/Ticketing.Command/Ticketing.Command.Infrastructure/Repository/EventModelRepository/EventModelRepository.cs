@@ -2,7 +2,6 @@ using MongoDB.Driver;
 using Ticketing.Command.Domain.Entities.EventModels;
 using Ticketing.Command.Domain.Exceptions;
 using Ticketing.Command.Domain.Interfaces.Events;
-using Ticketing.Command.Infrastructure.Data;
 using Ticketing.Command.Infrastructure.Interface;
 
 namespace Ticketing.Command.Infrastructure.Repository.EventModelRepository
@@ -12,9 +11,9 @@ namespace Ticketing.Command.Infrastructure.Repository.EventModelRepository
         private readonly IMongoCollection<EventModel> _collection;
         private readonly IMongoSessionContext _sessionContext;
 
-        public EventModelRepository(MongoDbContext dbContext, IMongoSessionContext sessionContext)
+        public EventModelRepository(IMongoCollection<EventModel> collection, IMongoSessionContext sessionContext)
         {
-            _collection = dbContext.GetCollection<EventModel>();
+            _collection = collection;
             _sessionContext = sessionContext;
         }
 

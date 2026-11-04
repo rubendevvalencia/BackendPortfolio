@@ -1,3 +1,4 @@
+using Ticketing.Query.Api.Modules.Versioning;
 using Ticketing.Query.Infrastructure;
 using Ticketing.Query.Application;
 using Ticketing.Query.Infrastructure.Data;
@@ -17,6 +18,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
+builder.Services.AddVersioning();
 
 
 var app = builder.Build();

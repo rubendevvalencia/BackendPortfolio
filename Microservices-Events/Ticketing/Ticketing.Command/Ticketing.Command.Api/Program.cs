@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Ticketing.Command.Api.Modules.MiddlewareAndExceptions.Middleware;
 using Ticketing.Command.Api.Modules.Versioning;
 using Ticketing.Command.Application;
 using Ticketing.Command.Infrastructure;
@@ -7,7 +8,7 @@ using Ticketing.Command.Infrastructure.Mapping;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddMiddleWareService();
 builder.Services.AddControllers();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -17,7 +18,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
-
+app.UseMiddlewares();
 //Crea los índices de Mongo (idempotente); sin el índice único de versión no hay control de concurrencia real
 await app.Services.EnsureMongoIndexesAsync();
 
