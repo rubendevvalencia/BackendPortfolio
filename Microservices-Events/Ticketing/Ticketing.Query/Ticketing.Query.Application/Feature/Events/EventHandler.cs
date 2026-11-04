@@ -36,7 +36,7 @@ namespace Ticketing.Query.Application.Feature.Events
             var command = new TicketUpdatedCommand()
             {
                 Id = @event.Id,
-                UserName = @event.Username,
+                UserName = @event.UserName,
                 Type = @event.Type,
                 DetailError = @event.DetailError
 

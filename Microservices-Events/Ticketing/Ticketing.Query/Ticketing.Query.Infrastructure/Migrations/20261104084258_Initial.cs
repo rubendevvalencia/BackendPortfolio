@@ -16,7 +16,8 @@ namespace Ticketing.Query.Infrastructure.Migrations
                 name: "employees",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FirstName = table.Column<string>(type: "text", nullable: true),
                     LastName = table.Column<string>(type: "text", nullable: true),
                     Email = table.Column<string>(type: "text", nullable: true),
@@ -37,25 +38,14 @@ namespace Ticketing.Query.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ticket_types",
+                name: "tickets",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ticket_types", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "tickets",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    TicketTypeId = table.Column<int>(type: "integer", nullable: false),
+                    TicketTypeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    TicketType = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
                     LastUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -67,20 +57,14 @@ namespace Ticketing.Query.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_tickets", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_tickets_ticket_types_TicketTypeId",
-                        column: x => x.TicketTypeId,
-                        principalTable: "ticket_types",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "ticket_employees",
                 columns: table => new
                 {
-                    EmployeesId = table.Column<Guid>(type: "uuid", nullable: false),
-                    TicketsId = table.Column<Guid>(type: "uuid", nullable: false)
+                    EmployeesId = table.Column<int>(type: "integer", nullable: false),
+                    TicketsId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -103,11 +87,6 @@ namespace Ticketing.Query.Infrastructure.Migrations
                 name: "IX_ticket_employees_TicketsId",
                 table: "ticket_employees",
                 column: "TicketsId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_tickets_TicketTypeId",
-                table: "tickets",
-                column: "TicketTypeId");
         }
 
         /// <inheritdoc />
@@ -121,9 +100,6 @@ namespace Ticketing.Query.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "tickets");
-
-            migrationBuilder.DropTable(
-                name: "ticket_types");
         }
     }
 }

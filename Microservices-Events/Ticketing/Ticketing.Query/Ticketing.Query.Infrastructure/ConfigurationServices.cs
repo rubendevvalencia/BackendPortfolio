@@ -32,6 +32,7 @@ namespace Ticketing.Query.Infrastructure
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<ITicketsRepository, TicketsRepository>();
 
             services.AddHostedService<ConsumerHostedService>();
 
